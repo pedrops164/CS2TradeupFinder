@@ -1,4 +1,4 @@
-from solver_entities import *
+#from solver_entities import *
 import time  # Import the time module to access time functions
 import requests  # Import the requests library to handle HTTP requests
 
@@ -40,6 +40,7 @@ def updateSkinPrice(skin):
             print(f"Updated skin {skin_name}'s price to {lowest_price}")
 
 def makeRequest(is_StatTrak, skin_name, skin_condition):
+    print(f"Making request: {skin_name}, {skin_condition}, {is_StatTrak}")
     global last_request_time  # Declare the variable as global to modify it
     statTrak = "StatTrak%E2%84%A2 " if is_StatTrak else ""
 
@@ -93,8 +94,8 @@ def makeRequest(is_StatTrak, skin_name, skin_condition):
     # Return Not Available if all retries are exhausted
     return "N/A"
 
-if __name__ == '__main__':
-    skin_input1 = Skin("SCAR-20 | Jungle Slipstream", 0, 0.5)
-    updateSkinPrice(skin_input1)
-    prices = list(skin_input1.prices.values())
-    print(prices)
+# if __name__ == '__main__':
+#     skin_input1 = Skin("SCAR-20 | Jungle Slipstream", 0, 0.5)
+#     updateSkinPrice(skin_input1)
+#     prices = list(skin_input1.prices.values())
+#     print(prices)

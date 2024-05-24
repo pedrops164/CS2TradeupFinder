@@ -3,11 +3,13 @@ from steamapi import updateSkinPrice
 
 base_floats = [0, 0.07, 0.15, 0.37, 0.45]
 class Skin:
-    def __init__(self, name, min_float, max_float, prices=None, stattrak=True):
+    def __init__(self, name, min_float, max_float, prices=None, stattrak=True, collection_name=None, quality=None):
         self.name = name
         self.min_float = min_float
         self.max_float = max_float
-        self.stattrak = stattrak
+        self.stattrak = stattrak # Boolean that indicates if skin is stattrak or not
+        self.collection_name = collection_name # Collection that the skin belongs to. For example: Bank
+        self.quality = quality # quality of the skin. For example: Milspec
         # prices is a dict where key is the condition and value is the price
         self.prices = {"Factory New": None, "Minimal Wear": None, "Field-Tested": None, "Well-Worn": None, "Battle-Scarred": None}
         if prices:
@@ -66,10 +68,22 @@ class Skin:
                 if start >= float_interval[0] and end <= float_interval[1] and condition not in available_conditions:
                     available_conditions.append(condition)
                     prices.append(self.prices.get(condition))
-        return prices
-
-
-
+        return prices, available_conditions
+    
+    @staticmethod
+    def get_available_conditions(min_float, max_float):
+        condition_names = {
+            (0, 0.07): 'Factory New',
+            (0.07, 0.15): 'Minimal Wear',
+            (0.15, 0.37): 'Field-Tested',
+            (0.37, 0.45): 'Well-Worn',
+            (0.45, 1): 'Battle-Scarred'
+        }
+        available_conditions = []
+        for (start, end), condition in condition_names.items():
+            if min_float < end and max_float > start:
+                available_conditions.append(condition)
+        return available_conditions
 
 class Collection:
     def __init__(self, name):
@@ -100,7 +114,6 @@ class TradeUpPool:
                 updateSkinPrice(input_skin)
             for output_skin in collection.output_skins:
                 updateSkinPrice(output_skin)
-
 
 class InputSkins:
     def __init__(self):
