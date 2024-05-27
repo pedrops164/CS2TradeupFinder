@@ -59,6 +59,25 @@ def create_database():
     connection.commit()
     connection.close()
 
+def create_skin(skin):
+    # retrieve the available conditions from the skin
+    _, available_conditions = skin.get_prices()
+
+    connection = sqlite3.connect(db_name)
+    cursor = connection.cursor()
+
+    # skin must have a collection name
+    assert skin.collection_name != None
+    # Get collection, or create it not stored in db
+    collection_id = get_or_create_collection(connection, cursor, skin.collection_name)
+
+    # Get skin, or create it if not stored in db
+    skin_id = get_or_create_skin(connection, cursor, skin, collection_id)
+
+    # list of prices to return
+    for condition in available_conditions:
+        # Create skin_condition it if not stored in db
+        get_or_create_skin_condition(connection, cursor, skin_id, condition)
 
 def get_or_create_collection(connection, cursor, collection_name):
     # Try to find the collection by name
@@ -217,17 +236,16 @@ def make_price_request(is_StatTrak, skin_name, skin_condition, proxy=None):
                         return float(price_str)
                     else:
                         raise ValueError("Price string is empty after cleaning.")
-            else:
-                print(f"Failed to retrieve data: {response.status_code}")
-        except requests.RequestException as e:
-            if isinstance(e, requests.exceptions.ProxyError) or (response and response.status_code == 429):
-                print(f"Error: {e}. Waiting for {wait_time} seconds before retrying...")
+            elif response.status_code == 429:
+                logger.info(f"Waiting for {wait_time} seconds before retrying...")
                 time.sleep(wait_time)
                 wait_time *= 2  # Exponential backoff
                 retries += 1
             else:
-                print(f"Failed: {e}")
-                break
+                logger.error(f"Failed to retrieve data: {response.status_code}")
+        except requests.RequestException as e:
+            print(f"Failed: {e}")
+            logger.error(f"Failed: {e}")
 
     # Return Not Available if all retries are exhausted
     return None
