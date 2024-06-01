@@ -1,6 +1,3 @@
-# Steam API KEY: 7KG6F1NR55RYTH80
-from steamapi import updateSkinPrice
-
 base_floats = [0, 0.07, 0.15, 0.37, 0.45]
 class Skin:
     def __init__(self, name, min_float, max_float, prices=None, stattrak=True, collection_name=None, quality=None):
@@ -107,13 +104,6 @@ class TradeUpPool:
 
     def get_collection(self, name):
         return self.collections.get(name, None)
-    
-    def updateAllPrices(self):
-        for collection in self.collections:
-            for input_skin in collection.input_skins:
-                updateSkinPrice(input_skin)
-            for output_skin in collection.output_skins:
-                updateSkinPrice(output_skin)
 
 class InputSkins:
     def __init__(self):

@@ -21,7 +21,7 @@ import logging
 # Configure logging
 logging.basicConfig(level=logging.INFO,
                     handlers=[
-                        logging.FileHandler("debug.log", mode='w'),
+                        logging.FileHandler("logs/debug.log", mode='w'),
                         logging.StreamHandler()
                     ],
                     format='%(asctime)s - %(threadName)s - %(levelname)s - %(message)s')
