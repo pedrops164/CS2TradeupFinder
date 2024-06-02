@@ -15,29 +15,32 @@ class Skin:
             self.prices['Field-Tested'] = prices.get('Field-Tested')
             self.prices['Well-Worn'] = prices.get('Well-Worn')
             self.prices['Battle-Scarred'] = prices.get('Battle-Scarred')
-        self.valid_floats = [f for f in base_floats if self.min_float <= f <= self.max_float]
-        # Ensure that the list starts with the skin's min_float if it's not already included
-        if self.valid_floats[0] != self.min_float:
-            self.valid_floats.insert(0, self.min_float)
-        if self.valid_floats[-1] == self.max_float:
-            self.valid_floats.pop()
+        # self.valid_floats = [f for f in base_floats if self.min_float <= f <= self.max_float]
+        # # Ensure that the list starts with the skin's min_float if it's not already included
+        # if self.valid_floats[0] != self.min_float:
+        #     self.valid_floats.insert(0, self.min_float)
+        # if self.valid_floats[-1] == self.max_float:
+        #     self.valid_floats.pop()
+        print(self.get_bounded_floats())
 
     def get_price(self, condition):
         return self.prices.get(condition, "N/A")
     
     def get_name(self):
         return self.name
-    
-    def get_floats(self):
-        return self.valid_floats
 
     def get_bounded_floats(self):
-        # Get the valid floats including boundaries for max float
-        valid_floats = self.get_floats()
+        # # Get the valid floats including boundaries for max float
+        # valid_floats = self.valid_floats
+        # # Create tuples representing bounded ranges
+        # bounded_floats = [(valid_floats[i], valid_floats[i + 1]) for i in range(len(valid_floats) - 1)]
+        # bounded_floats.append((valid_floats[-1], min(1, self.max_float)))
+        base_bounds = [(0, 0.07), (0.07, 0.15), (0.15, 0.37), (0.37, 0.45), (0.45, 1)]
+        bounded_floats = []
+        for (start, finish) in base_bounds:
+            if self.min_float < finish and self.max_float > start:
+                bounded_floats.append((max(self.min_float, start), min(self.max_float, finish)))
 
-        # Create tuples representing bounded ranges
-        bounded_floats = [(valid_floats[i], valid_floats[i + 1]) for i in range(len(valid_floats) - 1)]
-        bounded_floats.append((valid_floats[-1], min(1, self.max_float)))
         return bounded_floats
     
     def get_median_floats(self, ratio=0.5):

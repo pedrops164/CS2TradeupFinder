@@ -2,7 +2,7 @@ from db import create_database, update_skin_price, get_all_skins
 from solver_entities import Skin
 
 # module to deal with proxies
-from proxy import is_proxy_working
+from proxy.proxy import is_proxy_working
 # measure elapsed time
 import time
 
@@ -14,7 +14,7 @@ from queue import Queue
 from threading import Lock, Event
 
 # import valid proxies
-from proxy import get_valid_proxies
+from proxy.proxy import get_valid_proxies
 
 # implement logging to file
 import logging
