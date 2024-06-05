@@ -10,7 +10,7 @@ from db import update_weapon_paint_price, db_name
 # configure logging
 logging.basicConfig(level=logging.INFO,
                     handlers=[
-                        logging.FileHandler("logs/scrape100.log", mode='w'),
+                        logging.FileHandler("logs/scrape100.log", mode='w', encoding="utf-8"),
                         logging.StreamHandler()
                     ],
                     format='%(asctime)s - %(threadName)s - %(levelname)s - %(message)s')
@@ -71,15 +71,14 @@ def fetch_json(start):
 This function appends all the skins in the market to the text file
 """
 def append_all_skins():
-    # start=2770 # index where non knives skins start, sorted by name
-    start=10070 # index where non knives skins start, sorted by name
+    start=2750 # index where non knives skins start, sorted by name
     while start < total_skin_count:
         skin_dict_array = fetch_json(start)
         if skin_dict_array:
             for skin_dict in skin_dict_array:
                 filtered_dict = {k:skin_dict[k] for k in important_keys}
                 append_skin(output_file, filtered_dict)
-            start += page_size
+            start += page_size * 0.95 # we multiply by 0.95 to account for listings that appear or disappear, and that could compromise some skins
         else:
             # request failed after retries
             return
@@ -101,24 +100,27 @@ def filter_skins():# Array of possible weapon names
 
     # Join the weapon names with '|' to form the pattern part
     weapon_names_pattern = '|'.join(map(re.escape, weapon_names))
-    pattern = re.compile(rf'^(StatTrak™ )?({weapon_names_pattern}) \| .+ \((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)$')
+    pattern = re.compile(rf'^(StatTrak™ )?({weapon_names_pattern}) \| .+ \((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)$',
+                         re.UNICODE)
     
-    file = open('scrape100_output.txt', 'r')
+    file = open('scrape100_output.txt', 'r', encoding='utf-8')
     lines = file.readlines()
     filtered_dicts = []
     for line in lines:
         skin_dict = json.loads(line)
         match = pattern.match(skin_dict['name'])
+        number_of_listings = skin_dict['sell_listings']
+        # we filter out the skins that have less than 5 listings
         if match:
             stattrak = bool(match.group(1))
-            full_skin_name = match.group(2) + " | " + match.group(0).split(" | ")[1].split(" (")[0]
+            full_skin_name = match.group(2) + " | " + match.group(0).split(" | ")[1].rsplit(" (", 1)[0]
             condition = match.group(3)
             filtered_dicts.append({
                 "is_stattrak": stattrak,
                 "weapon_paint": full_skin_name,
                 "condition": condition,
                 "price": float(skin_dict['sell_price_text'].replace(",", "").replace("$", "").strip()),
-                "sell_listings": skin_dict['sell_listings'],
+                "sell_listings": number_of_listings,
             })
     return filtered_dicts
 
@@ -127,8 +129,13 @@ if __name__ == '__main__':
     connection = sqlite3.connect(db_name)
     filtered_dicts = filter_skins()
     for dict_skin in filtered_dicts:
-        append_skin('teste.txt', dict_skin)
-        update_weapon_paint_price(dict_skin['is_stattrak'], dict_skin['weapon_paint'], dict_skin['condition'], dict_skin['price'], connection)
+        number_of_listings = dict_skin['sell_listings']
+        # we only update the price of the skin in the database, if it has more than 5 listings to ensure reliability of the prices
+        if number_of_listings >= 5:
+            append_skin('teste.txt', dict_skin)
+            update_weapon_paint_price(dict_skin['is_stattrak'], dict_skin['weapon_paint'], dict_skin['condition'], dict_skin['price'], connection)
+        else:
+            logging.info(f"{dict_skin['weapon_paint']}|{dict_skin['condition']}|{dict_skin['is_stattrak']} has less than 5 listings. Price not updated")
 
     connection.commit()
     connection.close()

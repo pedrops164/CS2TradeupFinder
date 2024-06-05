@@ -1,6 +1,7 @@
 import sqlite3
 import datetime
 import logging
+import pandas as pd
 
 db_name = "skins.db"
 
@@ -21,6 +22,9 @@ logger = logging.getLogger(__name__)
 # -------------------- DATABASE INSERTIONS / CREATES -------------------- #
 
 def create_database():
+    """
+    Creates the sqlite database, and creates the tables
+    """
     connection = sqlite3.connect(db_name)
     cursor = connection.cursor()
     
@@ -130,11 +134,11 @@ def get_or_create_skin_condition(connection, cursor, skin_id, condition):
 
 # -------------------- FETCH PRICES -------------------- #
 
-"""
-Returns a list of the prices of a skin
-If the price of some of the skins isn't available, it returns None for those skins
-"""
 def get_skin_prices(skin):
+    """
+    Returns a list of the prices of a skin
+    If the price of some of the skins isn't available, it returns None for those skins
+    """
     # retrieve the available conditions from the skin
     _, available_conditions = skin.get_prices()
     # update the price of the skin for each of its available conditions
@@ -197,13 +201,13 @@ def get_all_skins():
 
 # -------------------- UPDATE PRICES -------------------- #
 
-"""
-This function receives information about a skin (stattrak, skin name, and condition),
-and sends an http request to steam to fetch the price of the skin.
-
-Returns None if the price request couldnt be done
-"""
 def make_price_request(is_StatTrak, skin_name, skin_condition, proxy=None):
+    """
+    This function receives information about a skin (stattrak, skin name, and condition),
+    and sends an http request to steam to fetch the price of the skin.
+
+    Returns None if the price request couldnt be done
+    """
     print(f"Making request: {skin_name}, {skin_condition}, {is_StatTrak}")
     statTrak = "StatTrak%E2%84%A2 " if is_StatTrak else ""
 
@@ -249,14 +253,15 @@ def make_price_request(is_StatTrak, skin_name, skin_condition, proxy=None):
     # Return Not Available if all retries are exhausted
     return None
 
-"""
-Updates the price of a Skin object
-Receives the skin, and optionally a proxy to use on the http request
-Updates the price for every available condition of the skin
 
-Returns a boolean representing if the update went fine or not
-"""
 def update_skin_price(skin_dict, proxy=None):
+    """
+    Updates the price of a Skin object
+    Receives the skin, and optionally a proxy to use on the http request
+    Updates the price for every available condition of the skin
+
+    Returns a boolean representing if the update went fine or not
+    """
     # retrive values inside skin_dict
     min_float = skin_dict["min_float"]
     max_float = skin_dict["max_float"]
@@ -330,7 +335,18 @@ def update_skin_condition_price(skin_dict: dict, condition: str, proxy=None):
     connection.close()
     return returned_price
 
+
 def update_weapon_paint_price(is_stattrak: bool, weapon_paint: str, condition: str, price: float, connection=None):
+    """
+    Updates the price of a skin in the sqlite database
+
+    Args:
+        is_stattrak (bool): Indicates whether the skin is stattrak or not
+        weapon_paint (str): the name of the string. For example "AK-47 | Red Laminate"
+        condition (str): The condition of the skin. For example "Minimal Wear"
+        price (float): The price of the skin
+        connection: Connection to the sqlite database
+    """
     # instantiate the cursor to query the db
     cursor = connection.cursor()
 
@@ -346,4 +362,24 @@ def update_weapon_paint_price(is_stattrak: bool, weapon_paint: str, condition: s
         WHERE stattrak = ? AND name = ?
     ) AND condition = ?;"""
     cursor.execute(query, (price, timestamp, is_stattrak, weapon_paint, condition))
-    logger.info("Updated weapon paint price")
+
+def get_tradeup_dataframe():
+    """
+    Gets the skins whose price is not null, and groups by collection id
+
+    Returns:
+        pandas.Dataframe: The Dataframe with the grouped collections
+    """
+    connection = sqlite3.connect(db_name)
+    query = \
+    """
+    SELECT *
+    FROM skins s
+        JOIN skin_conditions sc
+        ON s.id = sc.skin_id
+    WHERE sc.price IS NOT NULL AND sc.timestamp IS NOT NULL
+    ORDER BY s.collection_id
+    """
+    # Fetch data into a pandas DataFrame
+    df = pd.read_sql_query(query, connection)
+    return df
