@@ -215,9 +215,9 @@ def make_price_request(is_StatTrak, skin_name, skin_condition, proxy=None):
     """
     url = f"http://steamcommunity.com/market/priceoverview/?appid=730&currency=3&market_hash_name={statTrak}{skin_name} ({skin_condition})"
     retries = 0
-    initial_wait = 1
+    initial_wait = 2
     wait_time = initial_wait
-    max_retries = 8
+    max_retries = 12
 
     while retries < max_retries:
         try:
@@ -239,12 +239,11 @@ def make_price_request(is_StatTrak, skin_name, skin_condition, proxy=None):
             elif response.status_code == 429:
                 logger.info(f"Waiting for {wait_time} seconds before retrying...")
                 time.sleep(wait_time)
-                wait_time *= 2  # Exponential backoff
+                wait_time *= 3  # Exponential backoff
                 retries += 1
             else:
                 logger.error(f"Failed to retrieve data: {response.status_code}")
         except requests.RequestException as e:
-            print(f"Failed: {e}")
             logger.error(f"Failed: {e}")
 
     # Return Not Available if all retries are exhausted
@@ -299,21 +298,33 @@ def update_skin_condition_price(skin_dict, condition, proxy=None):
     result = cursor.fetchone()
 
     if result:
+        last_price, last_update_timestamp = result
         current_time = datetime.datetime.now()
-        new_price = make_price_request(stattrak, skin_name, condition, proxy)
-        if new_price:
-            cursor.execute('''
-                           UPDATE skin_conditions
-                            SET price=?, timestamp=?
-                            WHERE id = ?''', (new_price, current_time, skin_condition_id))
-            connection.commit()
-            logger.info(f"new price: {new_price:.2f}")
-            returned_price = new_price
+        if last_update_timestamp and last_price:
+            last_update_time = datetime.datetime.strptime(last_update_timestamp, "%Y-%m-%d %H:%M:%S.%f")
+            time_diff = current_time - last_update_time
+
+            # Check if the last update was less than 24 hours ago
+            #if time_diff < datetime.timedelta(hours=24):
+            #    logger.info("Last update was less than 24 hours ago. Skipping update.")
+            #    returned_price = last_price
+            logger.info("Skipping update.")
+            returned_price = last_price
         else:
-            print("Price returned from make_price_request was None")
+            new_price = make_price_request(stattrak, skin_name, condition, proxy)
+            if new_price:
+                cursor.execute('''
+                               UPDATE skin_conditions
+                                SET price=?, timestamp=?
+                                WHERE id = ?''', (new_price, current_time, skin_condition_id))
+                connection.commit()
+                logger.info(f"new price: {new_price:.2f}")
+                returned_price = new_price
+            else:
+                logger.error("Price returned from make_price_request was None")
     else:
         # there isn't a skin_condition with id=skin_condition_id
-        print("skin condition doesn't exist. Something went wrong")
+        logger.error("skin condition doesn't exist. Something went wrong")
         returned_price = None
 
     connection.close()

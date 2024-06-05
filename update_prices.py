@@ -66,11 +66,12 @@ def worker_thread(task_queue, proxy=None):
                     update_percentage = (total_skins_updated / total_skins) * 100
                     if update_percentage >= update_percentage_threshold:
                         update_percentage_threshold += update_percentage_jumps
+                        print(f"Progress: {update_percentage:.2f}%, skins updated={total_skins_updated}")
                         logging.info(f"Progress: {update_percentage:.2f}%, skins updated={total_skins_updated}")
             else:
                 # update didn't go fine, so we stop
-                logging.warning("Stopping worker thread")
-                return
+                logging.warning("Couldn't update at least one of the skin conditions")
+                break
     logging.info("Worker thread finished")
 
 """
@@ -93,7 +94,7 @@ def launch_workers(proxies):
     total_skins = len(skins)
 
     # chunk size represents the amount of skins each thread will process at a time
-    chunk_size = len(skins) // (n_workers)
+    chunk_size = len(skins) // ((n_workers) * 5)
 
     # define the queue that holds the tasks (a task is simply a list of skins to be updated)
     task_queue = Queue()
@@ -125,6 +126,7 @@ def launch_workers(proxies):
 if __name__ == '__main__':
     create_database()
     proxies = get_valid_proxies()
+    print(len(proxies))
     start = time.time()
     try:
         launch_workers(proxies)
