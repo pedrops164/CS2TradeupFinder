@@ -4,6 +4,8 @@ import json
 import os
 import time
 import re
+import sqlite3
+from db import update_weapon_paint_price, db_name
 
 # configure logging
 logging.basicConfig(level=logging.INFO,
@@ -93,7 +95,8 @@ def filter_skins():# Array of possible weapon names
         "CZ75-Auto", "Desert Eagle", "Dual Berettas", "Five-SeveN", "Glock-18", "P2000", "P250", "R8 Revolver", "Tec-9", "USP-S", # Pistols
         "AK-47", "AUG", "AWP", "FAMAS", "G3SG1", "Galil AR", "M4A1-S", "M4A4", "SCAR-20", "SG 553", "SSG 08", # Rifles
         "MAC-10", "MP5-SD", "MP7", "MP9", "PP-Bizon", "P90", "UMP-45", # SMGs
-        "MAG-7", "Nova", "Sawed-Off", "XM1014", "M249", "Negev" # Heavy
+        "MAG-7", "Nova", "Sawed-Off", "XM1014", "M249", "Negev", # Heavy
+        "Zeus x27" # Special
     ]
 
     # Join the weapon names with '|' to form the pattern part
@@ -105,12 +108,27 @@ def filter_skins():# Array of possible weapon names
     filtered_dicts = []
     for line in lines:
         skin_dict = json.loads(line)
-        if pattern.match(skin_dict['name']):
-            filtered_dicts.append(skin_dict)
+        match = pattern.match(skin_dict['name'])
+        if match:
+            stattrak = bool(match.group(1))
+            full_skin_name = match.group(2) + " | " + match.group(0).split(" | ")[1].split(" (")[0]
+            condition = match.group(3)
+            filtered_dicts.append({
+                "is_stattrak": stattrak,
+                "weapon_paint": full_skin_name,
+                "condition": condition,
+                "price": float(skin_dict['sell_price_text'].replace(",", "").replace("$", "").strip()),
+                "sell_listings": skin_dict['sell_listings'],
+            })
     return filtered_dicts
 
 if __name__ == '__main__':
     #append_all_skins()
+    connection = sqlite3.connect(db_name)
     filtered_dicts = filter_skins()
     for dict_skin in filtered_dicts:
         append_skin('teste.txt', dict_skin)
+        update_weapon_paint_price(dict_skin['is_stattrak'], dict_skin['weapon_paint'], dict_skin['condition'], dict_skin['price'], connection)
+
+    connection.commit()
+    connection.close()

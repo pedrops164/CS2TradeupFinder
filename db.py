@@ -271,7 +271,7 @@ def update_skin_price(skin_dict, proxy=None):
             return False
     return True
 
-def update_skin_condition_price(skin_dict, condition, proxy=None):
+def update_skin_condition_price(skin_dict: dict, condition: str, proxy=None):
     """
     Condition can be:
     'Factory New'
@@ -329,3 +329,21 @@ def update_skin_condition_price(skin_dict, condition, proxy=None):
 
     connection.close()
     return returned_price
+
+def update_weapon_paint_price(is_stattrak: bool, weapon_paint: str, condition: str, price: float, connection=None):
+    # instantiate the cursor to query the db
+    cursor = connection.cursor()
+
+    # get current time
+    timestamp = datetime.datetime.now()
+
+    # define the query to update
+    query = """
+    UPDATE skin_conditions
+    SET price = ?, timestamp = ?
+    WHERE skin_id = (
+        SELECT id FROM skins
+        WHERE stattrak = ? AND name = ?
+    ) AND condition = ?;"""
+    cursor.execute(query, (price, timestamp, is_stattrak, weapon_paint, condition))
+    logger.info("Updated weapon paint price")
