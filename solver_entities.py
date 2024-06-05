@@ -1,4 +1,4 @@
-base_floats = [0, 0.07, 0.15, 0.37, 0.45]
+base_floats = [0, 0.07, 0.15, 0.38, 0.45]
 class Skin:
     def __init__(self, name, min_float, max_float, prices=None, stattrak=True, collection_name=None, quality=None):
         self.name = name
@@ -35,7 +35,7 @@ class Skin:
         # # Create tuples representing bounded ranges
         # bounded_floats = [(valid_floats[i], valid_floats[i + 1]) for i in range(len(valid_floats) - 1)]
         # bounded_floats.append((valid_floats[-1], min(1, self.max_float)))
-        base_bounds = [(0, 0.07), (0.07, 0.15), (0.15, 0.37), (0.37, 0.45), (0.45, 1)]
+        base_bounds = [(0, 0.07), (0.07, 0.15), (0.15, 0.38), (0.38, 0.45), (0.45, 1)]
         bounded_floats = []
         for (start, finish) in base_bounds:
             if self.min_float < finish and self.max_float > start:
@@ -56,8 +56,8 @@ class Skin:
         condition_names = {
         (0, 0.07): 'Factory New',
         (0.07, 0.15): 'Minimal Wear',
-        (0.15, 0.37): 'Field-Tested',
-        (0.37, 0.45): 'Well-Worn',
+        (0.15, 0.38): 'Field-Tested',
+        (0.38, 0.45): 'Well-Worn',
         (0.45, 1): 'Battle-Scarred'
         }
         available_conditions = []
@@ -75,8 +75,8 @@ class Skin:
         condition_names = {
             (0, 0.07): 'Factory New',
             (0.07, 0.15): 'Minimal Wear',
-            (0.15, 0.37): 'Field-Tested',
-            (0.37, 0.45): 'Well-Worn',
+            (0.15, 0.38): 'Field-Tested',
+            (0.38, 0.45): 'Well-Worn',
             (0.45, 1): 'Battle-Scarred'
         }
         available_conditions = []
