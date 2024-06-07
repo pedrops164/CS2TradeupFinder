@@ -15,13 +15,6 @@ class Skin:
             self.prices['Field-Tested'] = prices.get('Field-Tested')
             self.prices['Well-Worn'] = prices.get('Well-Worn')
             self.prices['Battle-Scarred'] = prices.get('Battle-Scarred')
-        # self.valid_floats = [f for f in base_floats if self.min_float <= f <= self.max_float]
-        # # Ensure that the list starts with the skin's min_float if it's not already included
-        # if self.valid_floats[0] != self.min_float:
-        #     self.valid_floats.insert(0, self.min_float)
-        # if self.valid_floats[-1] == self.max_float:
-        #     self.valid_floats.pop()
-        print(self.get_bounded_floats())
 
     def get_price(self, condition):
         return self.prices.get(condition, "N/A")
@@ -30,13 +23,10 @@ class Skin:
         return self.name
 
     def get_bounded_floats(self):
-        # # Get the valid floats including boundaries for max float
-        # valid_floats = self.valid_floats
-        # # Create tuples representing bounded ranges
-        # bounded_floats = [(valid_floats[i], valid_floats[i + 1]) for i in range(len(valid_floats) - 1)]
-        # bounded_floats.append((valid_floats[-1], min(1, self.max_float)))
+        # Create tuples representing bounded ranges
         base_bounds = [(0, 0.07), (0.07, 0.15), (0.15, 0.38), (0.38, 0.45), (0.45, 1)]
         bounded_floats = []
+        # create bounded floats taking into account skin's max and min floats
         for (start, finish) in base_bounds:
             if self.min_float < finish and self.max_float > start:
                 bounded_floats.append((max(self.min_float, start), min(self.max_float, finish)))
@@ -107,6 +97,18 @@ class TradeUpPool:
 
     def get_collection(self, name):
         return self.collections.get(name, None)
+    
+    def get_output_quality(input_rarity):
+        rarities = ["consumer_bg", "industrial_bg", "milspec_bg", "restricted_bg", "classified_bg", "covert_bg"]
+        if input_rarity not in rarities:
+            raise InvalidRarityException("Input rarity not defined")
+        
+        input_quality_index = rarities.index(input_rarity)
+        if input_quality_index == len(rarities) - 1:
+            raise InvalidRarityException("Input rarity doesn't have matching output rarity")
+        
+        return rarities[input_quality_index + 1]
+        
 
 class InputSkins:
     def __init__(self):
@@ -114,3 +116,8 @@ class InputSkins:
 
     def add_input_skin(self, var, costs, floats):
         self.input_skins.add((var, costs, floats))
+
+class InvalidRarityException(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)

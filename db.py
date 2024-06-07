@@ -382,4 +382,6 @@ def get_tradeup_dataframe():
     """
     # Fetch data into a pandas DataFrame
     df = pd.read_sql_query(query, connection)
-    return df
+    df_grouped = df.groupby('collection_id')
+    connection.close()
+    return df_grouped
