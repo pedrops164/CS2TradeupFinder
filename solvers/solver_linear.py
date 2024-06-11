@@ -67,9 +67,10 @@ def define_model_variables(model, trade_up_pool, collection_names_subset, ratio)
 def define_objective_rule(model):
     # we want to maximize profit percentage. So we want to maximize the avg output price divided by the input skins cost
     def new_objective_rule(model):
-        model.obj = model.average_output_price / model.input_skins_cost
-        return model.average_output_price / model.input_skins_cost
-        #return model.average_output_price
+        #model.obj = model.average_output_price / model.input_skins_cost
+        #return model.average_output_price / model.input_skins_cost
+        #return model.input_skins_cost
+        return model.average_output_price
 
     model.objective = Objective(rule=new_objective_rule, sense=maximize)
 
@@ -172,21 +173,46 @@ def add_total_ballots_constraint(model, collection_to_vars_dict):
 def add_avg_output_price_constraint(model, collection_dict, collection_to_vars_dict):
     def avg_output_price_rule(model):
         # skin prices for each collection. For example [skin_prices_collectionA, skin_prices_collectionB, ...]
-        estimated_output_price = 0
+        
+        # in the big M method, M is the upper bound of the continuous variable. In this case the range is [0,1], but it multiplies by
+        # the price, therefore the upper bound is the max price. We'll put M=3000 to make sure
+        big_M = 3000
+        z_variables = []
+        model.z_constraints = ConstraintList()
         for (collection_name, collection) in list(collection_dict.items()):
             (_, output_skins) = collection
             (_, collection_probs_var) = collection_to_vars_dict[collection_name]
             for skin in output_skins:
                 # each output_skin is a tuple (output_var, skin_name, skin_prices, skin_bounded_floats)
+                # we can index collection_probs_var by skin_name
+                # we multiply the price of the skin by its probability
                 output_var = skin[0] # output_var is at index 0
                 skin_name = skin[1] # skin_name is at index 1
                 prices_per_float = skin[2] # skin_prices is at index 2
-                sum_prices = sum(output_var[i] * prices_per_float[i] for i in output_var if prices_per_float[i] is not None) # get the skin price with the corresponding float
-                # we can index collection_probs_var by skin_name
-                # we multiply the price of the skin by its probability
-                estimated_output_price += collection_probs_var[skin_name] * sum_prices 
+                prob = collection_probs_var[skin_name] # continuous variable, range [0,1]
+                for i in output_var:
+                    if prices_per_float[i] is not None:
+                        """
+                        z = collection_probs_var[skin_name] * sum_prices   ->   Non Linear! Need to linearize!
+                        collection_probs_var is a continuous variable, range [0,1]
+                        sum_prices is a binary variable, {0,1}
+                        Linearization constraints, with big-M method:
+                        z >= 0
+                        z <= sum_prices * M <=> z <= sum_prices
+                        z <= collection_probs_var
+                        z >= collection_probs_var - (1 - sum_prices) * M <=> collection_probs_var - (1 - sum_prices)
+                        """
+                        ov = output_var[i] # binary variable, range {0,1}
+                        pf = prices_per_float[i] # parameter (constant), non negative real
+                        z = Var(within=NonNegativeReals, initialize=0.0) # z = ov * prob * pf
+                        setattr(model, f"z_{skin_name}_{i}", z)
+                        model.z_constraints.add(z >= 0)
+                        model.z_constraints.add(z <= ov * big_M)
+                        model.z_constraints.add(z <= prob*pf)
+                        model.z_constraints.add(z >= prob*pf - (1 - ov)*big_M)
+                        z_variables.append(z)
 
-        return model.average_output_price == estimated_output_price
+        return model.average_output_price == sum(z_variables)
     model.avg_output_price_constraint = Constraint(rule=avg_output_price_rule)
 
 def add_ballots_per_collection_constraints(model, collection_dict, collection_to_vars_dict):
@@ -224,26 +250,27 @@ def solve_tradeup(trade_up_pool, collection_names_subset=None, ratio=0.5):
     collection_to_vars_dict = define_ballots_probs_variables(model, collection_dict)
     
     model.avg_input_float = Var(domain=NonNegativeReals, bounds=(0,1))
-    model.total_ballots = Var(domain=NonNegativeIntegers, bounds=(10, 80))
     define_objective_rule(model)
 
     define_input_skins_cost_constraint(model, all_input_skins)
     define_total_skins_constraint(model, all_input_skins)
     define_avg_float_constraint(model, all_input_skins)
     add_float_bound_constraints(model, all_output_skins)
+    
+    model.total_ballots = Var(domain=NonNegativeIntegers, bounds=(10, 80))
     add_total_ballots_constraint(model, collection_to_vars_dict)
-
     add_avg_output_price_constraint(model, collection_dict, collection_to_vars_dict)
-    add_ballots_per_collection_constraints(model, collection_dict, collection_to_vars_dict)
+    #add_ballots_per_collection_constraints(model, collection_dict, collection_to_vars_dict)
+    
     # bonmin seems to work but is only for convex problems MINLP. non-convex finds only local solution
-    solver = SolverFactory('bonmin') # finds local max
+    solver = SolverFactory('glpk') # finds local max
     #solver = SolverFactory('couenne') # finds global max
     # Adding options to the solver to enable the intermediate solution callback
 
     result = solver.solve(model, tee=True)
 
     # Display results
-    # model.pprint() 
+    model.pprint() 
     
     # print count variables
     for (skin_count_var, _, _) in all_input_skins:
@@ -261,28 +288,28 @@ def solve_tradeup(trade_up_pool, collection_names_subset=None, ratio=0.5):
     # print input skins cost
     print(f"Input skins cost: {model.input_skins_cost.value}")
             
-    # print output skins cost
-    print(f"Average output price: {value(model.average_output_price)}")
-            
     # print average input float
     print(f"Average input float: {model.avg_input_float.value}")
             
-    # print total ballots
-    print(f"Total ballots: {model.total_ballots.value}")
-    
-    # print probs var
-    for (collection_name, _) in list(collection_dict.items()):
-        (_, collection_probs_var) = collection_to_vars_dict[collection_name]
-        print(f"Collection name: {collection_name}")
-        if any(collection_probs_var[idx].value > 0 for idx in collection_probs_var):
-            for index in collection_probs_var:
-                print(" ", index, collection_probs_var[index].value)
+    # # print output skins cost
+    # print(f"Average output price: {value(model.average_output_price)}")
+    #         
+    # # print total ballots
+    # print(f"Total ballots: {model.total_ballots.value}")
+    # 
+    # # print probs var
+    # for (collection_name, _) in list(collection_dict.items()):
+    #     (_, collection_probs_var) = collection_to_vars_dict[collection_name]
+    #     print(f"Collection name: {collection_name}")
+    #     if any(collection_probs_var[idx].value > 0 for idx in collection_probs_var):
+    #         for index in collection_probs_var:
+    #             print(" ", index, collection_probs_var[index].value)
+    # # Display the Profit percentage, that is, the odds of getting profit on this tradeup (including steam tax)
+    # profit_pctg = calculate_profit_percentage(model, collection_dict, collection_to_vars_dict)
+    # print(f"Profit percentage: {profit_pctg}")
                 
     # Display the final objective function value
     final_objective_value = value(model.objective)
-    print(f"Objective value: {model.obj()}")
-                
-    # Display the Profit percentage, that is, the odds of getting profit on this tradeup (including steam tax)
-    profit_pctg = calculate_profit_percentage(model, collection_dict, collection_to_vars_dict)
-    print(f"Profit percentage: {profit_pctg}")
-    return final_objective_value, profit_pctg, model.input_skins_cost.value
+    print(f"Objective value: {final_objective_value}")
+    return final_objective_value, 0, model.input_skins_cost.value
+    # return final_objective_value, profit_pctg, model.input_skins_cost.value

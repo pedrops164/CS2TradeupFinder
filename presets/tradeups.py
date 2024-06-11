@@ -359,8 +359,8 @@ def create_tradeup_from_dataframe(df, input_rarity, stattrak: bool):
     # Process each group separately
     for collection_id, group in df:
         # limit problem size
-        if collection_id > 40:
-            break
+        #if collection_id > 40:
+        #    break
         collection = Collection(collection_id)
         print(f"Processing collection_id: {collection_id}")
         # Perform processing on each group
