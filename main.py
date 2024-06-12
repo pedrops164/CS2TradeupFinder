@@ -134,6 +134,6 @@ if __name__ == '__main__':
     #     for rarity in rarities:
     #         search_solve_tradeup(tradeup_solver_double, df, collection_names_subset, ratio, rarity, stattrak=True, write_output_file=True)
     ratio = 0.7
-    rarity = "classified_bg"
-    collection_names_subset = range(76, 77)
-    search_solve_tradeup(tradeup_solver_single, df, collection_names_subset, ratio, rarity, stattrak=True, write_output_file=True)
+    rarity = "milspec_bg"
+    collection_names_subset = range(5, 6)
+    search_solve_tradeup(tradeup_solver_single, df, collection_names_subset, ratio, rarity, stattrak=False, write_output_file=True)
