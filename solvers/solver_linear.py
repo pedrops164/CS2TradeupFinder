@@ -4,6 +4,7 @@ import re
 from io import StringIO
 
 ballots_max = 100
+num_of_input_skins = 10
 
 def sanitize_variable_name(name):
     """Sanitize variable names by keeping only letters, digits, spaces, and |"""
@@ -61,32 +62,34 @@ def define_collections(model, trade_up_pool, collection_names_subset, ratio):
 
     return collection_dict, all_input_skins, all_output_skins
 
-def define_objective_rule(model, all_input_skins):
+def define_objective_rule(model, all_input_skins, max_average_output_price, min_total_input_skins_cost):
     # we want to maximize profit percentage. So we want to maximize the avg output price divided by the input skins cost
-    model.objective_z_constraints = ConstraintList()
+    model.objective_constraints = ConstraintList()
     def new_objective_rule(model):
         """
         the objective function is model.average_output_price / model.input_skins_cost
         We want to maximize it, but this is non linear (division of two variables).
         model.average_output_price is a continuous variable, and model.input_skins_cost is a sum of weighted binary variables.
-        In order to linearize this, we're going to set the objective function to the inverse, and minimize it instead.
-        So we want to minimize model.input_skins_cost / model.average_output_price
+        In order to linearize this, we're going to set an auxiliary variable z equal to the objective function. z = model.average_output_price / model.input_skins_cost
+        Division is harder to linearize than multiplication. So we'll do z * model.input_skins_cost = model.average_output_price.
+        The first term is a product of continuous by binary, so it's easy to linearize.
+        The max value of z happens when model.average_output_price is maximal and model.input_skins_cost is minimal.
+        maximal for model.average_output_price depends (price of most expensive skin)
+        minimal for model.input_skins_cost is the price of the cheapest input skin multiplied by 10 (10 input skins)
+        The binary variable is also multiplied by count and price. Max count is 10
+        So big_M = max(z) * max(count) * max(price)
+        The big_M value should be as tight as it can be. Same goes for the max value of z.
         
-        We're going to define auxiliary z variables for each binary variable in model.input_skins_cost, and apply restrictions to define the value of these z variables
-        Then the objective function will be the sum of these z variables. We'll use the big_M method to linearize
+        Additionally, we're going to create auxiliary y constraints for each binary variable in model.input_skins_cost.
+        And add an additional constraint to make sure sum(y) == model.average_output_price
         
         count_variable -> binary variable {0,1}
-        model.average_output_price -> continuous variable [0.03, 10000]
-        
-        min of model.average_output_price is 0.03 because it's the lowest price for a skin
-        So our big_M is 1/0.03 < 50. Let's say big_M = 50 for good measure
-        
-        So each of the z variables will be: z = count * count_variable * price * model.average_output_price
-        The constant multiply with the continuous variable, and the binary variable remains isolated.
-        The max of count is 10, and the max of price is 3000, so our big_M is 1.500.000
+        model.average_output_price -> continuous variable
         """
-        big_M = 1500000
-        z_variables = []
+        max_z_objective = max_average_output_price / min_total_input_skins_cost
+        y_variables = []
+        z_objective = Var(within=NonNegativeReals, initialize=0.0)
+        setattr(model, f"z_objective", z_objective)
         for (skin_count_var, skin_prices, _, skin_name) in all_input_skins:
             columns = model.input_count_set # count constants for each binary variable
 
@@ -95,23 +98,29 @@ def define_objective_rule(model, all_input_skins):
                 if price is not None:
                     for count in columns:
                         """
+                        y = z_objective * count * price * binary_variable
+                        sum(y) = model.average_output_price
+                        
                         Linearization constraints, with big-M method:
-                        z >= 0
-                        z <= continuous_variable
-                        z <= binary_variable * big_M
-                        z >= continuous_variable - (1 - binary_variable) * big_M
+                        y >= 0
+                        y <= z_objective * count * price
+                        y <= binary_variable * big_M
+                        y >= z_objective * count * price - (1 - binary_variable) * big_M
                         """
+                        big_M = (max_z_objective * num_of_input_skins * price)# + 0.1
+                        print(f"big_M_{skin_name}_{i}: {big_M}")
                         binary_variable = skin_count_var[i, count] # count variable
                         # our continuous variable is the inverse of the average output price of the tradeup, multiplied by the count of the input skin and its price
-                        continuous_variable = (1 / model.average_output_price) * count * price
-                        z = Var(within=NonNegativeReals, initialize=0.0) # z = ov * prob * pf
-                        setattr(model, f"z_objective_{skin_name}_{i}_{count}", z)
-                        model.objective_z_constraints.add(z >= 0)
-                        model.objective_z_constraints.add(z <= continuous_variable)
-                        model.objective_z_constraints.add(z <= binary_variable * big_M)
-                        model.objective_z_constraints.add(z >= continuous_variable - (1 - binary_variable) * big_M)
-                        z_variables.append(z)
-        return sum(z_variables)
+                        continuous_variable = z_objective * count * price
+                        y = Var(within=NonNegativeReals, initialize=0.0)
+                        setattr(model, f"z_objective_{skin_name}_{i}_{count}", y)
+                        model.objective_constraints.add(y >= 0)
+                        model.objective_constraints.add(y <= continuous_variable)
+                        model.objective_constraints.add(y <= binary_variable * big_M)
+                        model.objective_constraints.add(y >= continuous_variable - (1 - binary_variable) * big_M)
+                        y_variables.append(y)
+        model.objective_constraints.add(sum(y_variables) == model.average_output_price)
+        return z_objective
         #return model.input_skins_cost
 
     model.objective = Objective(rule=new_objective_rule, sense=maximize)
@@ -191,7 +200,7 @@ def add_float_bound_constraints(model, all_output_skins):
     two conditions of the same skin in the output of a tradeup.
     """
     def add_bound_constraints():
-        M = 10  # A large constant, big-M
+        M = 1  # A large constant, big-M
         # outcome skin float = ((max.float-min.float) × avg.float) + min.float
         for (output_var, _, _, skin_bounded_floats) in all_output_skins:
             min_float = skin_bounded_floats[0][0]
@@ -258,7 +267,6 @@ def add_avg_output_price_constraint(model, collection_dict, collection_to_vars_d
         
         # in the big M method, M is the upper bound of the continuous variable. In this case the range is [0,1], but it multiplies by
         # the price, therefore the upper bound is the max price. We'll put M=3000 to make sure
-        big_M = 3000
         z_variables = []
         model.z_constraints = ConstraintList()
         for (collection_name, collection) in list(collection_dict.items()):
@@ -286,6 +294,8 @@ def add_avg_output_price_constraint(model, collection_dict, collection_to_vars_d
                         """
                         ov = output_var[i] # binary variable, range {0,1}
                         pf = prices_per_float[i] # parameter (constant), non negative real
+                        big_M = pf
+                        #big_M = max_average_output_price
                         z = Var(within=NonNegativeReals, initialize=0.0) # z = ov * prob * pf
                         setattr(model, f"z_{skin_name}_{i}", z)
                         model.z_constraints.add(z >= 0)
@@ -354,7 +364,9 @@ def add_ballots_per_collection_constraints(model, collection_dict, collection_to
                             z <= prob_var * n_output_skins_1 * n_output_skins_j * count_j
                             z >= prob_var * n_output_skins_1 * n_output_skins_j * count_j - (1 - skin_count_var) * M <=>
                         """
-                        big_M = 1000
+                        continuous_var_constants = n_output_skins_1 * n_output_skins_2 * count
+                        big_M = continuous_var_constants # upper bound of continuous var is 1 (range is [0,1]), and we multiply it by the constants to make big_M
+                        #big_M = 1000
                         z = Var(within=NonNegativeReals, initialize=0.0) # z = ov * prob * pf
                         model.ballots_per_collection_constraints.add(z >= 0)
                         model.ballots_per_collection_constraints.add(z <= skin_2_count_var[cond, count] * big_M)
@@ -396,9 +408,14 @@ def solve_tradeup(trade_up_pool, collection_names_subset=None, ratio=0.5, log=Fa
     if len(all_input_skins) == 0 or len(all_output_skins) == 0:
         # can't solve if there are no input or output skins
         return 0
+    
+    max_input_skin_price = max(max(skin_prices) for (_,skin_prices,_,_) in all_input_skins)
+    min_total_input_skins_cost = num_of_input_skins * min(min(skin_prices) for (_,skin_prices,_,_) in all_input_skins)
+    max_output_skin_price = max(max(skin_prices) for (_,_,skin_prices,_) in all_output_skins)
+    
     collection_to_vars_dict = define_ballots_probs_variables(model, collection_dict)
     
-    define_objective_rule(model, all_input_skins)
+    define_objective_rule(model, all_input_skins, max_output_skin_price, min_total_input_skins_cost)
 
     define_input_skins_cost_constraint(model, all_input_skins)
     define_total_skins_constraint(model, all_input_skins)
@@ -410,7 +427,7 @@ def solve_tradeup(trade_up_pool, collection_names_subset=None, ratio=0.5, log=Fa
     add_avg_output_price_constraint(model, collection_dict, collection_to_vars_dict)
     add_ballots_per_collection_constraints(model, collection_dict, collection_to_vars_dict)
     
-    solver = SolverFactory('glpk') # linear solver
+    solver = SolverFactory('gurobi') # linear solver
     result = solver.solve(model, tee=True)
 
     if log:
