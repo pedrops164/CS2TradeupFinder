@@ -20,11 +20,8 @@ def define_collections(model, trade_up_pool, collection_names_subset, ratio):
             continue
         input_skins = []
         output_skins = []
-        print(collection.name)
         n_input_skins = len(collection.input_skins)
         n_output_skins = len(collection.output_skins)
-        print("n_input_skins:",n_input_skins)
-        print("n_output_skins:",n_output_skins)
         if n_input_skins == 0 or n_output_skins == 0:
             continue
         for skin in collection.input_skins:
@@ -32,14 +29,13 @@ def define_collections(model, trade_up_pool, collection_names_subset, ratio):
             skin_prices, _ = skin.get_prices()
             skin_floats = skin.get_median_floats(ratio=ratio)
             num_floats = len(skin_floats)
+            assert len(skin_prices) == len(skin_floats)
             
             var_name = sanitize_variable_name(f"{skin.name}_count")
-            #skin_count_var = Var(range(num_floats), within=NonNegativeIntegers, bounds=(0, 10))
             skin_count_var = Var(range(num_floats), model.input_count_set, within=Binary)
             setattr(model, var_name, skin_count_var)
             for cond, price in enumerate(skin_prices):
                 if price is None:
-                    #skin_count_var[i].fix(0)
                     for n in model.input_count_set:
                         skin_count_var[cond, n].fix(0)
 
@@ -50,29 +46,73 @@ def define_collections(model, trade_up_pool, collection_names_subset, ratio):
             skin_name = skin.get_name()
             skin_prices, _ = skin.get_prices()
             skin_bounded_floats = skin.get_bounded_floats()
+            assert len(skin_prices) == len(skin_bounded_floats)
+            # set None prices to 0 so that those output skin conditions don't get chosen
+            skin_prices = [0 if price is None else price for price in skin_prices]
 
             var_name = sanitize_variable_name(f"{skin.name}_output")
             output_var = Var(range(len(skin_bounded_floats)), within=Binary)
             setattr(model, var_name, output_var)
-            for i, price in enumerate(skin_prices):
-                if price is None:
-                    output_var[i].fix(0)
 
             output_skin = (output_var, skin_name, skin_prices, skin_bounded_floats)
-
             output_skins.append(output_skin)
             all_output_skins.append(output_skin)
         collection_dict[collection.name] = (input_skins, output_skins)
 
     return collection_dict, all_input_skins, all_output_skins
 
-def define_objective_rule(model):
+def define_objective_rule(model, all_input_skins):
     # we want to maximize profit percentage. So we want to maximize the avg output price divided by the input skins cost
+    model.objective_z_constraints = ConstraintList()
     def new_objective_rule(model):
-        #model.obj = model.average_output_price / model.input_skins_cost
-        #return model.average_output_price / model.input_skins_cost
-        return model.input_skins_cost
-        #return model.average_output_price
+        """
+        the objective function is model.average_output_price / model.input_skins_cost
+        We want to maximize it, but this is non linear (division of two variables).
+        model.average_output_price is a continuous variable, and model.input_skins_cost is a sum of weighted binary variables.
+        In order to linearize this, we're going to set the objective function to the inverse, and minimize it instead.
+        So we want to minimize model.input_skins_cost / model.average_output_price
+        
+        We're going to define auxiliary z variables for each binary variable in model.input_skins_cost, and apply restrictions to define the value of these z variables
+        Then the objective function will be the sum of these z variables. We'll use the big_M method to linearize
+        
+        count_variable -> binary variable {0,1}
+        model.average_output_price -> continuous variable [0.03, 10000]
+        
+        min of model.average_output_price is 0.03 because it's the lowest price for a skin
+        So our big_M is 1/0.03 < 50. Let's say big_M = 50 for good measure
+        
+        So each of the z variables will be: z = count * count_variable * price * model.average_output_price
+        The constant multiply with the continuous variable, and the binary variable remains isolated.
+        The max of count is 10, and the max of price is 3000, so our big_M is 1.500.000
+        """
+        big_M = 1500000
+        z_variables = []
+        for (skin_count_var, skin_prices, _, skin_name) in all_input_skins:
+            columns = model.input_count_set # count constants for each binary variable
+
+            for i in range(len(skin_prices)):
+                price = skin_prices[i]
+                if price is not None:
+                    for count in columns:
+                        """
+                        Linearization constraints, with big-M method:
+                        z >= 0
+                        z <= continuous_variable
+                        z <= binary_variable * big_M
+                        z >= continuous_variable - (1 - binary_variable) * big_M
+                        """
+                        binary_variable = skin_count_var[i, count] # count variable
+                        # our continuous variable is the inverse of the average output price of the tradeup, multiplied by the count of the input skin and its price
+                        continuous_variable = (1 / model.average_output_price) * count * price
+                        z = Var(within=NonNegativeReals, initialize=0.0) # z = ov * prob * pf
+                        setattr(model, f"z_objective_{skin_name}_{i}_{count}", z)
+                        model.objective_z_constraints.add(z >= 0)
+                        model.objective_z_constraints.add(z <= continuous_variable)
+                        model.objective_z_constraints.add(z <= binary_variable * big_M)
+                        model.objective_z_constraints.add(z >= continuous_variable - (1 - binary_variable) * big_M)
+                        z_variables.append(z)
+        return sum(z_variables)
+        #return model.input_skins_cost
 
     model.objective = Objective(rule=new_objective_rule, sense=maximize)
 
@@ -284,7 +324,7 @@ def add_ballots_per_collection_constraints(model, collection_dict, collection_to
                 for (skin_2_count_var,_,_,input_skin_2_name) in input_skins_2:
                     for (cond, count) in skin_2_count_var:
                         if skin_2_count_var[cond, count].fixed:
-                            print(f"{input_skin_2_name},{cond},{count} is fixed")
+                            #print(f"{input_skin_2_name},{cond},{count} is fixed")
                             continue
                         """
                         model.total_ballots = sum(ballots_var)
@@ -339,29 +379,8 @@ def calculate_profit_percentage(model, collection_dict, collection_to_vars_dict)
             if skin_price() > model.input_skins_cost() * 1.13:
                 profit_percentage += probs_var()
     return profit_percentage
-
-# Function to determine number of rows and iterate through them
-def iterate_var(var_obj):
-    # Access the index set
-    index_set = var_obj.index_set()
-    
-    # Get the first and second components of the index set
-    rows = set(idx[0] for idx in index_set)
-    columns = set(idx[1] for idx in index_set)
-    
-    # Number of rows and columns
-    num_rows = len(rows)
-    num_columns = len(columns)
-    
-    print(f"Number of rows: {num_rows}")
-    print(f"Number of columns: {num_columns}")
-    
-    # Iterate through rows and columns
-    for row in rows:
-        for col in columns:
-            print(f"Variable at ({row}, {col}) = {var_obj[row, col].value}")
-            
-def solve_tradeup(trade_up_pool, collection_names_subset=None, ratio=0.5):
+       
+def solve_tradeup(trade_up_pool, collection_names_subset=None, ratio=0.5, log=False):
     model = ConcreteModel()
     
     model.input_count_set = Set(initialize=list(range(1,11)))
@@ -379,7 +398,7 @@ def solve_tradeup(trade_up_pool, collection_names_subset=None, ratio=0.5):
         return 0
     collection_to_vars_dict = define_ballots_probs_variables(model, collection_dict)
     
-    define_objective_rule(model)
+    define_objective_rule(model, all_input_skins)
 
     define_input_skins_cost_constraint(model, all_input_skins)
     define_total_skins_constraint(model, all_input_skins)
@@ -394,29 +413,30 @@ def solve_tradeup(trade_up_pool, collection_names_subset=None, ratio=0.5):
     solver = SolverFactory('glpk') # linear solver
     result = solver.solve(model, tee=True)
 
-    # Display results
-    #model.pprint() 
-    var_textbuffer = StringIO()
-    constraint_textbuffer = StringIO()
-    for v in model.component_objects(Var, descend_into=True):
-        v.pprint(var_textbuffer)
-        var_textbuffer.write('\n')
-        
-    for v in model.component_objects(Constraint, descend_into=True):
-        v.pprint(constraint_textbuffer)
-        constraint_textbuffer.write('\n')
-
-    with open('logs/vars.txt', 'w') as outputfile_vars:
-        outputfile_vars.write(var_textbuffer.getvalue())
-    with open('logs/constraints.txt', 'w') as outputfile_constraints:
-        outputfile_constraints.write(constraint_textbuffer.getvalue())
+    if log:
+        # Display results
+        model.pprint() 
+        var_textbuffer = StringIO()
+        constraint_textbuffer = StringIO()
+        for v in model.component_objects(Var, descend_into=True):
+            v.pprint(var_textbuffer)
+            var_textbuffer.write('\n')
+            
+        for v in model.component_objects(Constraint, descend_into=True):
+            v.pprint(constraint_textbuffer)
+            constraint_textbuffer.write('\n')
+        with open('logs/vars.txt', 'w') as outputfile_vars:
+            outputfile_vars.write(var_textbuffer.getvalue())
+        with open('logs/constraints.txt', 'w') as outputfile_constraints:
+            outputfile_constraints.write(constraint_textbuffer.getvalue())
     
     # print count variables
     for (skin_count_var, _, _, _) in all_input_skins:
         #if any(skin_count_var[idx]() > 0 for idx in skin_count_var):
         print(skin_count_var)
         for index in skin_count_var:
-            print(" ", index, skin_count_var[index].value)
+            if skin_count_var[index].value > 0:
+                print(" ", index, skin_count_var[index].value)
     
     # print all output variables
     for (output_var, _, _, _) in all_output_skins:

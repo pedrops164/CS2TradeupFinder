@@ -1,6 +1,6 @@
 from presets.tradeups import create_tradeup_from_dataframe
 from db import get_tradeup_dataframe
-from solvers.solver import solve_tradeup
+from solvers import solver
 from solvers import solver_linear
 import time
 import sys
@@ -96,6 +96,16 @@ def tradeup_solver_double(tradeup_pool, collection_names_subset, ratio, file=Non
             print(f"current subset: {collection_name_subset}")
             objective_value = solve_subset(tradeup_pool, collection_name_subset, ratio, file)
             yield objective_value, collection_name_subset
+        
+@solve_tradeups_decorator
+def tradeup_solver_all(tradeup_pool, collection_names_subset, ratio, file=None):
+    """
+    Calculates a set of optimal tradeups in the tradeup_pool
+    Calculates the optimal tradeup for all the collection names in collection_names_subset
+    """
+    print(f"current subset: {collection_names_subset}")
+    objective_value = solve_subset(tradeup_pool, collection_names_subset, ratio, file)
+    yield objective_value, collection_names_subset
             
 def solve_subset(tradeup_pool, collection_subset, ratio, file=None):
     """
@@ -134,6 +144,6 @@ if __name__ == '__main__':
     #     for rarity in rarities:
     #         search_solve_tradeup(tradeup_solver_double, df, collection_names_subset, ratio, rarity, stattrak=True, write_output_file=True)
     ratio = 0.7
-    rarity = "milspec_bg"
-    collection_names_subset = range(5, 6)
-    search_solve_tradeup(tradeup_solver_single, df, collection_names_subset, ratio, rarity, stattrak=False, write_output_file=True)
+    rarity = "restricted_bg"
+    collection_names_subset = range(37, 38)
+    search_solve_tradeup(tradeup_solver_all, df, collection_names_subset, ratio, rarity, stattrak=True, write_output_file=True)
