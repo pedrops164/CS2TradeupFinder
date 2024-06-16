@@ -362,7 +362,6 @@ def create_tradeup_from_dataframe(df, input_rarity, stattrak: bool):
         #if collection_id > 40:
         #    break
         collection = Collection(collection_id)
-        print(f"Processing collection_id: {collection_id}")
         # Perform processing on each group
         # For example, print the group
         input_skins = group[(group['quality'] == input_rarity) & (group['stattrak'] == stattrak)]

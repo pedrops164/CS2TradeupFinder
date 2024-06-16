@@ -231,6 +231,9 @@ def define_ballots_probs_variables(model, collection_dict):
     collection_to_vars_dict = {}
     model.ballots_constraints = ConstraintList()
 
+    collection_names = [collection_name for (collection_name,_) in list(collection_dict.items())] # skin name is in index 1 of the tuple (output_var, skin_name, skin_prices, skin_bounded_floats)
+    # set the variable which holds the probabilities of the skins for each collection
+    model.collection_probs_var = Var(collection_names, within=NonNegativeReals, bounds=(0,1))
     for collection_num, (collection_name, collection) in enumerate(list(collection_dict.items())):
         (input_skins, output_skins) = collection
 
@@ -244,13 +247,9 @@ def define_ballots_probs_variables(model, collection_dict):
                 skin_count += count * skin_count_var[cond, count]
         model.ballots_constraints.add(collection_ballots_var == len(output_skins) * skin_count)
 
-        # set the variable which holds the probabilities of the outpt skins of this collectin
-        collection_output_skins_names = [skin[1] for skin in output_skins] # skin name is in index 1 of the tuple (output_var, skin_name, skin_prices, skin_bounded_floats)
-        collection_probs_var = Var(collection_output_skins_names, within=NonNegativeReals, bounds=(0,1))
-        setattr(model, f"collection_{collection_num}_probs", collection_probs_var)
         
         # map the current collection to its variables, to set the constraints later
-        collection_to_vars_dict[collection_name] = (collection_ballots_var, collection_probs_var)
+        collection_to_vars_dict[collection_name] = collection_ballots_var
 
     return collection_to_vars_dict
 
@@ -258,10 +257,10 @@ def add_total_ballots_constraint(model, collection_to_vars_dict):
     # Constraint for total_ballots
     def total_ballots_rule(model):
         # total ballots is the sum of the ballots variable of each collection
-        return model.total_ballots == sum(ballots_var for (ballots_var,_) in list(collection_to_vars_dict.values()))
+        return model.total_ballots == sum(ballots_var for ballots_var in list(collection_to_vars_dict.values()))
     model.total_ballots_constraint = Constraint(rule=total_ballots_rule)
 
-def add_avg_output_price_constraint(model, collection_dict, collection_to_vars_dict):
+def add_avg_output_price_constraint(model, collection_dict):
     def avg_output_price_rule(model):
         # skin prices for each collection. For example [skin_prices_collectionA, skin_prices_collectionB, ...]
         
@@ -271,7 +270,7 @@ def add_avg_output_price_constraint(model, collection_dict, collection_to_vars_d
         model.z_constraints = ConstraintList()
         for (collection_name, collection) in list(collection_dict.items()):
             (_, output_skins) = collection
-            (_, collection_probs_var) = collection_to_vars_dict[collection_name]
+            prob = model.collection_probs_var[collection_name]
             for skin in output_skins:
                 # each output_skin is a tuple (output_var, skin_name, skin_prices, skin_bounded_floats)
                 # we can index collection_probs_var by skin_name
@@ -279,7 +278,6 @@ def add_avg_output_price_constraint(model, collection_dict, collection_to_vars_d
                 output_var = skin[0] # output_var is at index 0
                 skin_name = skin[1] # skin_name is at index 1
                 prices_per_float = skin[2] # skin_prices is at index 2
-                prob = collection_probs_var[skin_name] # continuous variable, range [0,1]
                 for i in output_var:
                     if prices_per_float[i] is not None:
                         """
@@ -314,80 +312,77 @@ def add_ballots_per_collection_constraints(model, collection_dict, collection_to
     for (collection_name_1, collection_1) in list(collection_dict.items()):
         (input_skins_1, output_skins_1) = collection_1
         n_output_skins_1 = len(output_skins_1) # constant
-        (collection_ballots_var_1, collection_probs_var) = collection_to_vars_dict[collection_name_1]
-        for skin_1 in output_skins_1:
-            """
-            constraint = collection_ballots_var == prob_var * n_output_skins * model.total_ballots -> Non Linear constraint!
-            We need to linearize it. To do that, we need to loop through each of the ballots var
-            
-            model.total_ballots is a sum of binary variables, where each binary variable is multiplied by a constant (which is the number of output
-            skins in the respective output collection). These binary variables are the count variables of the input skins.
-            So we loop through the input skins and create constraints for each of the input skins' count variables
-            """
-            output_skin_1_name = skin_1[1] # skin_name is at index 1
-            prob_var = collection_probs_var[output_skin_1_name] # continuous variable [0,1]
-            z_variables = []
-            for (collection_name_2, collection_2) in list(collection_dict.items()):
-                (input_skins_2, output_skins_2) = collection_2
-                n_output_skins_2 = len(output_skins_2) # constant
-                (collection_ballots_var_2, _) = collection_to_vars_dict[collection_name_2]
-                for (skin_2_count_var,_,_,input_skin_2_name) in input_skins_2:
-                    for (cond, count) in skin_2_count_var:
-                        if skin_2_count_var[cond, count].fixed:
-                            #print(f"{input_skin_2_name},{cond},{count} is fixed")
-                            continue
-                        """
-                        model.total_ballots = sum(ballots_var)
-                        ballots_var_i = n_output_skins_i * sum(skin_count)
-                        skin_count_i = sum(count_j * skin_count_var_j)
+        collection_ballots_var_1 = collection_to_vars_dict[collection_name_1]
+        prob_var = model.collection_probs_var[collection_name_1]
+        z_variables = []
+        """
+        constraint = collection_ballots_var == prob_var * n_output_skins * model.total_ballots -> Non Linear constraint!
+        We need to linearize it. To do that, we need to loop through each of the ballots var
+        
+        model.total_ballots is a sum of binary variables, where each binary variable is multiplied by a constant (which is the number of output
+        skins in the respective output collection). These binary variables are the count variables of the input skins.
+        So we loop through the input skins and create constraints for each of the input skins' count variables
+        """
+        for (collection_name_2, collection_2) in list(collection_dict.items()):
+            (input_skins_2, output_skins_2) = collection_2
+            n_output_skins_2 = len(output_skins_2) # constant
+            for (skin_2_count_var,_,_,input_skin_2_name) in input_skins_2:
+                for (cond, count) in skin_2_count_var:
+                    if skin_2_count_var[cond, count].fixed:
+                        #print(f"{input_skin_2_name},{cond},{count} is fixed")
+                        continue
+                    """
+                    model.total_ballots = sum(ballots_var)
+                    ballots_var_i = n_output_skins_i * sum(skin_count)
+                    skin_count_i = sum(count_j * skin_count_var_j)
+                    
+                    We have
+                    w = prob_var * n_output_skins_1 * model.total_ballots -> non linearity to solve. Not solvable in this format. Simplifying below
+                                        \/
+                    y = prob_var * n_output_skins_1 * ballots_var_i = prob_var * n_output_skins_1 * n_output_skins_i * sum(skin_count)
+                                        \/
+                    x = prob_var * n_output_skins_1 * n_output_skins_i * skin_count_i = prob_var * n_output_skins_1 * n_output_skins_i * sum(count_j * skin_count_var_j)
+                                        \/
+                    z = prob_var * n_output_skins_1 * n_output_skins_i * count_j * skin_count_var_j -> Not Linear, can convert to linear
+                    prob_var is a continuous variable [0,1], and skin_count_var_j is a binary variable {0,1}
+                    
+                    Need to define big_M which will be upper bound of prob_var multiplied by the constants
+                    Upper bound of n_output_skins is 9, so upper bound of n_output_skins^2 is 81 whatever the collection is
+                    upper_bound of count_j is 10 because it represents the number of skins that the binary variable activates. Given that a tradeup
+                    has a maximum of 10 input skins, the max of count if 10 whatever the skin is.
+                    So an upperbound of prob_var * n_output_skins_1 * n_output_skins_i * count_j can be 1*81*10 = 810,
+                    but we round to 1000 for good measure
                         
-                        We have
-                        w = prob_var * n_output_skins_1 * model.total_ballots -> non linearity to solve. Not solvable in this format. Simplifying below
-                                            \/
-                        y = prob_var * n_output_skins_1 * ballots_var_i = prob_var * n_output_skins_1 * n_output_skins_i * sum(skin_count)
-                                            \/
-                        x = prob_var * n_output_skins_1 * n_output_skins_i * skin_count_i = prob_var * n_output_skins_1 * n_output_skins_i * sum(count_j * skin_count_var_j)
-                                            \/
-                        z = prob_var * n_output_skins_1 * n_output_skins_i * count_j * skin_count_var_j -> Not Linear, can convert to linear
-                        prob_var is a continuous variable [0,1], and skin_count_var_j is a binary variable {0,1}
-                        
-                        Need to define big_M which will be upper bound of prob_var multiplied by the constants
-                        Upper bound of n_output_skins is 9, so upper bound of n_output_skins^2 is 81 whatever the collection is
-                        upper_bound of count_j is 10 because it represents the number of skins that the binary variable activates. Given that a tradeup
-                        has a maximum of 10 input skins, the max of count if 10 whatever the skin is.
-                        So an upperbound of prob_var * n_output_skins_1 * n_output_skins_i * count_j can be 1*81*10 = 810,
-                        but we round to 1000 for good measure
-                            
-                            Linearization constraints, with big-M method:
-                            z >= 0
-                            z <= skin_count_var * M
-                            z <= prob_var * n_output_skins_1 * n_output_skins_j * count_j
-                            z >= prob_var * n_output_skins_1 * n_output_skins_j * count_j - (1 - skin_count_var) * M <=>
-                        """
-                        continuous_var_constants = n_output_skins_1 * n_output_skins_2 * count
-                        big_M = continuous_var_constants # upper bound of continuous var is 1 (range is [0,1]), and we multiply it by the constants to make big_M
-                        #big_M = 1000
-                        z = Var(within=NonNegativeReals, initialize=0.0) # z = ov * prob * pf
-                        model.ballots_per_collection_constraints.add(z >= 0)
-                        model.ballots_per_collection_constraints.add(z <= skin_2_count_var[cond, count] * big_M)
-                        model.ballots_per_collection_constraints.add(z <= prob_var * n_output_skins_1 * n_output_skins_2 * count)
-                        model.ballots_per_collection_constraints.add(z >= prob_var * n_output_skins_1 * n_output_skins_2 * count - (1 - skin_2_count_var[cond, count])*big_M)
-                        z_variables.append(z)
-                        setattr(model, f"z_{output_skin_1_name}_{collection_name_2}_{input_skin_2_name}_{cond}_{count}", z)
-            collection_ballots_constraint = collection_ballots_var_1 == sum(z_variables)
-            model.ballots_per_collection_constraints.add(collection_ballots_constraint)
+                        Linearization constraints, with big-M method:
+                        z >= 0
+                        z <= skin_count_var * M
+                        z <= prob_var * n_output_skins_1 * n_output_skins_j * count_j
+                        z >= prob_var * n_output_skins_1 * n_output_skins_j * count_j - (1 - skin_count_var) * M <=>
+                    """
+                    continuous_var_constants = n_output_skins_1 * n_output_skins_2 * count
+                    big_M = continuous_var_constants # upper bound of continuous var is 1 (range is [0,1]), and we multiply it by the constants to make big_M
+                    #big_M = 1000
+                    z = Var(within=NonNegativeReals, initialize=0.0) # z = ov * prob * pf
+                    model.ballots_per_collection_constraints.add(z >= 0)
+                    model.ballots_per_collection_constraints.add(z <= skin_2_count_var[cond, count] * big_M)
+                    model.ballots_per_collection_constraints.add(z <= prob_var * n_output_skins_1 * n_output_skins_2 * count)
+                    model.ballots_per_collection_constraints.add(z >= prob_var * n_output_skins_1 * n_output_skins_2 * count - (1 - skin_2_count_var[cond, count])*big_M)
+                    z_variables.append(z)
+                    setattr(model, f"z_{collection_name_1}_{collection_name_2}_{input_skin_2_name}_{cond}_{count}", z)
+        collection_ballots_constraint = collection_ballots_var_1 == sum(z_variables)
+        model.ballots_per_collection_constraints.add(collection_ballots_constraint)
             
-def calculate_profit_percentage(model, collection_dict, collection_to_vars_dict):
+def calculate_profit_percentage(model, collection_dict):
     profit_percentage = 0
     for (collection_name, collection) in list(collection_dict.items()):
         (_, output_skins) = collection
-        (_, collection_probs_var) = collection_to_vars_dict[collection_name]
+        collection_probs_var = model.collection_probs_var[collection_name]
+        probs_var = collection_probs_var[collection_name]
         for skin in output_skins:
             output_var = skin[0] # output_var is at index 0
             skin_name = skin[1] # skin_name is at index 1
             prices_per_float = skin[2] # skin_prices is at index 2
             skin_price = sum(output_var[i] * prices_per_float[i] for i in output_var if prices_per_float[i] is not None) # get the skin price with the corresponding float
-            probs_var = collection_probs_var[skin_name]
             if skin_price() > model.input_skins_cost() * 1.13:
                 profit_percentage += probs_var()
     return profit_percentage
@@ -424,11 +419,11 @@ def solve_tradeup(trade_up_pool, collection_names_subset=None, ratio=0.5, log=Fa
     
     #model.total_ballots = Var(domain=NonNegativeIntegers, bounds=(10, 90))
     #add_total_ballots_constraint(model, collection_to_vars_dict)
-    add_avg_output_price_constraint(model, collection_dict, collection_to_vars_dict)
+    add_avg_output_price_constraint(model, collection_dict)
     add_ballots_per_collection_constraints(model, collection_dict, collection_to_vars_dict)
     
     solver = SolverFactory('gurobi') # linear solver
-    result = solver.solve(model, tee=True)
+    result = solver.solve(model, tee=True, symbolic_solver_labels=True)
 
     if log:
         # Display results

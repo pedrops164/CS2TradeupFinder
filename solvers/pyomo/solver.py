@@ -34,6 +34,7 @@ def define_model_variables(model, trade_up_pool, collection_names_subset, ratio)
             skin_prices, _ = skin.get_prices()
             skin_floats = skin.get_median_floats(ratio=ratio)
             num_floats = len(skin_floats)
+            assert len(skin_prices) == len(skin_floats)
             
             var_name = sanitize_variable_name(f"{skin.name}_count")
             skin_count_var = Var(range(num_floats), within=NonNegativeIntegers, bounds=(0, 10))
@@ -48,13 +49,16 @@ def define_model_variables(model, trade_up_pool, collection_names_subset, ratio)
             skin_name = skin.get_name()
             skin_prices, _ = skin.get_prices()
             skin_bounded_floats = skin.get_bounded_floats()
+            assert len(skin_prices) == len(skin_bounded_floats)
+            # set None prices to 0 so that those output skin conditions don't get chosen
+            skin_prices = [0 if price is None else price for price in skin_prices]
 
             var_name = sanitize_variable_name(f"{skin.name}_output")
             output_var = Var(range(len(skin_bounded_floats)), within=Binary)
             setattr(model, var_name, output_var)
-            for i, price in enumerate(skin_prices):
-                if price is None:
-                    output_var[i].fix(0)
+            #for i, price in enumerate(skin_prices):
+            #    if price is None:
+            #        output_var[i].fix(0)
 
             output_skin = (output_var, skin_name, skin_prices, skin_bounded_floats)
 
@@ -68,8 +72,8 @@ def define_objective_rule(model):
     # we want to maximize profit percentage. So we want to maximize the avg output price divided by the input skins cost
     def new_objective_rule(model):
         model.obj = model.average_output_price / model.input_skins_cost
-        #return model.average_output_price / model.input_skins_cost
-        return model.input_skins_cost
+        return model.average_output_price / model.input_skins_cost
+        #return model.input_skins_cost
 
     model.objective = Objective(rule=new_objective_rule, sense=maximize)
 
@@ -237,10 +241,19 @@ def solve_tradeup(trade_up_pool, collection_names_subset=None, ratio=0.5):
     add_ballots_per_collection_constraints(model, collection_dict, collection_to_vars_dict)
     # bonmin seems to work but is only for convex problems MINLP. non-convex finds only local solution
     #solver = SolverFactory('bonmin') # finds local max
-    solver = SolverFactory('couenne') # finds global max
-    # Adding options to the solver to enable the intermediate solution callback
+    #solver = SolverFactory('couenne') # finds global max
+    solver = SolverFactory('scip') # best performance so far
 
-    result = solver.solve(model, tee=True)
+    #solver.options['limits/time'] = 1  # Set time limit
+    #solver.options['display/verblevel'] = 4  # Set verbosity level
+    #solver.options['IPOPT'] = True  # Set verbosity level
+    solver.options['write/allconss'] = True  # Redirect SCIP output to a log file
+    result = solver.solve(model, tee=True)# Check if the solution is feasible
+    
+    if result.solver.status == 'ok' and result.solver.termination_condition == 'optimal':
+        print("Optimal solution found.")
+    else:
+        print(f"Solver finished with status {result.solver.status} and termination condition {result.solver.termination_condition}")
 
     # Display results
     # model.pprint() 
@@ -285,4 +298,5 @@ def solve_tradeup(trade_up_pool, collection_names_subset=None, ratio=0.5):
     # Display the Profit percentage, that is, the odds of getting profit on this tradeup (including steam tax)
     profit_pctg = calculate_profit_percentage(model, collection_dict, collection_to_vars_dict)
     print(f"Profit percentage: {profit_pctg}")
+
     return final_objective_value, profit_pctg, model.input_skins_cost.value
