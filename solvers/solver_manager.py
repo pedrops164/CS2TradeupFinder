@@ -1,4 +1,4 @@
-from presets.tradeups import create_tradeup_from_dataframe
+from tradeups import create_tradeup_from_dataframe
 from solvers.pyomo import solver
 from solvers.pyomo import solver_linear
 from solvers.pyscipopt import solver_pyscipopt

@@ -108,7 +108,6 @@ class TradeUpPool:
             raise InvalidRarityException("Input rarity doesn't have matching output rarity")
         
         return rarities[input_quality_index + 1]
-        
 
 class InputSkins:
     def __init__(self):

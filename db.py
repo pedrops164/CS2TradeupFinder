@@ -5,7 +5,7 @@ import pandas as pd
 
 db_name = "skins.db"
 
-from solver_entities import Skin
+from entities import Skin
 
 # for http requests
 import requests

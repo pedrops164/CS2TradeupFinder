@@ -1,5 +1,5 @@
 from db import create_database, update_skin_price, get_all_skins
-from solver_entities import Skin
+from entities import Skin
 
 # module to deal with proxies
 from proxy.proxy import is_proxy_working
