@@ -59,7 +59,6 @@ def create_database():
             FOREIGN KEY (skin_id) REFERENCES skins (id)
         )
     ''')
-    
     connection.commit()
     connection.close()
 

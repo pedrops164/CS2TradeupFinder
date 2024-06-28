@@ -1,3 +1,8 @@
 pandas
 requests
 pyomo
+flask
+psycopg2-binary
+python-dotenv
+flask_sqlalchemy
+flask_migrate
