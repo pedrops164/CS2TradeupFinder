@@ -3,3 +3,4 @@ notas.txt
 *.log
 output/
 .vscode
+venv
