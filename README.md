@@ -9,17 +9,12 @@ To install:
 5. Go to frontend directory
 6. Run "npm install" (after that, if needed, run "npm audit fix --force")
 
-Postgres setup:
-- Need to install postgres
-- Need to create the role (CREATE USER username WITH PASSWORD 'password';)
-- Need to create the database (CREATE DATABASE tradeups;)
-- Grant permission to role username (GRANT ALL PRIVILEGES ON SCHEMA public TO username;)
-
 To run frontend:
-
 1. Go to frontend directory
 2. Run "npm start"
 
 To run backend:
 1. Go to backend directory
 2. Run "flask run"
+
+Currently uses sqlite3 but it is expected to be changed to postgres in the future.
