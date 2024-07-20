@@ -50,12 +50,18 @@ class Tradeup(db.Model):
     __tablename__ = "tradeup"
     
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False, unique=True)
-    tracked = db.Column(db.Boolean, nullable=False)
+    name = db.Column(db.String, nullable=True, unique=False)
+    stattrak = db.Column(db.Boolean, nullable=False)
+    input_rarity = db.Column(db.String, nullable=False)
+
+    input_entries = db.relationship('InputTradeupEntry', backref='tradeup', lazy='joined')
+    output_entries = db.relationship('OutputTradeupEntry', backref='tradeup', lazy='joined')
+    collections = db.relationship('Collection', secondary='tradeup_collections', backref='tradeups', lazy='joined')
     
-    def __init__(self, name, tracked):
+    def __init__(self, stattrak, input_rarity, name=None):
         self.name = name
-        self.tracked = tracked
+        self.stattrak = stattrak
+        self.input_rarity = input_rarity
 
     class InvalidRarityException(Exception):
         def __init__(self, message):
@@ -73,6 +79,16 @@ class Tradeup(db.Model):
             raise Tradeup.InvalidRarityException("Input rarity doesn't have matching output rarity")
         
         return rarities[input_quality_index + 1]
+    
+class TradeupCollections(db.Model):
+    __tablename__ = "tradeup_collections"
+
+    tradeup_id = db.Column(db.Integer, db.ForeignKey('tradeup.id'), primary_key=True)
+    collection_id = db.Column(db.Integer, db.ForeignKey('collections.id'), primary_key=True)
+
+    def __init__(self, tradeup_id, collection_id):
+        self.tradeup_id = tradeup_id
+        self.collection_id = collection_id
     
 class InputTradeupEntry(db.Model):
     __tablename__ = "input_tradeup_entry"
@@ -100,3 +116,12 @@ class OutputTradeupEntry(db.Model):
     float = db.Column(db.Float, nullable=False)
     prob = db.Column(db.Float, nullable=False) # probability
     tradeup_id = db.Column(db.Integer, db.ForeignKey('tradeup.id'), nullable=False)
+
+    def __init__(self, skin_condition_id, float, prob, tradeup_id):
+        self.skin_condition_id = skin_condition_id
+        self.float = float
+        self.prob = prob
+        self.tradeup_id = tradeup_id
+        
+    def set_tradeup_id(self, tradeup_id):
+        self.tradeup_id = tradeup_id

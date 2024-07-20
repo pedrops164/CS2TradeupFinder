@@ -43,6 +43,11 @@ def add_tradeup_entry(tradeup_entry):
     db.session.commit()
     return tradeup_entry
 
+def add_tradeup_collection(tradeup_collection):
+    db.session.add(tradeup_collection)
+    db.session.commit()
+    return tradeup_collection
+
 """ Get entries from postgres database """
 
 def get_skin_condition_id(weapon_paint, condition):

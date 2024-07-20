@@ -1,5 +1,7 @@
 from flask import Blueprint, request, jsonify
 from backend.src.tradeups import calculate_output_entries, calculate_tradeup_stats
+from backend.app.models import db, Tradeup
+from sqlalchemy.orm import joinedload
 
 bp_retrieve = Blueprint('bp_retrieve', __name__)
 
@@ -7,6 +9,34 @@ bp_retrieve = Blueprint('bp_retrieve', __name__)
 def get_tradeups():
     """Returns an array of dicts, each dict representing a tracked tradeup
     """
+
+    tracked_tradeups = []
+
+    tradeups = db.session.query(Tradeup).options(
+        joinedload(Tradeup.input_entries),
+        joinedload(Tradeup.output_entries),
+        joinedload(Tradeup.collections)
+    ).all()
+
+    # Parsing each tradeup separately
+    print("printing tradeups:")
+    for tradeup in tradeups:
+        print(f"Tradeup ID: {tradeup.id}, Name: {tradeup.name}, Stattrak: {tradeup.stattrak}, Input Rarity: {tradeup.input_rarity}")
+        
+        print("Input Entries:")
+        for input_entry in tradeup.input_entries:
+            print(f" - Input Entry ID: {input_entry.id}, Skin Condition ID: {input_entry.skin_condition_id}, Float: {input_entry.float}, Count: {input_entry.count}")
+    
+        print("Output Entries:")
+        for output_entry in tradeup.output_entries:
+            print(f" - Output Entry ID: {output_entry.id}, Skin Condition ID: {output_entry.skin_condition_id}, Float: {output_entry.float}, Probability: {output_entry.prob}")
+    
+        print("Collections:")
+        for collection in tradeup.collections:
+            print(f" - Collection ID: {collection.id}, Name: {collection.name}")
+    
+        print("\n")
+
     example_tradeup = {
         "tradeup_id": 1,
         "name": "example tradeup",
