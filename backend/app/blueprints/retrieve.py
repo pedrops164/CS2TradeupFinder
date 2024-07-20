@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from backend.src.tradeups import calculate_output_entries, calculate_tradeup_stats
-from backend.app.models import db, Tradeup, InputTradeupEntry, SkinCondition, OutputTradeupEntry
+from backend.app.models import db, Tradeup, InputTradeupEntry, SkinCondition, OutputTradeupEntry, Skin, Collection
 from backend.app.database import get_skin_price
 from sqlalchemy.orm import joinedload
 
@@ -13,6 +13,7 @@ def get_tradeups():
 
     tracked_tradeups = []
 
+    # get all tradeups, associated with their input and output entries, and associated with their skin conditions (joins)
     tradeups = db.session.query(Tradeup).options(
         joinedload(Tradeup.input_entries).joinedload(InputTradeupEntry.skin_condition).joinedload(SkinCondition.skin),
         joinedload(Tradeup.output_entries).joinedload(OutputTradeupEntry.skin_condition).joinedload(SkinCondition.skin),
@@ -28,6 +29,7 @@ def get_tradeups():
         tradeup_stattrak = tradeup.stattrak
         
         for input_entry in tradeup.input_entries:
+            # parse each input entry, create the dictionary, and add to the array of input entries
             skin_condition = input_entry.skin_condition
             skin = skin_condition.skin
             skin_price = get_skin_price(skin.name, skin_condition.condition, skin.stattrak)
@@ -39,8 +41,8 @@ def get_tradeups():
                 "price": skin_price
             })
     
-        #print("Output Entries:")
         for output_entry in tradeup.output_entries:
+            # parse each output entry, create the dictionary, and add to the array of output entries
             skin_condition = output_entry.skin_condition
             skin = skin_condition.skin
             skin_price = get_skin_price(skin.name, skin_condition.condition, skin.stattrak)
@@ -51,13 +53,15 @@ def get_tradeups():
                 "prob": output_entry.prob,
                 "price": skin_price
             })
-    
+
+        # add all collection names involved    
         for collection in tradeup.collections:
             collection_names.append(collection.name)
     
         # get tradeup stats
         avg_input_float, input_skins_cost, profit_avg, profit_odds = calculate_tradeup_stats(input_entries, output_entries, tradeup_stattrak)
 
+        # add tradeup to the array of tradeups
         tracked_tradeups.append({
             "tradeup_id": tradeup_id,
             "tradeup_name": tradeup_name,
@@ -123,3 +127,47 @@ def get_tradeup_output():
         "tradeup_cost": tradeup_cost,
         "profit_avg": profit_avg,
         "profit_odds": profit_odds}), 201
+
+@bp_retrieve.route("/search_skin", methods=["POST"])
+def search_skin():
+    data = request.get_json()
+    
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    rarity = data.get('rarity')
+    stattrak = data.get('stattrak')
+    condition = data.get('condition')
+    search_string = data.get('search_string') # optional
+    collection_names = data.get('collection_names') # list of collection names (optional)
+
+    if rarity is None or stattrak is None or condition is None:
+        return jsonify({"error": "Missing required fields"}), 400
+    
+    query = db.session.query(
+        Skin.name.label('skin_name'),
+        SkinCondition.condition.label('skin_condition'),
+        Skin.min_float.label('min_float'),
+        Skin.max_float.label('max_float'),
+        SkinCondition.price.label('price'),
+        Collection.name.label('collection_name')
+    )\
+    .filter(Skin.id == SkinCondition.skin_id)\
+    .filter(Collection.id == Skin.collection_id)\
+    .filter(Skin.quality == rarity)\
+    .filter(Skin.stattrak == stattrak)\
+    .filter(SkinCondition.price != None)\
+    .filter(SkinCondition.condition == condition)\
+
+    if collection_names:
+        query = query.filter(Collection.name.in_(collection_names))
+
+    if search_string:
+        query = query.filter(Skin.name.ilike(f"%{search_string}%"))
+
+    skins_result = query.all()
+
+    # Convert the result to a list of dictionaries
+    skins_result_dicts = [row._asdict() for row in skins_result]
+
+    return jsonify(skins_result_dicts), 201
