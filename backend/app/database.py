@@ -1,4 +1,4 @@
-from backend.app.models import Collection, Skin, SkinCondition, Tradeup, TradeupEntry, db
+from backend.app.models import Collection, Skin, SkinCondition, Tradeup, db
 from sqlalchemy.sql import text
 
 """ Insert entries into postgres database """
@@ -38,7 +38,7 @@ def add_tradeup(tradeup: Tradeup):
     db.session.commit()
     return tradeup
 
-def add_tradeup_entry(tradeup_entry: TradeupEntry):
+def add_tradeup_entry(tradeup_entry):
     db.session.add(tradeup_entry)
     db.session.commit()
     return tradeup_entry

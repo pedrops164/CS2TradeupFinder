@@ -3,7 +3,7 @@ import datetime
 import logging
 import pandas as pd
 
-db_name = "skins.db"
+db_name = "app.db"
 
 from entities import Skin
 

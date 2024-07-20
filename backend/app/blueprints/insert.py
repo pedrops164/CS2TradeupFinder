@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from backend.app.database import add_tradeup, add_tradeup_entry, get_skin_condition_id, get_skins_by_name
-from backend.app.models import Tradeup, TradeupEntry
+from backend.app.models import Tradeup, InputTradeupEntry
 
 bp_insert = Blueprint('bp_insert', __name__)
 
@@ -19,7 +19,8 @@ def add_completed_tradeup():
     rarities = set()
     
     #tradeup = add_tradeup(tradeup_name)
-    tradeup = Tradeup(tradeup_name)
+    tracked = True
+    tradeup = Tradeup(tradeup_name, tracked)
     entries = []
     
     if len(tradeup_entries_dicts) == 0:
@@ -57,7 +58,7 @@ def add_completed_tradeup():
         if skin_condition_id is None:
             return jsonify({"error": f"Invalid weapon_paint or condition for {weapon_paint}, {condition}"}), 400
         
-        entries.append(TradeupEntry(skin_condition_id, float, count, None))
+        entries.append(InputTradeupEntry(skin_condition_id, float, count, None))
     
     assert len(rarities) > 0
     if len(rarities) != 1:

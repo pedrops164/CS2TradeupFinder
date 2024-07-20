@@ -113,7 +113,7 @@ def match_pattern(skin_dict):
         return res_dict
     return None
 
-def update_all_weapon_paints_prices():
+def update_all_weapon_paints_prices(connection):
     """
     Updates the price of all skins through the steam market which have more than 5 listings and are relevant from tradeups (we exclude knifes, stickers, etc)
     """
@@ -142,7 +142,7 @@ def update_all_weapon_paints_prices():
         
 def update_prices():
     connection = sqlite3.connect(db_name)
-    update_all_weapon_paints_prices()
+    update_all_weapon_paints_prices(connection)
     connection.commit()
     connection.close()
     
