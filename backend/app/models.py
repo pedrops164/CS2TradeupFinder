@@ -46,6 +46,8 @@ class SkinCondition(db.Model):
     skin_id = db.Column(db.Integer, db.ForeignKey('skins.id'))
     timestamp = db.Column(db.DateTime)
     
+    skin = db.relationship('Skin', backref='skin_conditions')
+    
 class Tradeup(db.Model):
     __tablename__ = "tradeup"
     
@@ -99,6 +101,8 @@ class InputTradeupEntry(db.Model):
     count = db.Column(db.Integer, nullable=False)
     tradeup_id = db.Column(db.Integer, db.ForeignKey('tradeup.id'), nullable=False)
     
+    skin_condition = db.relationship('SkinCondition', backref='input_entries')
+    
     def __init__(self, skin_condition_id, float, count, tradeup_id):
         self.skin_condition_id = skin_condition_id
         self.float = float
@@ -116,6 +120,8 @@ class OutputTradeupEntry(db.Model):
     float = db.Column(db.Float, nullable=False)
     prob = db.Column(db.Float, nullable=False) # probability
     tradeup_id = db.Column(db.Integer, db.ForeignKey('tradeup.id'), nullable=False)
+
+    skin_condition = db.relationship('SkinCondition', backref='output_entries')
 
     def __init__(self, skin_condition_id, float, prob, tradeup_id):
         self.skin_condition_id = skin_condition_id

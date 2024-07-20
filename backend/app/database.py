@@ -84,3 +84,25 @@ def get_skins_by_name(weapon_paint: str):
     ).fetchall()
     return result
         
+def get_skin_price(skin_name: str, skin_condition: str, stattrak: bool):
+    """Queries the database to return the price of a skin
+
+    Args:
+        skin_name (str): name of the skin. For example "AK-47 Redline"
+        skin_condition (str): condition of the skin. For example "Factory New"
+        stattrak (bool): whether the skin is stattrak
+
+    Returns:
+        skin_price (float): price of skin
+    """
+    result = db.session.query(
+        SkinCondition.price.label('price')
+    )\
+    .filter(Skin.id == SkinCondition.skin_id)\
+    .filter(Skin.name == skin_name)\
+    .filter(SkinCondition.condition == skin_condition)\
+    .filter(Skin.stattrak == stattrak)\
+    .one() # extract one record. Might raise NoResultFound or MultipleResultsFound exceptions
+
+    skin_price = result.price
+    return skin_price
