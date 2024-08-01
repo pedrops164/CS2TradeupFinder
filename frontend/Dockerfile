@@ -1,15 +1,22 @@
-#pushes the base image from a remote repository
+# Use an official Node runtime as a parent image
 FROM node:18-alpine
 
-WORKDIR /frontend
+# Set the working directory
+WORKDIR /usr/src/frontend
 
-#copy the necessary files into the working directory
-COPY public/ /frontend/public
-COPY src/ /frontend/src
-COPY package.json /frontend
+# Copy package.json
+COPY package.json /usr/src/frontend/package.json
 
-# installs all the dependencies specified in the package.json file
+# Install dependencies
 RUN npm install
 
-# command used for starting React app
-CMD ["npm", "start"]
+# Copy the rest of the application
+COPY . /usr/src/frontend
+
+RUN apk --no-cache add curl
+
+# Expose the application port
+EXPOSE 3000
+
+# Start the application
+CMD ["npm", "run", "dev"]
