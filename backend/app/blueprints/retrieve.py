@@ -3,10 +3,12 @@ from backend.src.tradeups import calculate_output_entries, calculate_tradeup_sta
 from backend.app.models import db, Tradeup, InputTradeupEntry, SkinCondition, OutputTradeupEntry, Skin, Collection
 from backend.app.database import get_skin_price
 from sqlalchemy.orm import joinedload
+from flask_login import login_required
 
 bp_retrieve = Blueprint('bp_retrieve', __name__)
 
 @bp_retrieve.route('/tracked', methods=['GET'])
+@login_required
 def get_tradeups():
     """Returns an array of dicts, each dict representing a tracked tradeup
     """
@@ -79,6 +81,7 @@ def get_tradeups():
     return jsonify({"result": tracked_tradeups}), 201
 
 @bp_retrieve.route('/create', methods=['POST'])
+@login_required
 def get_tradeup_output():
     """Gets tradeup input entries and returns the corresponding output entries by calculating them, and the tradeup stats
 
@@ -129,6 +132,7 @@ def get_tradeup_output():
         "profit_odds": profit_odds}), 201
 
 @bp_retrieve.route("/search_skin", methods=["POST"])
+@login_required
 def search_skin():
     data = request.get_json()
     

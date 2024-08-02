@@ -6,12 +6,11 @@ WORKDIR /usr/src/frontend
 
 # Copy package.json
 COPY package.json /usr/src/frontend/package.json
+COPY public/ /usr/src/frontend/public
+COPY src/ /usr/src/frontend/src
 
 # Install dependencies
 RUN npm install
-
-# Copy the rest of the application
-COPY . /usr/src/frontend
 
 RUN apk --no-cache add curl
 

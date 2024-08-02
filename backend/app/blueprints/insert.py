@@ -1,10 +1,12 @@
 from flask import Blueprint, request, jsonify
 from backend.app.database import add_tradeup, add_tradeup_entry, get_skin_condition_id, get_skins_by_name, add_tradeup_collection
 from backend.app.models import Tradeup, InputTradeupEntry, OutputTradeupEntry, TradeupCollections
+from flask_login import login_required
 
 bp_insert = Blueprint('bp_insert', __name__)
 
 @bp_insert.route('/add_tradeup', methods=['POST'])
+@login_required
 def add_completed_tradeup():
     data = request.json
     tradeup_name = data["name"]

@@ -6,3 +6,7 @@ psycopg2-binary
 python-dotenv
 flask_sqlalchemy
 flask_migrate
+flask-login
+flask_wtf
+Werkzeug
+email_validator
