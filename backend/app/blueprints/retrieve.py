@@ -1,9 +1,9 @@
 from flask import Blueprint, request, jsonify
 from backend.src.tradeups import calculate_output_entries, calculate_tradeup_stats
-from backend.app.models import db, Tradeup, InputTradeupEntry, SkinCondition, OutputTradeupEntry, Skin, Collection
+from backend.app.models import db, Tradeup, InputTradeupEntry, SkinCondition, OutputTradeupEntry, Skin, Collection, TradeupType
 from backend.app.database import get_skin_price
 from sqlalchemy.orm import joinedload
-from flask_login import login_required
+from flask_login import login_required, current_user
 
 bp_retrieve = Blueprint('bp_retrieve', __name__)
 
@@ -175,3 +175,16 @@ def search_skin():
     skins_result_dicts = [row._asdict() for row in skins_result]
 
     return jsonify(skins_result_dicts), 201
+
+@bp_retrieve.route('/purchasable_tradeups', methods=['GET'])
+def get_purchasable_tradeups():
+    user_id = current_user.id
+    user_email = current_user.email
+    all_purchasable_tradeups = Tradeup.query.filter(Tradeup.tradeup_type == TradeupType.PURCHASABLE).all()
+    user_purchased_tradeups = current_user.tradeups_purchased
+    purchased = []
+    for tradeup in all_purchasable_tradeups:
+        is_purchased = tradeup in user_purchased_tradeups
+        purchased.append(is_purchased)
+
+    return {'current_user_id': user_id, 'email': user_email, 'purchased': purchased}, 200

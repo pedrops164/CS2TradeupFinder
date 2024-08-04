@@ -2,6 +2,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 import sqlalchemy.orm as so
 from werkzeug.security import generate_password_hash, check_password_hash
+import enum
+from sqlalchemy import Enum
 
 db = SQLAlchemy()
 
@@ -50,23 +52,50 @@ class SkinCondition(db.Model):
     timestamp = db.Column(db.DateTime)
     
     skin = db.relationship('Skin', backref='skin_conditions')
+
+class TradeupType(enum.Enum):
+    PUBLIC = "public"
+    PURCHASABLE = "purchasable"
+    PRIVATE = "private"
+
+tradeup_purchase = db.Table('tradeup_purchase',
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
+    db.Column('tradeup_id', db.Integer, db.ForeignKey('tradeup.id'), primary_key=True)
+)
+
+private_tradeup_user = db.Table('private_tradeup_user',
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
+    db.Column('tradeup_id', db.Integer, db.ForeignKey('tradeup.id'), primary_key=True)
+)
     
 class Tradeup(db.Model):
     __tablename__ = "tradeup"
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=True, unique=False)
-    stattrak = db.Column(db.Boolean, nullable=False)
-    input_rarity = db.Column(db.String, nullable=False)
+    stattrak = db.Column(db.Boolean, nullable=False) # stattrak status of the input skins of the tradeup
+    input_rarity = db.Column(db.String, nullable=False) # rarity of the input skins of the tradeup
+    tradeup_type = db.Column(db.Enum(TradeupType), nullable=False) # public, purchasable or private
+    price = db.Column(db.Float, nullable=True) # price of the tradeup. Only applicable if type is purchasable
 
     input_entries = db.relationship('InputTradeupEntry', backref='tradeup', lazy='joined')
     output_entries = db.relationship('OutputTradeupEntry', backref='tradeup', lazy='joined')
     collections = db.relationship('Collection', secondary='tradeup_collections', backref='tradeups', lazy='joined')
+    purchased_by = db.relationship('User', secondary=tradeup_purchase, back_populates='tradeups_purchased')
+    tracked_by = db.relationship('User', secondary=private_tradeup_user, back_populates='tracked_tradeups')
     
-    def __init__(self, stattrak, input_rarity, name=None):
+    def __init__(self, stattrak, input_rarity, tradeup_type, price=None, name=None):
         self.name = name
         self.stattrak = stattrak
         self.input_rarity = input_rarity
+        self.tradeup_type = tradeup_type
+        self.price = price
+        
+        # Ensure price is only set for purchasable tradeups
+        if self.tradeup_type == TradeupType.PURCHASABLE and price is None:
+            raise ValueError("Price must be set for purchasable tradeups")
+        elif self.tradeup_type != TradeupType.PURCHASABLE and price is not None:
+            raise ValueError("Price can only be set for purchasable tradeups")
 
     class InvalidRarityException(Exception):
         def __init__(self, message):
@@ -137,9 +166,14 @@ class OutputTradeupEntry(db.Model):
 
 # user class
 class User(UserMixin, db.Model):
+    __tablename__ = "user"
+
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), index=True, unique=True)
     password_hash = db.Column(db.String(256))
+
+    tradeups_purchased = db.relationship('Tradeup', secondary=tradeup_purchase, back_populates='purchased_by')
+    tracked_tradeups = db.relationship('Tradeup', secondary=private_tradeup_user, back_populates='tracked_by')
 
     def __repr__(self):
         return '<User {}>'.format(self.username)

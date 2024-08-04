@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from backend.app.database import add_tradeup, add_tradeup_entry, get_skin_condition_id, get_skins_by_name, add_tradeup_collection
-from backend.app.models import Tradeup, InputTradeupEntry, OutputTradeupEntry, TradeupCollections
-from flask_login import login_required
+from backend.app.models import Tradeup, InputTradeupEntry, OutputTradeupEntry, TradeupCollections, TradeupType, db
+from flask_login import login_required, current_user
 
 bp_insert = Blueprint('bp_insert', __name__)
 
@@ -20,7 +20,17 @@ def add_completed_tradeup():
     if total_count != 10:
         return jsonify({"error": "The total count of all entries must be 10"}), 400
     
-    tradeup = Tradeup(tradeup_isstattrak, tradeup_input_rarity, tradeup_name)
+    tradeup_type = data["tradeup_type"]
+    try:
+        tradeup_type = TradeupType[tradeup_type.upper()]  # Convert the string to the TradeupType enum
+    except KeyError:
+        return jsonify({"error": "Invalid tradeup type provided."}), 400
+    if tradeup_type == TradeupType.PUBLIC and data.get("price"):
+        return jsonify({"error": "Public tradeup can't have price"}), 400
+    if tradeup_type == TradeupType.PURCHASABLE and not data.get("price"):
+        return jsonify({"error": "Purchasable tradeup must have price"}), 400
+    
+    tradeup = Tradeup(tradeup_isstattrak, tradeup_input_rarity, tradeup_type, name=tradeup_name, price=data.get("price"))
     input_entries, output_entries = [], []
     tradeup_collection_ids = set()
     
@@ -131,3 +141,54 @@ def _output_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, 
         return None, f"Invalid weapon_paint or condition for {weapon_paint}, {condition}"
 
     return skin_condition_id, None
+
+@bp_insert.route('/purchase_tradeup', methods=['POST'])
+@login_required
+def purchase_tradeup():
+    data = request.json
+    tradeup_id = data.get("tradeup_id")
+    if tradeup_id is None:
+        return jsonify({"error": "Must receive tradeup id"}), 400
+    
+    # get tradeup with given id
+    tradeup = Tradeup.query.filter(Tradeup.id == tradeup_id).first()
+    if tradeup is None:
+        return jsonify({"error": "No tradeup with given id"}), 400
+    
+    if tradeup.tradeup_type != TradeupType.PURCHASABLE:
+        return jsonify({"error": "Tradeup with given ID is not purchasable"}), 400
+    
+    # add tradeup to current user
+    current_user.tradeups_purchased.append(tradeup)
+
+    # persist changes in database
+    db.session.commit()
+
+    return jsonify({"message": "Tradeup purchased successfully", "user_id": current_user.id}), 200
+
+
+@bp_insert.route('/track_tradeup', methods=['POST'])
+@login_required
+def track_tradeup():
+    """User tracks a tradeup. Adds the tradeup to the user tracked tradeups
+
+    Returns:
+        _type_: _description_
+    """
+    data = request.json
+    tradeup_id = data.get("tradeup_id")
+    if tradeup_id is None:
+        return jsonify({"error": "Must receive tradeup id"}), 400
+    
+    # get tradeup with given id
+    tradeup = Tradeup.query.filter(Tradeup.id == tradeup_id).first()
+    if tradeup is None:
+        return jsonify({"error": "No tradeup with given id"}), 400
+    
+    # add tradeup to current user
+    current_user.tracked_tradeups.append(tradeup)
+
+    # persist changes in database
+    db.session.commit()
+
+    return jsonify({"message": "Tradeup tracked successfully", "user_id": current_user.id}), 200
