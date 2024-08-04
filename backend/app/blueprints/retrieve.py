@@ -7,7 +7,7 @@ from flask_login import login_required, current_user
 
 bp_retrieve = Blueprint('bp_retrieve', __name__)
 
-@bp_retrieve.route('/tracked', methods=['GET'])
+@bp_retrieve.route('/tradeups/tracked', methods=['GET'])
 @login_required
 def get_tradeups():
     """Returns an array of dicts, each dict representing a tracked tradeup
@@ -80,7 +80,7 @@ def get_tradeups():
     
     return jsonify({"result": tracked_tradeups}), 201
 
-@bp_retrieve.route('/create', methods=['POST'])
+@bp_retrieve.route('/tradeups/calculate_output', methods=['POST'])
 @login_required
 def get_tradeup_output():
     """Gets tradeup input entries and returns the corresponding output entries by calculating them, and the tradeup stats
@@ -131,7 +131,7 @@ def get_tradeup_output():
         "profit_avg": profit_avg,
         "profit_odds": profit_odds}), 201
 
-@bp_retrieve.route("/search_skin", methods=["POST"])
+@bp_retrieve.route("/tradeups/search_skin", methods=["POST"])
 @login_required
 def search_skin():
     data = request.get_json()
@@ -176,7 +176,7 @@ def search_skin():
 
     return jsonify(skins_result_dicts), 201
 
-@bp_retrieve.route('/purchasable_tradeups', methods=['GET'])
+@bp_retrieve.route('/tradeups/purchasable', methods=['GET'])
 def get_purchasable_tradeups():
     user_id = current_user.id
     user_email = current_user.email

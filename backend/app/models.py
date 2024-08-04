@@ -164,6 +164,11 @@ class OutputTradeupEntry(db.Model):
     def set_tradeup_id(self, tradeup_id):
         self.tradeup_id = tradeup_id
 
+class UserRole(enum.Enum):
+    # users can be of default type (user) or admin
+    USER = "user"
+    ADMIN = "admin"
+
 # user class
 class User(UserMixin, db.Model):
     __tablename__ = "user"
@@ -171,6 +176,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), index=True, unique=True)
     password_hash = db.Column(db.String(256))
+    role = db.Column(db.Enum(UserRole), nullable=False, default=UserRole.USER)
 
     tradeups_purchased = db.relationship('Tradeup', secondary=tradeup_purchase, back_populates='purchased_by')
     tracked_tradeups = db.relationship('Tradeup', secondary=private_tradeup_user, back_populates='tracked_by')
@@ -183,3 +189,9 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+    def is_admin(self):
+        return self.role == UserRole.ADMIN
+    
+    def is_user(self):
+        return self.role == UserRole.USER

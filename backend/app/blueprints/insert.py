@@ -1,19 +1,21 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, flash
 from backend.app.database import add_tradeup, add_tradeup_entry, get_skin_condition_id, get_skins_by_name, add_tradeup_collection
 from backend.app.models import Tradeup, InputTradeupEntry, OutputTradeupEntry, TradeupCollections, TradeupType, db
 from flask_login import login_required, current_user
 
 bp_insert = Blueprint('bp_insert', __name__)
 
-@bp_insert.route('/add_tradeup', methods=['POST'])
-@login_required
-def add_completed_tradeup():
+@bp_insert.route('/tradeups/create', methods=['POST'])
+@login_required # Ensure only authenticated users can access this route
+def create_tradeup():
     data = request.json
-    tradeup_name = data["name"]
-    tradeup_isstattrak = data["stattrak"]
-    tradeup_input_rarity = data["input_rarity"]
-    input_entries_dict = data["input_entries"]
-    output_entries_dict = data["output_entries"]
+    tradeup_isstattrak = data.get("stattrak")
+    tradeup_input_rarity = data.get("input_rarity")
+    input_entries_dict = data.get("input_entries")
+    output_entries_dict = data.get("output_entries")
+    tradeup_name = data.get("name") # optional
+    tradeup_price=data.get("price") # price of the tradeup (optional, only applicable if type is PURCHASABLE)
+    
 
     # Validate total count of all entries
     total_count = sum(entry["count"] for entry in input_entries_dict)
@@ -25,12 +27,19 @@ def add_completed_tradeup():
         tradeup_type = TradeupType[tradeup_type.upper()]  # Convert the string to the TradeupType enum
     except KeyError:
         return jsonify({"error": "Invalid tradeup type provided."}), 400
-    if tradeup_type == TradeupType.PUBLIC and data.get("price"):
+
+    # Check permissions
+    if tradeup_type in [TradeupType.PUBLIC, TradeupType.PURCHASABLE] and current_user.is_user():
+        return jsonify({"Only administrators can create public or purchasable tradeups"}), 400
+
+    if tradeup_type == TradeupType.PUBLIC and tradeup_price:
         return jsonify({"error": "Public tradeup can't have price"}), 400
-    if tradeup_type == TradeupType.PURCHASABLE and not data.get("price"):
+    if tradeup_type == TradeupType.PURCHASABLE and not tradeup_price:
         return jsonify({"error": "Purchasable tradeup must have price"}), 400
     
-    tradeup = Tradeup(tradeup_isstattrak, tradeup_input_rarity, tradeup_type, name=tradeup_name, price=data.get("price"))
+    # at this point, the tradeup is either public and without price, or purchasable with price, or private
+    
+    tradeup = Tradeup(tradeup_isstattrak, tradeup_input_rarity, tradeup_type, name=tradeup_name, price=tradeup_price)
     input_entries, output_entries = [], []
     tradeup_collection_ids = set()
     
@@ -142,11 +151,9 @@ def _output_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, 
 
     return skin_condition_id, None
 
-@bp_insert.route('/purchase_tradeup', methods=['POST'])
+@bp_insert.route('/tradeups/<int:tradeup_id>/purchase', methods=['POST'])
 @login_required
-def purchase_tradeup():
-    data = request.json
-    tradeup_id = data.get("tradeup_id")
+def purchase_tradeup(tradeup_id):
     if tradeup_id is None:
         return jsonify({"error": "Must receive tradeup id"}), 400
     
@@ -167,16 +174,11 @@ def purchase_tradeup():
     return jsonify({"message": "Tradeup purchased successfully", "user_id": current_user.id}), 200
 
 
-@bp_insert.route('/track_tradeup', methods=['POST'])
+@bp_insert.route('/tradeups/<int:tradeup_id>/track', methods=['POST'])
 @login_required
-def track_tradeup():
+def track_tradeup(tradeup_id):
     """User tracks a tradeup. Adds the tradeup to the user tracked tradeups
-
-    Returns:
-        _type_: _description_
     """
-    data = request.json
-    tradeup_id = data.get("tradeup_id")
     if tradeup_id is None:
         return jsonify({"error": "Must receive tradeup id"}), 400
     

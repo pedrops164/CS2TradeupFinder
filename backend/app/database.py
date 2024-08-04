@@ -106,3 +106,19 @@ def get_skin_price(skin_name: str, skin_condition: str, stattrak: bool):
 
     skin_price = result.price
     return skin_price
+
+
+""" User Authentication """
+
+def add_user(user):
+    """Adds user to database
+
+    Args:
+        user (User): User to add
+
+    Returns:
+        user: Added user
+    """
+    db.session.add(user)
+    db.session.commit()
+    return user
