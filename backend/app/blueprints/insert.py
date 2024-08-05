@@ -5,9 +5,9 @@ from flask_login import login_required, current_user
 
 bp_insert = Blueprint('bp_insert', __name__)
 
-@bp_insert.route('/tradeups/create', methods=['POST'])
+@bp_insert.route('/tradeups/create_public', methods=['POST'])
 @login_required # Ensure only authenticated users can access this route
-def create_tradeup():
+def create_tradeup_public():
     data = request.json
     tradeup_isstattrak = data.get("stattrak")
     tradeup_input_rarity = data.get("input_rarity")
@@ -15,50 +15,106 @@ def create_tradeup():
     output_entries_dict = data.get("output_entries")
     tradeup_name = data.get("name") # optional
     tradeup_price=data.get("price") # price of the tradeup (optional, only applicable if type is PURCHASABLE)
-    
+    tradeup_type = TradeupType.PUBLIC
 
-    # Validate total count of all entries
-    total_count = sum(entry["count"] for entry in input_entries_dict)
-    if total_count != 10:
-        return jsonify({"error": "The total count of all entries must be 10"}), 400
+    json_error, error_code = _tradeup_input_checks(tradeup_isstattrak, tradeup_input_rarity, input_entries_dict, output_entries_dict, tradeup_price, tradeup_type)
+    if json_error:
+        return json_error, error_code
     
-    tradeup_type = data["tradeup_type"]
-    try:
-        tradeup_type = TradeupType[tradeup_type.upper()]  # Convert the string to the TradeupType enum
-    except KeyError:
-        return jsonify({"error": "Invalid tradeup type provided."}), 400
-
-    # Check permissions
-    if tradeup_type in [TradeupType.PUBLIC, TradeupType.PURCHASABLE] and current_user.is_user():
-        return jsonify({"error": "Only administrators can create public or purchasable tradeups"}), 400
-
-    if tradeup_type == TradeupType.PUBLIC and tradeup_price:
-        return jsonify({"error": "Public tradeup can't have price"}), 400
-    if tradeup_type == TradeupType.PURCHASABLE and not tradeup_price:
-        return jsonify({"error": "Purchasable tradeup must have price"}), 400
+    tradeup, error_msg, error_code = create_tradeup(tradeup_isstattrak, tradeup_input_rarity, input_entries_dict, output_entries_dict, tradeup_name, tradeup_price, tradeup_type)
+    if not tradeup:
+        return jsonify({"error": error_msg}), error_code
+    else:
+        return jsonify({"tradeup_id": tradeup.id, "name": tradeup.name}), 201
     
-    # at this point, the tradeup is either public and without price, or purchasable with price, or private
+@bp_insert.route('/tradeups/create_purchasable', methods=['POST'])
+@login_required # Ensure only authenticated users can access this route
+def create_tradeup_purchasable():
+    data = request.json
+    tradeup_isstattrak = data.get("stattrak")
+    tradeup_input_rarity = data.get("input_rarity")
+    input_entries_dict = data.get("input_entries")
+    output_entries_dict = data.get("output_entries")
+    tradeup_name = data.get("name") # optional
+    tradeup_price=data.get("price") # price of the tradeup (optional, only applicable if type is PURCHASABLE)
+    tradeup_type = TradeupType.PURCHASABLE
+
+    json_error, error_code = _tradeup_input_checks(tradeup_isstattrak, tradeup_input_rarity, input_entries_dict, output_entries_dict, tradeup_price, tradeup_type)
+    if json_error:
+        return json_error, error_code
+    
+    tradeup, error_msg, error_code = create_tradeup(tradeup_isstattrak, tradeup_input_rarity, input_entries_dict, output_entries_dict, tradeup_name, tradeup_price, tradeup_type)
+    if not tradeup:
+        return jsonify({"error": error_msg}), error_code
+    else:
+        return jsonify({"tradeup_id": tradeup.id, "name": tradeup.name}), 201
+    
+@bp_insert.route('/tradeups/create_private', methods=['POST'])
+@login_required # Ensure only authenticated users can access this route
+def create_tradeup_private():
+    data = request.json
+    tradeup_isstattrak = data.get("stattrak")
+    tradeup_input_rarity = data.get("input_rarity")
+    input_entries_dict = data.get("input_entries")
+    output_entries_dict = data.get("output_entries")
+    tradeup_name = data.get("name") # optional
+    tradeup_price=data.get("price") # price of the tradeup (optional, only applicable if type is PURCHASABLE)
+    tradeup_type = TradeupType.PRIVATE
+
+    json_error, error_code = _tradeup_input_checks(tradeup_isstattrak, tradeup_input_rarity, input_entries_dict, output_entries_dict, tradeup_price, tradeup_type)
+    if json_error:
+        return json_error, error_code
+    
+    tradeup, error_msg, error_code = create_tradeup(tradeup_isstattrak, tradeup_input_rarity, input_entries_dict, output_entries_dict, tradeup_name, tradeup_price, tradeup_type)
+    if not tradeup:
+        return jsonify({"error": error_msg}), error_code
+    
+    track_tradeup(tradeup.id)
+    return jsonify({"tradeup_id": tradeup.id, "name": tradeup.name}), 201
+
+
+def create_tradeup(tradeup_isstattrak, tradeup_input_rarity, input_entries_dict, output_entries_dict, tradeup_name, tradeup_price, tradeup_type):
+    """Creates a tradeup
+
+    Args:
+        tradeup_isstattrak (_type_): _description_
+        tradeup_input_rarity (_type_): _description_
+        input_entries_dict (_type_): _description_
+        output_entries_dict (_type_): _description_
+        tradeup_name (_type_): _description_
+        tradeup_price (_type_): _description_
+        tradeup_type (_type_): _description_
+
+    Returns:
+        tradeup: returns Tradeup object if successful
+        error_msg: returns error message if not successful
+        error_code: returns error code if not successful
+    """
     
     tradeup = Tradeup(tradeup_isstattrak, tradeup_input_rarity, tradeup_type, name=tradeup_name, price=tradeup_price)
     input_entries, output_entries = [], []
     tradeup_collection_ids = set()
     
-    if len(input_entries_dict) == 0:
-        return jsonify({"error": f"Tradeup entries array is empty"}), 400
-    
     # at this point we know len(tradeup_entries) > 0
     for tradeup_entry in input_entries_dict:
-        weapon_paint = tradeup_entry["skin_name"]
-        condition = tradeup_entry["skin_condition"]
-        skin_float = tradeup_entry["float"]
-        count = tradeup_entry["count"]
-        tradeup_collection_ids.add(tradeup_entry["collection_id"])
+        weapon_paint = tradeup_entry.get("skin_name")
+        condition = tradeup_entry.get("skin_condition")
+        skin_float = tradeup_entry.get("float")
+        count = tradeup_entry.get("count")
+        collection_id = tradeup_entry.get("collection_id")
+        
+        # check all required parameters were given
+        if None in [weapon_paint, condition, skin_float, count, collection_id]:
+            error = "Didn't receive all required parameters in tradeup input entry"
+            return None, error, 400
+
+        tradeup_collection_ids.add(collection_id)
         
         skin_condition_id, error = _input_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, condition, skin_float)
         if skin_condition_id:
             input_entries.append(InputTradeupEntry(skin_condition_id, skin_float, count, None))
         else:
-            return jsonify({"error": error}), 400
+            return None, error, 400
 
     for tradeup_entry in output_entries_dict:
         weapon_paint = tradeup_entry["skin_name"]
@@ -70,8 +126,8 @@ def create_tradeup():
         if skin_condition_id:
             output_entries.append(OutputTradeupEntry(skin_condition_id, skin_float, prob, None))
         else:
-            return jsonify({"error": error}), 400
-    
+            return None, error, 400
+        
     # every possible error has been checked, so we add the tradeup and its input and output entries to the db
     add_tradeup(tradeup)
     for entry in input_entries:
@@ -84,7 +140,43 @@ def create_tradeup():
         tradeup_collection = TradeupCollections(tradeup.id, coll_id)
         add_tradeup_collection(tradeup_collection)
         
-    return jsonify({"id": tradeup.id, "name": tradeup.name}), 201
+    return tradeup, None, None
+
+def _tradeup_input_checks(is_stattrak, input_rarity, input_entries_dict, output_entries_dict, tradeup_price, tradeup_type: TradeupType):
+    """Ensures the input parameters for a tradeup are correct
+
+    Args:
+        is_stattrak (bool): _description_
+        input_rarity (_type_): _description_
+        input_entries_dict (_type_): _description_
+        output_entries_dict (_type_): _description_
+        tradeup_price (_type_): _description_
+        tradeup_type (TradeupType): _description_
+
+    Returns:
+        error message and code if there was a bad input, otherwise None
+    """
+    if None in [is_stattrak, input_rarity, input_entries_dict, output_entries_dict]:
+        return jsonify({"error": "Didn't receive all required parameters in tradeup"}), 400
+    
+    # Validate total count of all entries
+    total_count = sum(entry["count"] for entry in input_entries_dict)
+    if total_count != 10:
+        return jsonify({"error": "The total count of all entries must be 10"}), 400
+    
+    # Check permissions
+    if tradeup_type in [TradeupType.PUBLIC, TradeupType.PURCHASABLE] and current_user.is_user():
+        return jsonify({"error": "Only administrators can create public or purchasable tradeups"}), 400
+
+    if tradeup_type == TradeupType.PUBLIC and tradeup_price:
+        return jsonify({"error": "Public tradeup can't have price"}), 400
+    if tradeup_type == TradeupType.PURCHASABLE and not tradeup_price:
+        return jsonify({"error": "Purchasable tradeup must have price"}), 400
+    
+    if len(input_entries_dict) == 0:
+        return jsonify({"error": f"Tradeup entries array is empty"}), 400
+    
+    return None, None
 
 def _input_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, condition, skin_float):
     """Applies assert checks for a given input entry
@@ -154,6 +246,8 @@ def _output_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, 
 @bp_insert.route('/tradeups/<int:tradeup_id>/purchase', methods=['POST'])
 @login_required
 def purchase_tradeup(tradeup_id):
+    """User purchases a tradeup. Adds the tradeup to the user purchased tradeups
+    """
     if tradeup_id is None:
         return jsonify({"error": "Must receive tradeup id"}), 400
     
