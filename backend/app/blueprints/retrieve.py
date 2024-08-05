@@ -4,6 +4,9 @@ from backend.app.models import db, Tradeup, InputTradeupEntry, SkinCondition, Ou
 from backend.app.database import get_skin_price
 from sqlalchemy.orm import joinedload
 from flask_login import login_required, current_user
+from backend.app.types import InputEntryDict, OutputEntryDict
+from backend.app.util import get_long_tradeup_dict, get_purchasable_tradeup_dict, get_input_entry_dict, get_output_entry_dict
+from typing import List
 
 bp_retrieve = Blueprint('bp_retrieve', __name__)
 
@@ -15,16 +18,12 @@ def get_tradeups():
 
     tracked_tradeups = []
 
-    # get all tradeups, associated with their input and output entries, and associated with their skin conditions (joins)
-    tradeups = db.session.query(Tradeup).options(
-        joinedload(Tradeup.input_entries).joinedload(InputTradeupEntry.skin_condition).joinedload(SkinCondition.skin),
-        joinedload(Tradeup.output_entries).joinedload(OutputTradeupEntry.skin_condition).joinedload(SkinCondition.skin),
-        joinedload(Tradeup.collections)
-    ).all()
-
     # Parsing each tradeup separately
-    for tradeup in tradeups:
-        input_entries, output_entries, collection_names = [], [], []
+    for tradeup in current_user.tracked_tradeups:
+        input_entries_dict: List[InputEntryDict] = []
+        output_entries_dict: List[OutputEntryDict] = []
+        collection_names: List[str] = []
+
         tradeup_id = tradeup.id
         tradeup_name = tradeup.name
         tradeup_input_rarity = tradeup.input_rarity
@@ -32,43 +31,27 @@ def get_tradeups():
         
         for input_entry in tradeup.input_entries:
             # parse each input entry, create the dictionary, and add to the array of input entries
-            skin_condition = input_entry.skin_condition
-            skin = skin_condition.skin
-            skin_price = get_skin_price(skin.name, skin_condition.condition, skin.stattrak)
-            input_entries.append({
-                "skin_name": skin.name,
-                "skin_condition": skin_condition.condition,
-                "float": input_entry.float,
-                "count": input_entry.count,
-                "price": skin_price
-            })
+            input_entry_dict = get_input_entry_dict(input_entry)
+            input_entries_dict.append(input_entry_dict)
     
         for output_entry in tradeup.output_entries:
             # parse each output entry, create the dictionary, and add to the array of output entries
-            skin_condition = output_entry.skin_condition
-            skin = skin_condition.skin
-            skin_price = get_skin_price(skin.name, skin_condition.condition, skin.stattrak)
-            output_entries.append({
-                "skin_name": skin.name,
-                "skin_condition": skin_condition.condition,
-                "float": output_entry.float,
-                "prob": output_entry.prob,
-                "price": skin_price
-            })
+            output_entry_dict = get_output_entry_dict(output_entry)
+            output_entries_dict.append(output_entry_dict)
 
         # add all collection names involved    
         for collection in tradeup.collections:
             collection_names.append(collection.name)
     
         # get tradeup stats
-        avg_input_float, input_skins_cost, profit_avg, profit_odds = calculate_tradeup_stats(input_entries, output_entries, tradeup_stattrak)
+        avg_input_float, input_skins_cost, profit_avg, profit_odds = calculate_tradeup_stats(input_entries_dict, output_entries_dict, tradeup_stattrak)
 
         # add tradeup to the array of tradeups
         tracked_tradeups.append({
             "tradeup_id": tradeup_id,
             "tradeup_name": tradeup_name,
-            "input_entries": input_entries,
-            "output_entries": output_entries,
+            "input_entries": input_entries_dict,
+            "output_entries": output_entries_dict,
             "collection_names": collection_names,
             "tradeup_input_rarity": tradeup_input_rarity,
             "tradeup_stattrak": tradeup_stattrak,
@@ -97,28 +80,12 @@ def get_tradeup_output():
     if not data:
         return jsonify({"error": "No data provided"}), 400
     
-    input_entries = data.get('input_entries')
-    stattrak = data.get('stattrak')
-    rarity = data.get('rarity')
+    input_entries: InputEntryDict = data.get('input_entries')
+    stattrak: bool = data.get('stattrak')
+    rarity: str = data.get('rarity')
     
     if not input_entries or not stattrak or not rarity:
         return jsonify({"error": "Missing required fields"}), 400
-    
-    # example
-    output_entries = [
-            {
-                "skin_name": "AK-47 | example skin",
-                "skin_condition": "Well-Worn",
-                "float": 0.46,
-                "prob": 50 # 0 to 1
-            },
-            {
-                "skin_name": "AWP | example skin",
-                "skin_condition": "Well-Worn",
-                "float": 0.47,
-                "prob": 50 # 0 to 1
-            }
-    ]
 
     output_entries = calculate_output_entries(input_entries, stattrak, rarity)
     
@@ -177,14 +144,23 @@ def search_skin():
     return jsonify(skins_result_dicts), 201
 
 @bp_retrieve.route('/tradeups/purchasable', methods=['GET'])
+@login_required
 def get_purchasable_tradeups():
     user_id = current_user.id
     user_email = current_user.email
     all_purchasable_tradeups = Tradeup.query.filter(Tradeup.tradeup_type == TradeupType.PURCHASABLE).all()
     user_purchased_tradeups = current_user.tradeups_purchased
-    purchased = []
+    purchased_tradeups_dicts = []
+    not_purchased_tradeups_dicts = []
     for tradeup in all_purchasable_tradeups:
-        is_purchased = tradeup in user_purchased_tradeups
-        purchased.append(is_purchased)
+        # check if user purchased tradeup
+        if tradeup in user_purchased_tradeups:
+            # user bought this tradeup. So we return all the information about the tradeup
+            purchased_tradeups_dicts.append(get_long_tradeup_dict(tradeup))
+        else:
+            # user hasn't bought this tradeup. So we return relevant yet non disclosing info about the tradeup
+            not_purchased_tradeups_dicts.append(get_purchasable_tradeup_dict(tradeup))
 
-    return {'current_user_id': user_id, 'email': user_email, 'purchased': purchased}, 200
+    return {
+        'purchased': purchased_tradeups_dicts,
+        'not_purchased': not_purchased_tradeups_dicts}, 200

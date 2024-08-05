@@ -30,7 +30,7 @@ def create_tradeup():
 
     # Check permissions
     if tradeup_type in [TradeupType.PUBLIC, TradeupType.PURCHASABLE] and current_user.is_user():
-        return jsonify({"Only administrators can create public or purchasable tradeups"}), 400
+        return jsonify({"error": "Only administrators can create public or purchasable tradeups"}), 400
 
     if tradeup_type == TradeupType.PUBLIC and tradeup_price:
         return jsonify({"error": "Public tradeup can't have price"}), 400
@@ -165,6 +165,9 @@ def purchase_tradeup(tradeup_id):
     if tradeup.tradeup_type != TradeupType.PURCHASABLE:
         return jsonify({"error": "Tradeup with given ID is not purchasable"}), 400
     
+    if tradeup in current_user.tradeups_purchased:
+        return jsonify({"error": "User already purchased tradeup"}), 400
+    
     # add tradeup to current user
     current_user.tradeups_purchased.append(tradeup)
 
@@ -186,6 +189,9 @@ def track_tradeup(tradeup_id):
     tradeup = Tradeup.query.filter(Tradeup.id == tradeup_id).first()
     if tradeup is None:
         return jsonify({"error": "No tradeup with given id"}), 400
+    
+    if tradeup in current_user.tracked_tradeups:
+        return jsonify({"error": "User already tracked the given tradeup"}), 400
     
     # add tradeup to current user
     current_user.tracked_tradeups.append(tradeup)

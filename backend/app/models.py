@@ -129,15 +129,15 @@ class InputTradeupEntry(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     skin_condition_id = db.Column(db.Integer, db.ForeignKey('skin_conditions.id'), nullable=False)
-    float = db.Column(db.Float, nullable=False)
+    skin_float = db.Column(db.Float, nullable=False)
     count = db.Column(db.Integer, nullable=False)
     tradeup_id = db.Column(db.Integer, db.ForeignKey('tradeup.id'), nullable=False)
     
     skin_condition = db.relationship('SkinCondition', backref='input_entries')
     
-    def __init__(self, skin_condition_id, float, count, tradeup_id):
+    def __init__(self, skin_condition_id, skin_float, count, tradeup_id):
         self.skin_condition_id = skin_condition_id
-        self.float = float
+        self.skin_float = skin_float
         self.count = count
         self.tradeup_id = tradeup_id
         
@@ -149,15 +149,15 @@ class OutputTradeupEntry(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     skin_condition_id = db.Column(db.Integer, db.ForeignKey('skin_conditions.id'), nullable=False)
-    float = db.Column(db.Float, nullable=False)
+    skin_float = db.Column(db.Float, nullable=False)
     prob = db.Column(db.Float, nullable=False) # probability
     tradeup_id = db.Column(db.Integer, db.ForeignKey('tradeup.id'), nullable=False)
 
     skin_condition = db.relationship('SkinCondition', backref='output_entries')
 
-    def __init__(self, skin_condition_id, float, prob, tradeup_id):
+    def __init__(self, skin_condition_id, skin_float, prob, tradeup_id):
         self.skin_condition_id = skin_condition_id
-        self.float = float
+        self.skin_float = skin_float
         self.prob = prob
         self.tradeup_id = tradeup_id
         
