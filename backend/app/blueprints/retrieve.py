@@ -164,3 +164,12 @@ def get_purchasable_tradeups():
     return {
         'purchased': purchased_tradeups_dicts,
         'not_purchased': not_purchased_tradeups_dicts}, 200
+
+@bp_retrieve.route('/tradeups/public', methods=['GET'])
+def get_public_tradeups():
+    public_tradeups = Tradeup.query.filter(Tradeup.tradeup_type == TradeupType.PUBLIC).all()
+    public_tradeups_dicts = []
+    for tradeup in public_tradeups:
+        public_tradeups_dicts.append(get_long_tradeup_dict(tradeup))
+    
+    return {"public_tradeups": public_tradeups_dicts}, 200
