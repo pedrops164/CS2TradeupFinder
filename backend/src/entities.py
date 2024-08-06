@@ -98,6 +98,23 @@ class TradeUpPool:
     def get_collection(self, name):
         return self.collections.get(name, None)
 
+    class InvalidRarityException(Exception):
+        def __init__(self, message):
+            self.message = message
+            super().__init__(self.message)
+    
+    @staticmethod
+    def get_output_quality(input_rarity):
+        rarities = ["consumer_bg", "industrial_bg", "milspec_bg", "restricted_bg", "classified_bg", "covert_bg"]
+        if input_rarity not in rarities:
+            raise TradeUpPool.InvalidRarityException("Input rarity not defined")
+        
+        input_quality_index = rarities.index(input_rarity)
+        if input_quality_index == len(rarities) - 1:
+            raise TradeUpPool.InvalidRarityException("Input rarity doesn't have matching output rarity")
+        
+        return rarities[input_quality_index + 1]
+
 class InputSkins:
     def __init__(self):
         self.input_skins = []

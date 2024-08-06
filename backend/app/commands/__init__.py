@@ -1,4 +1,5 @@
 from backend.app.models import db
+from backend.src.main import solve
 import os
 
 def register_commands(app):
@@ -27,3 +28,8 @@ def register_commands(app):
                         if statement.strip():
                             connection.execute(text(statement))
             print("SQLite Database populated!")
+
+    @app.cli.command("run-solver")
+    def run_solver():
+        solve()
+        print("Finished solving!")

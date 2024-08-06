@@ -1,12 +1,15 @@
-from tradeups import create_tradeup_from_dataframe
-from solvers.pyomo import solver
-from solvers.pyomo import solver_linear
-from solvers.pyscipopt import solver_pyscipopt
+from backend.src.tradeups import create_tradeup_from_dataframe
+#from backend.src.solvers.pyomo import solver
+#from backend.src.solvers.pyomo import solver_linear
+from backend.src.solvers.pyscipopt import solver_pyscipopt
 from itertools import product
 import time
 import traceback
 from contextlib import nullcontext
 import json
+import os
+
+script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in
 
 def solve_tradeups_decorator(tradeup_solver):
     """
@@ -57,6 +60,7 @@ def search_solve_tradeup(df, config):
         tradeup_pool = create_tradeup_from_dataframe(df, rarity, stattrak)
         is_stattrak = 'stattrak' if stattrak else 'non_stattrak'
         output_file_name = f"output/tradeup_search-{ratio}-{rarity}-{is_stattrak}.txt"
+        output_file_path = os.path.join(script_dir, output_file_name)
         
         if solve == 'single':
             solver = tradeup_solver_single
@@ -65,7 +69,7 @@ def search_solve_tradeup(df, config):
         else:  # 'all'
             solver = tradeup_solver_all
 
-        with open(output_file_name, "w") if config.get('write_output_file', True) else nullcontext() as file:
+        with open(output_file_path, "w") if config.get('write_output_file', True) else nullcontext() as file:
             solver(tradeup_pool, collection_names_subset, ratio, file)
         
 @solve_tradeups_decorator

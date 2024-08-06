@@ -10,3 +10,4 @@ flask-login
 flask_wtf
 Werkzeug
 email_validator
+pyscipopt

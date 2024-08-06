@@ -3,9 +3,13 @@ import datetime
 import logging
 import pandas as pd
 
-db_name = "app.db"
+from backend.app import models
+from backend.app.models import db
 
-from entities import Skin
+#db_name = "app.db"
+db_name = "backend/app.db"
+
+from .entities import Skin
 
 # for http requests
 import requests
@@ -369,18 +373,45 @@ def get_tradeup_dataframe():
     Returns:
         pandas.Dataframe: The Dataframe with the grouped collections
     """
-    connection = sqlite3.connect(db_name)
-    query = \
-    """
-    SELECT *
-    FROM skins s
-        JOIN skin_conditions sc
-        ON s.id = sc.skin_id
-    WHERE sc.price IS NOT NULL AND sc.timestamp IS NOT NULL
-    ORDER BY s.collection_id
-    """
+    # query = \
+    # """
+    # SELECT *
+    # FROM skins s
+    #     JOIN skin_conditions sc
+    #     ON s.id = sc.skin_id
+    # WHERE sc.price IS NOT NULL AND sc.timestamp IS NOT NULL
+    # ORDER BY s.collection_id
+    # """
     # Fetch data into a pandas DataFrame
-    df = pd.read_sql_query(query, connection)
+    # df = pd.read_sql_query(query, connection)
+    # df_grouped = df.groupby('collection_id')
+    # connection.close()
+    # return df_grouped
+    # Perform the query using SQLAlchemy ORM, selecting specific columns
+    query = db.session.query(
+        models.Skin.id.label('skin_id'),
+        models.Skin.collection_id,
+        models.Skin.quality,
+        models.Skin.stattrak,
+        models.Skin.name,
+        models.Skin.min_float,
+        models.Skin.max_float,
+        models.SkinCondition.id.label('condition_id'),
+        models.SkinCondition.condition,
+        models.SkinCondition.price,
+        models.SkinCondition.timestamp
+    ).join(models.SkinCondition, models.Skin.id == models.SkinCondition.skin_id).filter(
+        models.SkinCondition.price.isnot(None),
+        models.SkinCondition.timestamp.isnot(None)
+    ).order_by(models.Skin.collection_id)
+
+    # Fetch the results
+    result = query.all()
+
+    # Convert the results to a pandas DataFrame
+    df = pd.DataFrame(result)
+
+    # Group by collection_id
     df_grouped = df.groupby('collection_id')
-    connection.close()
+
     return df_grouped
