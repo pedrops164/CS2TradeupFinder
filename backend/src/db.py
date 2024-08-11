@@ -2,6 +2,7 @@ import sqlite3
 import datetime
 import logging
 import pandas as pd
+from sqlalchemy import and_
 
 from backend.app import models
 from backend.app.models import db
@@ -339,32 +340,68 @@ def update_skin_condition_price(skin_dict: dict, condition: str, proxy=None):
     return returned_price
 
 
-def update_weapon_paint_price(is_stattrak: bool, weapon_paint: str, condition: str, price: float, connection=None):
+def update_weapon_paint_price(is_stattrak: bool, weapon_paint: str, condition: str, price: float):
+    #"""
+    #Updates the price of a skin in the sqlite database
+#
+    #Args:
+    #    is_stattrak (bool): Indicates whether the skin is stattrak or not
+    #    weapon_paint (str): the name of the string. For example "AK-47 | Red Laminate"
+    #    condition (str): The condition of the skin. For example "Minimal Wear"
+    #    price (float): The price of the skin
+    #    connection: Connection to the sqlite database
+    #"""
+    ## instantiate the cursor to query the db
+    #cursor = connection.cursor()
+#
+    ## get current time
+    #timestamp = datetime.datetime.now()
+#
+    ## define the query to update
+    #query = """
+    #UPDATE skin_conditions
+    #SET price = ?, timestamp = ?
+    #WHERE skin_id = (
+    #    SELECT id FROM skins
+    #    WHERE stattrak = ? AND name = ?
+    #) AND condition = ?;"""
+    #cursor.execute(query, (price, timestamp, is_stattrak, weapon_paint, condition))
     """
-    Updates the price of a skin in the sqlite database
-
+    Updates the price of a skin in the database using SQLAlchemy ORM
     Args:
         is_stattrak (bool): Indicates whether the skin is stattrak or not
         weapon_paint (str): the name of the string. For example "AK-47 | Red Laminate"
         condition (str): The condition of the skin. For example "Minimal Wear"
         price (float): The price of the skin
-        connection: Connection to the sqlite database
+        db: SQLAlchemy database object
     """
-    # instantiate the cursor to query the db
-    cursor = connection.cursor()
-
-    # get current time
+    # Get current time
     timestamp = datetime.datetime.now()
 
-    # define the query to update
-    query = """
-    UPDATE skin_conditions
-    SET price = ?, timestamp = ?
-    WHERE skin_id = (
-        SELECT id FROM skins
-        WHERE stattrak = ? AND name = ?
-    ) AND condition = ?;"""
-    cursor.execute(query, (price, timestamp, is_stattrak, weapon_paint, condition))
+    # Find the correct skin
+    skin = db.session.query(models.Skin).filter(
+        and_(
+            models.Skin.stattrak == is_stattrak,
+            models.Skin.name == weapon_paint
+        )
+    ).first()
+
+    if skin:
+        # Update the skin condition
+        db.session.query(models.SkinCondition).filter(
+            and_(
+                models.SkinCondition.skin_id == skin.id,
+                models.SkinCondition.condition == condition
+            )
+        ).update({
+            'price': price,
+            'timestamp': timestamp
+        })
+
+        # Commit the changes
+        db.session.commit()
+    else:
+        print(f"Skin not found: {weapon_paint}")
 
 def get_tradeup_dataframe():
     """

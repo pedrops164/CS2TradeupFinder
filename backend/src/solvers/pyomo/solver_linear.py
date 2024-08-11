@@ -33,7 +33,7 @@ def define_collections(model, trade_up_pool, collection_names_subset, ratio):
             assert len(skin_prices) == len(skin_floats)
             
             var_name = sanitize_variable_name(f"{skin.name}_count")
-            skin_count_var = Var(range(num_floats), model.input_count_set, within=Binary)
+            skin_count_var = Var(range(num_floats), model.input_count_set, within=Binary, initialize=0)
             setattr(model, var_name, skin_count_var)
             for cond, price in enumerate(skin_prices):
                 if price is None:
@@ -108,7 +108,7 @@ def define_objective_rule(model, all_input_skins, max_average_output_price, min_
                         y >= z_objective * count * price - (1 - binary_variable) * big_M
                         """
                         big_M = (max_z_objective * num_of_input_skins * price)# + 0.1
-                        print(f"big_M_{skin_name}_{i}: {big_M}")
+                        #print(f"big_M_{skin_name}_{i}: {big_M}")
                         binary_variable = skin_count_var[i, count] # count variable
                         # our continuous variable is the inverse of the average output price of the tradeup, multiplied by the count of the input skin and its price
                         continuous_variable = z_objective * count * price
@@ -402,10 +402,10 @@ def solve_tradeup(trade_up_pool, collection_names_subset=None, ratio=0.5, log=Fa
     collection_dict, all_input_skins, all_output_skins = define_collections(model, trade_up_pool, collection_names_subset, ratio)
     if len(all_input_skins) == 0 or len(all_output_skins) == 0:
         # can't solve if there are no input or output skins
-        return 0
+        return
     
-    max_input_skin_price = max(max(skin_prices) for (_,skin_prices,_,_) in all_input_skins)
-    min_total_input_skins_cost = num_of_input_skins * min(min(skin_prices) for (_,skin_prices,_,_) in all_input_skins)
+    #max_input_skin_price = max(max(skin_prices) for (_,skin_prices,_,_) in all_input_skins)
+    min_total_input_skins_cost = num_of_input_skins * min(min(sp for sp in skin_prices if sp is not None) for (_,skin_prices,_,_) in all_input_skins)
     max_output_skin_price = max(max(skin_prices) for (_,_,skin_prices,_) in all_output_skins)
     
     collection_to_vars_dict = define_ballots_probs_variables(model, collection_dict)
@@ -417,13 +417,27 @@ def solve_tradeup(trade_up_pool, collection_names_subset=None, ratio=0.5, log=Fa
     define_avg_float_constraint(model, all_input_skins)
     add_float_bound_constraints(model, all_output_skins)
     
-    #model.total_ballots = Var(domain=NonNegativeIntegers, bounds=(10, 90))
-    #add_total_ballots_constraint(model, collection_to_vars_dict)
+    model.total_ballots = Var(domain=NonNegativeIntegers, bounds=(10, 90))
+    add_total_ballots_constraint(model, collection_to_vars_dict)
     add_avg_output_price_constraint(model, collection_dict)
     add_ballots_per_collection_constraints(model, collection_dict, collection_to_vars_dict)
     
-    solver = SolverFactory('gurobi') # linear solver
-    result = solver.solve(model, tee=True, symbolic_solver_labels=True)
+    # linear solvers
+    #solver_name = "gurobi"
+    solver_name = "highs"
+    if SolverFactory(solver_name).available():
+        print("Solver " + solver_name + " is available.")
+    else:
+        print("Solver " + solver_name + " is not available.")
+    solver = SolverFactory(solver_name) # linear solver
+    print("cp0")
+    result = solver.solve(model, options={"threads": 4}, tee=True, symbolic_solver_labels=True)
+    print("cp1")
+    
+    if result.solver.status == 'ok' and result.solver.termination_condition == 'optimal':
+        print("Optimal solution found.")
+    else:
+        print(f"Solver finished with status {result.solver.status} and termination condition {result.solver.termination_condition}")
 
     if log:
         # Display results
@@ -451,6 +465,7 @@ def solve_tradeup(trade_up_pool, collection_names_subset=None, ratio=0.5, log=Fa
                 print(" ", index, skin_count_var[index].value)
     
     # print all output variables
+
     for (output_var, _, _, _) in all_output_skins:
         print(output_var)
         for index in output_var:
@@ -465,5 +480,5 @@ def solve_tradeup(trade_up_pool, collection_names_subset=None, ratio=0.5, log=Fa
     # Display the final objective function value
     final_objective_value = value(model.objective)
     print(f"Objective value: {final_objective_value}")
-    return final_objective_value, 0, model.input_skins_cost.value
+    return final_objective_value, 0, model.input_skins_cost.value, 0, {}
     # return final_objective_value, profit_pctg, model.input_skins_cost.value

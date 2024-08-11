@@ -1,0 +1,109 @@
+
+2024-08-07 23:04:32 - nome4
+Function 'benchmark1' average over 5 runs: 1.7255 seconds
+Function 'benchmark2' average over 5 runs: 27.3314 seconds
+Function 'benchmark3' average over 5 runs: 7.5044 seconds
+
+2024-08-07 23:09:58 - nome5
+Function 'benchmark1' average over 5 runs: 2.5913 seconds
+Function 'benchmark2' average over 5 runs: 32.2905 seconds
+Function 'benchmark3' average over 5 runs: 7.3599 seconds
+
+2024-08-08 01:17:38 - nome5
+Function 'benchmark1' average over 5 runs: 3.5428 seconds
+Function 'benchmark2' average over 5 runs: 38.4107 seconds
+Function 'benchmark3' average over 5 runs: 8.2652 seconds
+
+# fast separation seems to be fast, but don't know if it provides correct results
+2024-08-08 01:32:34 - fast-separation
+Function 'benchmark1' average over 5 runs: 2.8668 seconds
+Function 'benchmark2' average over 5 runs: 17.7863 seconds
+Function 'benchmark3' average over 5 runs: 6.5642 seconds
+
+2024-08-08 19:30:30 - teste
+Function 'benchmark1' average over 5 runs: 4.5372 seconds
+Function 'benchmark2' average over 5 runs: 63.6845 seconds
+Function 'benchmark3' average over 5 runs: 13.6290 seconds
+
+2024-08-08 19:39:17 - teste1
+Function 'benchmark1' average over 5 runs: 4.6166 seconds
+Function 'benchmark2' average over 5 runs: 62.5825 seconds
+Function 'benchmark3' average over 5 runs: 13.7584 seconds
+
+2024-08-08 19:48:31 - current
+Function 'benchmark1' average over 5 runs: 1.8681 seconds
+Function 'benchmark2' average over 5 runs: 29.6096 seconds
+Function 'benchmark3' average over 5 runs: 7.7526 seconds
+
+2024-08-08 19:54:27 - off-settings
+Function 'benchmark1' average over 5 runs: 4.0574 seconds
+
+2024-08-08 20:01:06 - fast-settings
+Function 'benchmark1' average over 5 runs: 1.7273 seconds
+Function 'benchmark2' average over 5 runs: 15.4463 seconds
+Function 'benchmark3' average over 5 runs: 69.7756 seconds
+
+2024-08-08 21:27:54 - set-separating-fast
+Function 'benchmark1' average over 5 runs: 2.4599 seconds
+Function 'benchmark2' average over 5 runs: 17.0539 seconds
+Function 'benchmark3' average over 5 runs: 7.0095 seconds
+
+2024-08-09 23:08:53 - atual
+Function 'benchmark1' average over 5 runs: 3.2880 seconds
+Function 'benchmark2' average over 5 runs: 18.4433 seconds
+Function 'benchmark3' average over 5 runs: 7.0167 seconds
+
+2024-08-09 23:14:53 - atual (setSeparating fast)
+Function 'benchmark1' average over 5 runs: 2.9947 seconds
+Function 'benchmark2' average over 5 runs: 16.4648 seconds
+Function 'benchmark3' average over 5 runs: 6.1531 seconds
+
+2024-08-09 23:40:44 - all-fast
+Function 'benchmark1' average over 5 runs: 1.8399 seconds
+Function 'benchmark2' average over 5 runs: 16.7300 seconds
+Function 'benchmark3' average over 5 runs: 80.4721 seconds
+
+2024-08-09 23:53:25 - nofast-heuristics
+Function 'benchmark1' average over 5 runs: 2.3938 seconds
+Function 'benchmark2' average over 5 runs: 16.3308 seconds
+Function 'benchmark3' average over 5 runs: 7.8166 seconds
+
+2024-08-10 00:02:07 - nofast-presolve
+Function 'benchmark1' average over 5 runs: 2.5623 seconds
+Function 'benchmark2' average over 5 runs: 19.5152 seconds
+Function 'benchmark3' average over 5 runs: 14.4054 seconds
+
+2024-08-10 00:09:25 - fast-separating
+Function 'benchmark1' average over 5 runs: 2.9514 seconds
+Function 'benchmark2' average over 5 runs: 19.8274 seconds
+Function 'benchmark3' average over 5 runs: 6.5332 seconds
+
+2024-08-10 00:58:07 - fix-var-test
+Function 'benchmark1' average over 5 runs: 3.3623 seconds
+Function 'benchmark2' average over 5 runs: 19.5449 seconds
+Function 'benchmark3' average over 5 runs: 8.0116 seconds
+
+2024-08-10 01:03:42 - fix-var-test
+Function 'benchmark1' average over 5 runs: 2.8482 seconds
+Function 'benchmark2' average over 5 runs: 20.6604 seconds
+Function 'benchmark3' average over 5 runs: 7.7988 seconds
+
+2024-08-10 01:38:55 - fix-var-test
+
+2024-08-10 01:40:52 - min_obj_value_test1
+
+2024-08-10 01:43:36 - min_obj_value_test1
+Function 'benchmark1' average over 5 runs: 2.4444 seconds
+Function 'benchmark2' average over 5 runs: 17.7529 seconds
+Function 'benchmark3' average over 5 runs: 10.7895 seconds
+
+2024-08-10 01:54:57 - min_obj_value_test2
+Function 'benchmark1' average over 5 runs: 2.2530 seconds
+Function 'benchmark2' average over 5 runs: 17.9035 seconds
+
+2024-08-10 02:07:22 - min_obj_value_test2
+Function 'benchmark1' average over 5 runs: 2.2236 seconds
+Function 'benchmark2' average over 5 runs: 19.2345 seconds
+Function 'benchmark3' average over 5 runs: 9.1202 seconds
+
+2024-08-10 02:11:37 - all-doubles

@@ -1,6 +1,13 @@
 from backend.src.tradeups import create_tradeup_from_dataframe
-#from backend.src.solvers.pyomo import solver
-#from backend.src.solvers.pyomo import solver_linear
+
+# temporary fix for the import error on the linear solver. Problem with python version and docplex
+#import numpy as np
+#np.float_ = np.float64
+#np.complex_ = np.complex128
+
+
+from backend.src.solvers.pyomo import solver as solver_pyomo_nonlinear
+from backend.src.solvers.pyomo import solver_linear
 from backend.src.solvers.pyscipopt import solver_pyscipopt
 from itertools import product
 import time
@@ -8,6 +15,7 @@ import traceback
 from contextlib import nullcontext
 import json
 import os
+from typing import List
 
 script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in
 
@@ -35,7 +43,16 @@ def solve_tradeups_decorator(tradeup_solver):
             
     return tradeup_solver_decorator
 
-def search_solve_tradeup(df, config):
+class SearchSpace:
+    def __init__(self, collection_names_subset: List[int], ratio: List[float], rarity: List[str], stattrak: List[bool], solve: str, write_output_file=True):
+        self.collection_names_subset = collection_names_subset
+        self.ratio = ratio
+        self.rarity = rarity
+        self.stattrak = stattrak
+        self.solve = solve
+        self.write_output_file = write_output_file
+
+def search_solve_tradeup(df, search_space: SearchSpace):
     """
     Searches and solves tradeups for the specified collections and settings.
     
@@ -49,11 +66,11 @@ def search_solve_tradeup(df, config):
             - solve (str): Which tradeup solver to use ('single', 'double', or 'all'). Defaults to 'all'.
     """
     # Unpack the config dictionary
-    collection_names_subset = config['collection_names_subset']
-    ratios = config['ratio'] if isinstance(config['ratio'], list) else [config['ratio']]
-    rarities = config['rarity'] if isinstance(config['rarity'], list) else [config['rarity']]
-    stattrak_values = config['stattrak'] if isinstance(config['stattrak'], list) else [config['stattrak']]
-    solve = config['solve']
+    collection_names_subset = search_space.collection_names_subset
+    ratios = search_space.ratio
+    rarities = search_space.rarity
+    stattrak_values = search_space.stattrak
+    solve = search_space.solve
     
     # Iterate over all combinations of ratios, rarities, and stattrak values
     for ratio, rarity, stattrak in product(ratios, rarities, stattrak_values):
@@ -69,7 +86,7 @@ def search_solve_tradeup(df, config):
         else:  # 'all'
             solver = tradeup_solver_all
 
-        with open(output_file_path, "w") if config.get('write_output_file', True) else nullcontext() as file:
+        with open(output_file_path, "w") if search_space.write_output_file else nullcontext() as file:
             solver(tradeup_pool, collection_names_subset, ratio, file)
         
 @solve_tradeups_decorator
@@ -86,9 +103,12 @@ def tradeup_solver_single(tradeup_pool, collection_names_subset, ratio, file=Non
     Yields:
         Tuple[float, List[str]]: Objective value and the collection name subset.
     """
+    best_objective_value = 0
     for collection_name in collection_names_subset:
         collection_name_subset = [collection_name]
-        objective_value = solve_subset(tradeup_pool, collection_name_subset, ratio, file)
+        objective_value = solve_subset(tradeup_pool, collection_name_subset, ratio, file, min_obj_value=best_objective_value)
+        if objective_value is not None and objective_value > best_objective_value:
+            best_objective_value = objective_value
         yield objective_value, collection_name_subset
         
 @solve_tradeups_decorator
@@ -105,13 +125,16 @@ def tradeup_solver_double(tradeup_pool, collection_names_subset, ratio, file=Non
     Yields:
         Tuple[float, List[str]]: Objective value and the collection name subset.
     """
+    best_objective_value = 0
     n_collections = len(collection_names_subset)
     for i in range(1, n_collections):
         for j in range(0, i):
             collection_name_1 = collection_names_subset[i]
             collection_name_2 = collection_names_subset[j]
             collection_name_subset = [collection_name_1, collection_name_2]
-            objective_value = solve_subset(tradeup_pool, collection_name_subset, ratio, file)
+            objective_value = solve_subset(tradeup_pool, collection_name_subset, ratio, file, min_obj_value=best_objective_value)
+            if objective_value is not None and objective_value > best_objective_value:
+                best_objective_value = objective_value
             yield objective_value, collection_name_subset
         
 @solve_tradeups_decorator
@@ -131,7 +154,7 @@ def tradeup_solver_all(tradeup_pool, collection_names_subset, ratio, file=None):
     objective_value = solve_subset(tradeup_pool, collection_names_subset, ratio, file)
     yield objective_value, collection_names_subset
             
-def solve_subset(tradeup_pool, collection_subset, ratio, file=None):
+def solve_subset(tradeup_pool, collection_subset, ratio, file=None, min_obj_value=0):
     """
     Calculates the best tradeup for the given tradeup pool and subset of collections.
     
@@ -147,7 +170,7 @@ def solve_subset(tradeup_pool, collection_subset, ratio, file=None):
     print(f"current collection subset: {collection_subset}")
     try:
         # calculate best tradeup
-        objective_value, profit_pctg, input_skins_cost, elapsed_time, results_dict = solver_pyscipopt.solve_tradeup(tradeup_pool, collection_subset, ratio)
+        objective_value, profit_pctg, input_skins_cost, elapsed_time, results_dict = solver_pyscipopt.solve_tradeup(tradeup_pool, collection_subset, ratio, min_obj_value)
         if file:
             tradeup_output = f"subset: {collection_subset}, obj value: {objective_value:.3f}, profit_pctg: {profit_pctg:.2f}, input_skins_cost: {input_skins_cost:.2f}, time: {elapsed_time:.2f}\n"
             file.write(tradeup_output)
@@ -157,6 +180,5 @@ def solve_subset(tradeup_pool, collection_subset, ratio, file=None):
     except Exception as e:
         traceback.print_exc()
         if file:
-            file.write(f"subset: {collection_subset}, exception caught!\n")
+            file.write(f"subset: {collection_subset}, exception caught!\n\n")
     return None
-        

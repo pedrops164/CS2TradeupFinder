@@ -1,6 +1,8 @@
-from pyscipopt import Model, quicksum
+from pyscipopt import Model, quicksum, SCIP_PARAMSETTING, Eventhdlr, SCIP_EVENTTYPE
 import re
 from time import time
+
+calls = []
 
 def sanitize_variable_name(name):
     """Sanitize variable names by keeping only letters, digits, spaces, and |"""
@@ -37,7 +39,8 @@ def define_model_variables(model, trade_up_pool, collection_names_subset, ratio)
             skin_count_var = [model.addVar(vtype="I", lb=0, ub=10, name=f"{var_name}_{i}") for i in range(num_floats)]
             for i, price in enumerate(skin_prices):
                 if price is None:
-                    model.addCons(skin_count_var[i] == 0)
+                    #model.addCons(skin_count_var[i] == 0)
+                    model.fixVar(skin_count_var[i],0)
 
             input_skins.append((skin_count_var, skin_prices, skin_floats))
             all_input_skins.append((skin_count_var, skin_prices, skin_floats))
@@ -145,10 +148,51 @@ def add_ballots_per_collection_constraints(model, collection_dict, collection_to
             skin_name = skin[1]
             model.addCons(collection_ballots_var == collection_probs_var[skin_name] * len(output_skins) * total_ballots)
 
-def solve_tradeup(trade_up_pool, collection_names_subset=None, ratio=0.5):
+class MyEvent(Eventhdlr):
+    def __init__(self, min_obj_value):
+        super().__init__()
+        self.min_obj_value = min_obj_value
+
+    def eventinit(self):
+        self.model.catchEvent(SCIP_EVENTTYPE.BESTSOLFOUND, self)
+
+    def eventexit(self):
+        self.model.dropEvent(SCIP_EVENTTYPE.BESTSOLFOUND, self)
+
+    def eventexec(self, event):
+        #self.model.eventexec(SCIP_EVENTTYPE.BESTSOLFOUND, self)
+        #print(self.model.getBestSol())
+        print(f"Obj val - {self.model.getObjVal()}")
+        dual_bound = self.model.getDualbound()
+        print(f"getDualbound - {dual_bound}")
+        
+        if dual_bound < self.min_obj_value:
+            print(f"Dual bound {dual_bound} is below minimum objective value {self.min_obj_value:.3f}. Interrupting.")
+            self.model.interruptSolve()
+
+
+def solve_tradeup(trade_up_pool, collection_names_subset=None, ratio=0.5, min_obj_value=0.5):
+    """Find the best tradeup in the givel tradeup pool.
+
+    Args:
+        trade_up_pool (_type_): Pool that contains collections to search in
+        collection_names_subset (_type_, optional): subset of collections to use in the search. Defaults to None.
+        ratio (float, optional): ratio of the float of input skins. Defaults to 0.5.
+        min_obj_value (float, optional): stop if obj value is below this. Defaults to 0.5.
+
+    Returns:
+        _type_: _description_
+    """
     model = Model()
     # Set the verbosity level to 0 to suppress solver output
     model.setIntParam('display/verblevel', 0)
+
+    # Set a time limit of 20 minutes (1200 seconds)
+    model.setRealParam('limits/time', 1200.0)
+
+    #model.setPresolve(SCIP_PARAMSETTING.AGGRESSIVE)
+    model.setSeparating(SCIP_PARAMSETTING.FAST)
+    #model.setHeuristics(SCIP_PARAMSETTING.AGGRESSIVE)
 
     collection_dict, all_input_skins, all_output_skins, input_skins_cost, average_output_price = define_model_variables(model, trade_up_pool, collection_names_subset, ratio)
     if len(all_input_skins) == 0 or len(all_output_skins) == 0:
@@ -169,6 +213,9 @@ def solve_tradeup(trade_up_pool, collection_names_subset=None, ratio=0.5):
     model.addCons(obj_var * input_skins_cost == average_output_price)
     model.setObjective(obj_var, "maximize")
 
+    # Instantiate and include the event handler
+    eventhdlr = MyEvent(min_obj_value)
+    model.includeEventhdlr(eventhdlr, "BESTSOLFOUND", "python event handler to catch BESTSOLFOUND")
     start = time()
     # Solve the model
     model.optimize()

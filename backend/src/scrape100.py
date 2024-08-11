@@ -5,12 +5,16 @@ import os
 import time
 import re
 import sqlite3
-from db import update_weapon_paint_price, db_name
+from .db import update_weapon_paint_price, db_name
+
+log_file_name = 'logs/scrape100.log'
+script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in
+output_log_path = os.path.join(script_dir, log_file_name)
 
 # configure logging
 logging.basicConfig(level=logging.INFO,
                     handlers=[
-                        logging.FileHandler("logs/scrape100.log", mode='w', encoding="utf-8"),
+                        logging.FileHandler(output_log_path, mode='w', encoding="utf-8"),
                         logging.StreamHandler()
                     ],
                     format='%(asctime)s - %(threadName)s - %(levelname)s - %(message)s')
@@ -113,7 +117,7 @@ def match_pattern(skin_dict):
         return res_dict
     return None
 
-def update_all_weapon_paints_prices(connection):
+def update_all_weapon_paints_prices():
     """
     Updates the price of all skins through the steam market which have more than 5 listings and are relevant from tradeups (we exclude knifes, stickers, etc)
     """
@@ -129,8 +133,8 @@ def update_all_weapon_paints_prices(connection):
                     number_of_listings = filtered_skin_dict['sell_listings']
                     # we only update the price of the skin in the database, if it has more than 5 listings to ensure reliability of the prices
                     if number_of_listings >= 5:
-                        append_skin('teste.txt', filtered_skin_dict)
-                        update_weapon_paint_price(filtered_skin_dict['is_stattrak'], filtered_skin_dict['weapon_paint'], filtered_skin_dict['condition'], filtered_skin_dict['price'], connection)
+                        #append_skin('teste.txt', filtered_skin_dict)
+                        update_weapon_paint_price(filtered_skin_dict['is_stattrak'], filtered_skin_dict['weapon_paint'], filtered_skin_dict['condition'], filtered_skin_dict['price'])
                     else:
                         logging.info(f"{filtered_skin_dict['weapon_paint']}|{filtered_skin_dict['condition']}|{filtered_skin_dict['is_stattrak']} has less than 5 listings. Price not updated")
                 else:
@@ -140,11 +144,5 @@ def update_all_weapon_paints_prices(connection):
             logging.info("Request failed after retries")
             return
         
-def update_prices():
-    connection = sqlite3.connect(db_name)
-    update_all_weapon_paints_prices(connection)
-    connection.commit()
-    connection.close()
-    
 if __name__ == '__main__':
-    update_prices()
+    update_all_weapon_paints_prices()
