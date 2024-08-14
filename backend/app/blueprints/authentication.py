@@ -1,4 +1,4 @@
-from flask import Blueprint, redirect, url_for, flash, request, jsonify
+from flask import Blueprint, redirect, url_for, flash, request, jsonify, session
 from urllib.parse import urlsplit
 from flask_login import current_user, login_user, logout_user
 from backend.app.models import db, User
@@ -69,3 +69,12 @@ def register_user():
 def logout():
     logout_user()
     return jsonify({'message': 'Logout successful'}), 200
+
+@bp_auth.route('/check-auth')
+def check_auth():
+    if not current_user:
+        return jsonify({'error': 'No current user'}), 400
+    if current_user.is_authenticated:
+        return jsonify({'authenticated': True}), 200
+    else:
+        return jsonify({'authenticated': False}), 200

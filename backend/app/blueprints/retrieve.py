@@ -61,7 +61,7 @@ def get_tradeups():
             "profit_odds": profit_odds,
         })
     
-    return jsonify({"result": tracked_tradeups}), 201
+    return jsonify({"result": tracked_tradeups}), 200
 
 @bp_retrieve.route('/tradeups/calculate_output', methods=['POST'])
 @login_required

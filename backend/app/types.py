@@ -43,7 +43,6 @@ class PurchasableTradeupDict(TypedDict):
     tradeup_input_rarity: str
     tradeup_name: Optional[str]
     tradeup_price: float
-    collection_names: Optional[List[str]]
     # tradeup stats
     profit_odds: float # percentage for the tradeup to turn out profitable
     profit_avg_pctg: float # average profitability in percentage

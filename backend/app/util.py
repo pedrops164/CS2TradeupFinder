@@ -102,15 +102,10 @@ def get_purchasable_tradeup_dict(tradeup: Tradeup) -> PurchasableTradeupDict:
     """
     input_entries_dict: List[InputEntryDict] = []
     output_entries_dict: List[OutputEntryDict] = []
-    collection_names: List[str] = []
     tradeup_id = tradeup.id
     tradeup_name = tradeup.name
     tradeup_input_rarity = tradeup.input_rarity
     tradeup_stattrak = tradeup.stattrak
-
-    # add all collection names involved    
-    for collection in tradeup.collections:
-        collection_names.append(collection.name)
 
     for input_entry in tradeup.input_entries:
         # parse each input entry, create the dictionary, and add to the array of input entries
@@ -128,7 +123,6 @@ def get_purchasable_tradeup_dict(tradeup: Tradeup) -> PurchasableTradeupDict:
     tradeup_dict: PurchasableTradeupDict = {
         "tradeup_id": tradeup_id,
         "tradeup_name": tradeup_name,
-        "collection_names": collection_names,
         "tradeup_input_rarity": tradeup_input_rarity,
         "tradeup_stattrak": tradeup_stattrak,
         "tradeup_price": tradeup.price,
