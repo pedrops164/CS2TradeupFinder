@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './../styles/App.css';
 
-const Login = () => {
+const Login = ({ setIsAuthenticated }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -17,7 +17,8 @@ const Login = () => {
       },
       body: JSON.stringify({ email, password, remember_me: rememberMe })
     });
-    if (response.status === 200) {
+    if (response.ok) {
+      setIsAuthenticated(true);
       alert('Login successful');
       navigate('/');
     } else {
