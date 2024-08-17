@@ -24,9 +24,10 @@ class Skin(db.Model):
     name = db.Column(db.String, nullable=False)
     min_float = db.Column(db.Float)
     max_float = db.Column(db.Float)
-    stattrak = db.Column(db.Boolean)
+    stattrak_available = db.Column(db.Boolean, default=False)  # New field
     collection_id = db.Column(db.Integer, db.ForeignKey('collections.id'))
     quality = db.Column(db.String)
+    image_name = db.Column(db.String(64), nullable=True, default=None)
     
     @staticmethod
     def get_float_str(float_value: float):
@@ -49,6 +50,7 @@ class SkinCondition(db.Model):
     condition = db.Column(db.String, nullable=False)
     price = db.Column(db.Float)
     skin_id = db.Column(db.Integer, db.ForeignKey('skins.id'))
+    stattrak = db.Column(db.Boolean)
     timestamp = db.Column(db.DateTime)
     
     skin = db.relationship('Skin', backref='skin_conditions')
