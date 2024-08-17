@@ -1,8 +1,9 @@
-from backend.app.models import db
+from backend.app.models import db, Skin
 from backend.src.main import solve
 from backend.src.benchmark import run_benchmarks
 from backend.src.solvers.solver_manager import SearchSpace
 from backend.src.scrape100 import update_all_weapon_paints_prices
+from backend.src.download_images import download_skin_images
 import click
 import os
 
@@ -55,3 +56,8 @@ def register_commands(app):
     def update_skin_prices():
         update_all_weapon_paints_prices()
         print("Finished updating prices!")
+
+    @app.cli.command("download-skin-images")
+    @click.argument("api_key")
+    def download_skin_images_command(api_key):
+        download_skin_images(api_key)
