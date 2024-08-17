@@ -1,4 +1,4 @@
-from db import update_skin_price, get_all_skins
+#from db import update_skin_price, get_all_skins
 from entities import Skin
 
 # module to deal with proxies

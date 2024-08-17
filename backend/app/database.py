@@ -1,7 +1,12 @@
 from backend.app.models import Collection, Skin, SkinCondition, Tradeup, db
-from sqlalchemy.sql import text
 
-""" Insert entries into postgres database """
+from sqlalchemy.sql import text
+from sqlalchemy import and_
+
+import datetime
+import pandas as pd
+
+""" Insert entries into sql database """
 
 #def add_collection(name):
 #    collection = Collection(name)
@@ -48,43 +53,46 @@ def add_tradeup_collection(tradeup_collection):
     db.session.commit()
     return tradeup_collection
 
-""" Get entries from postgres database """
+""" Get entries from sql database """
 
-# TODO: CHANGE QUERY FROM SQLITE NOTATION TO GENERAL ORM SQL NOTATION
-def get_skin_condition_id(weapon_paint, condition):
-    # Define the SQL query
-    query = """
-        SELECT sc.id 
-        FROM skin_conditions sc 
-        JOIN skins s ON s.id = sc.skin_id 
-        WHERE sc.condition = :condition AND s.name = :weapon_paint
+def get_skin_condition_id(weapon_paint: str, condition: str):
+    """Queries the database to return the ID of a skin condition.
+
+    Args:
+        weapon_paint (str): name of the weapon paint. For example "AK-47 Redline"
+        condition (str): condition of the skin. For example "Factory New"
+
+    Returns:
+        skin_condition_id (int or None): ID of the skin condition, or None if not found
     """
-    # Execute the query with bound parameters
-    result = db.session.execute(
-        text(query), 
-        {"condition": condition, "weapon_paint": weapon_paint}
-    ).fetchone()
-    
-    # Return the id if found
+    # Perform the query using SQLAlchemy ORM
+    result = db.session.query(SkinCondition.id)\
+        .join(Skin, Skin.id == SkinCondition.skin_id)\
+        .filter(Skin.name == weapon_paint)\
+        .filter(SkinCondition.condition == condition)\
+        .one_or_none()  # Get one result or return None if not found
+
+    # Return the ID if found
     if result:
-        return result[0]
+        return result.id
     else:
         return None
     
-# TODO: CHANGE QUERY FROM SQLITE NOTATION TO GENERAL ORM SQL NOTATION
 def get_skins_by_name(weapon_paint: str):
-    # Define the SQL query
-    query = """
-        SELECT s.min_float, s.max_float, s.quality
-        FROM skins s
-        WHERE s.name = :weapon_paint
+    """Queries the database to return details of skins by name.
+
+    Args:
+        weapon_paint (str): name of the weapon paint. For example "AK-47 Redline"
+
+    Returns:
+        List of tuples containing (min_float, max_float, quality)
     """
-    # Execute the query with bound parameters
-    result = db.session.execute(
-        text(query),
-        {"weapon_paint": weapon_paint}
-    ).fetchall()
-    return result
+    # Perform the query using SQLAlchemy ORM
+    results = db.session.query(Skin.min_float, Skin.max_float, Skin.quality)\
+        .filter(Skin.name == weapon_paint)\
+        .all()  # Get all matching results
+
+    return results
         
 def get_skin_price(skin_name: str, skin_condition: str, stattrak: bool):
     """Queries the database to return the price of a skin
@@ -124,3 +132,77 @@ def add_user(user):
     db.session.add(user)
     db.session.commit()
     return user
+
+def update_weapon_paint_price(is_stattrak: bool, weapon_paint: str, condition: str, price: float):
+    """
+    Updates the price of a skin in the database using SQLAlchemy ORM
+    Args:
+        is_stattrak (bool): Indicates whether the skin is stattrak or not
+        weapon_paint (str): the name of the string. For example "AK-47 | Red Laminate"
+        condition (str): The condition of the skin. For example "Minimal Wear"
+        price (float): The price of the skin
+        db: SQLAlchemy database object
+    """
+    # Get current time
+    timestamp = datetime.datetime.now()
+
+    # Find the correct skin
+    skin = db.session.query(Skin).filter(
+        and_(
+            Skin.name == weapon_paint
+        )
+    ).first()
+
+    if skin:
+        # Update the skin condition
+        db.session.query(SkinCondition).filter(
+            and_(
+                SkinCondition.skin_id == skin.id,
+                SkinCondition.condition == condition,
+                SkinCondition.stattrak == is_stattrak
+            )
+        ).update({
+            'price': price,
+            'timestamp': timestamp
+        })
+
+        # Commit the changes
+        db.session.commit()
+    else:
+        print(f"Skin not found: {weapon_paint}")
+        
+def get_tradeup_dataframe():
+    """
+    Gets the skins whose price is not null, and groups by collection id
+
+    Returns:
+        pandas.Dataframe: The Dataframe with the grouped collections
+    """
+    # Perform the query using SQLAlchemy ORM, selecting specific columns
+    query = db.session.query(
+        Skin.id.label('skin_id'),
+        Skin.collection_id,
+        Skin.quality,
+        SkinCondition.stattrak,
+        Skin.name,
+        Skin.min_float,
+        Skin.max_float,
+        SkinCondition.id.label('condition_id'),
+        SkinCondition.condition,
+        SkinCondition.price,
+        SkinCondition.timestamp
+    ).join(SkinCondition, Skin.id == SkinCondition.skin_id).filter(
+        SkinCondition.price.isnot(None),
+        SkinCondition.timestamp.isnot(None)
+    ).order_by(Skin.collection_id)
+
+    # Fetch the results
+    result = query.all()
+
+    # Convert the results to a pandas DataFrame
+    df = pd.DataFrame(result)
+
+    # Group by collection_id
+    df_grouped = df.groupby('collection_id')
+
+    return df_grouped

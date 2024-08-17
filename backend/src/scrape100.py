@@ -4,8 +4,7 @@ import json
 import os
 import time
 import re
-import sqlite3
-from .db import update_weapon_paint_price, db_name
+from backend.app.database import update_weapon_paint_price
 
 log_file_name = 'logs/scrape100.log'
 script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in
