@@ -1,4 +1,4 @@
-from db import create_database, update_skin_price, get_all_skins
+from db import update_skin_price, get_all_skins
 from entities import Skin
 
 # module to deal with proxies
@@ -57,7 +57,7 @@ def worker_thread(task_queue, proxy=None):
                 logging.info("Stop event set, exiting worker thread.")
                 return
             logging.info(skin_dict)
-            ret = update_skin_price(skin_dict, proxy)
+            ret = update_skin_price(skin_dict, proxy) # -> method has been removed
             if ret:
                 logging.info("Worker updated skin price")
                 with lock:
@@ -90,7 +90,7 @@ def launch_workers(proxies):
     n_workers = len(proxies)
 
     # get the skins from db
-    skins = get_all_skins()
+    skins = get_all_skins() # -> method has been deleted
     total_skins = len(skins)
 
     # chunk size represents the amount of skins each thread will process at a time
@@ -124,7 +124,6 @@ def launch_workers(proxies):
     logging.info("All worker threads have finished")
     
 if __name__ == '__main__':
-    create_database()
     proxies = get_valid_proxies()
     print(len(proxies))
     start = time.time()

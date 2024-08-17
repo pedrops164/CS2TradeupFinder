@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify
 from backend.src.tradeups import calculate_output_entries, calculate_tradeup_stats
 from backend.app.models import db, Tradeup, InputTradeupEntry, SkinCondition, OutputTradeupEntry, Skin, Collection, TradeupType
-from backend.app.database import get_skin_price
 from sqlalchemy.orm import joinedload
 from flask_login import login_required, current_user
 from backend.app.types import InputEntryDict, OutputEntryDict
@@ -126,7 +125,7 @@ def search_skin():
     .filter(Skin.id == SkinCondition.skin_id)\
     .filter(Collection.id == Skin.collection_id)\
     .filter(Skin.quality == rarity)\
-    .filter(Skin.stattrak == stattrak)\
+    .filter(SkinCondition.stattrak == stattrak)\
     .filter(SkinCondition.price != None)\
     .filter(SkinCondition.condition == condition)\
 

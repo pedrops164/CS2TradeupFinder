@@ -11,3 +11,4 @@ flask_wtf
 Werkzeug
 email_validator
 pyscipopt
+Pillow

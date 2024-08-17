@@ -76,9 +76,6 @@ def calculate_output_entries(input_entries: List[InputEntryDict], stattrak: bool
         stattrak (bool): whether the tradeup is stattrak
         rarity (str): possible rarities: ["consumer_bg", "industrial_bg", "milspec_bg", "restricted_bg", "classified_bg", "covert_bg"]. The last rarity isnt valid (doesnt have matching output rarity)
     """
-    # stattrak filter for the sql query
-    stattrak_filter = Skin.stattrak == stattrak
-
     coll_to_dict = {}
 
     # initialize the input entries count to 0 for all collections of the tradeup
@@ -108,7 +105,7 @@ def calculate_output_entries(input_entries: List[InputEntryDict], stattrak: bool
         func.group_concat(Skin.max_float).label('max_floats')
     )\
     .filter(Collection.id == Skin.collection_id) \
-    .filter(output_rarity_filter, stattrak_filter, Collection.id.in_(tradeup_collections_ids)) \
+    .filter(output_rarity_filter, Collection.id.in_(tradeup_collections_ids)) \
     .group_by(Collection.id).all()
 
     total_ballots = 0
@@ -173,7 +170,7 @@ def calculate_tradeup_stats(input_entries: List[InputEntryDict], output_entries:
         .filter(Skin.id == SkinCondition.skin_id)\
         .filter(Skin.name == skin_name)\
         .filter(SkinCondition.condition == skin_condition)\
-        .filter(Skin.stattrak == stattrak)\
+        .filter(SkinCondition.stattrak == stattrak)\
         .one() # extract one record
         # might raise NoResultFound or MultipleResultsFound exceptions
 

@@ -3,35 +3,35 @@ from sqlalchemy.sql import text
 
 """ Insert entries into postgres database """
 
-def add_collection(name):
-    collection = Collection(name)
-    db.session.add(collection)
-    db.session.commit()
-    return collection
+#def add_collection(name):
+#    collection = Collection(name)
+#    db.session.add(collection)
+#    db.session.commit()
+#    return collection
+#
+#def add_skin(name, min_float, max_float, stattrak_available, collection_id, quality):
+#    new_skin = Skin(
+#        name=name,
+#        min_float=min_float,
+#        max_float=max_float,
+#        stattrak_available=stattrak_available,
+#        collection_id=collection_id,
+#        quality=quality
+#    )
+#    db.session.add(new_skin)
+#    db.session.commit()
+#    return new_skin
 
-def add_skin(name, min_float, max_float, stattrak, collection_id, quality):
-    new_skin = Skin(
-        name=name,
-        min_float=min_float,
-        max_float=max_float,
-        stattrak=stattrak,
-        collection_id=collection_id,
-        quality=quality
-    )
-    db.session.add(new_skin)
-    db.session.commit()
-    return new_skin
-
-def add_skin_condition(condition, price, skin_id, timestamp):
-    new_condition = SkinCondition(
-        condition=condition,
-        price=price,
-        skin_id=skin_id,
-        timestamp=timestamp
-    )
-    db.session.add(new_condition)
-    db.session.commit()
-    return new_condition
+#def add_skin_condition(condition, price, skin_id, timestamp):
+#    new_condition = SkinCondition(
+#        condition=condition,
+#        price=price,
+#        skin_id=skin_id,
+#        timestamp=timestamp
+#    )
+#    db.session.add(new_condition)
+#    db.session.commit()
+#    return new_condition
 
 def add_tradeup(tradeup: Tradeup):
     db.session.add(tradeup)
@@ -50,6 +50,7 @@ def add_tradeup_collection(tradeup_collection):
 
 """ Get entries from postgres database """
 
+# TODO: CHANGE QUERY FROM SQLITE NOTATION TO GENERAL ORM SQL NOTATION
 def get_skin_condition_id(weapon_paint, condition):
     # Define the SQL query
     query = """
@@ -70,10 +71,11 @@ def get_skin_condition_id(weapon_paint, condition):
     else:
         return None
     
+# TODO: CHANGE QUERY FROM SQLITE NOTATION TO GENERAL ORM SQL NOTATION
 def get_skins_by_name(weapon_paint: str):
     # Define the SQL query
     query = """
-        SELECT s.min_float, s.max_float, s.quality, s.stattrak
+        SELECT s.min_float, s.max_float, s.quality
         FROM skins s
         WHERE s.name = :weapon_paint
     """
@@ -101,7 +103,7 @@ def get_skin_price(skin_name: str, skin_condition: str, stattrak: bool):
     .filter(Skin.id == SkinCondition.skin_id)\
     .filter(Skin.name == skin_name)\
     .filter(SkinCondition.condition == skin_condition)\
-    .filter(Skin.stattrak == stattrak)\
+    .filter(SkinCondition.stattrak == stattrak)\
     .one() # extract one record. Might raise NoResultFound or MultipleResultsFound exceptions
 
     skin_price = result.price

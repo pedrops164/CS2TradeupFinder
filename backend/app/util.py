@@ -8,7 +8,7 @@ from backend.src.tradeups import calculate_tradeup_stats
 def get_input_entry_dict(input_entry: InputTradeupEntry) -> InputEntryDict:
     skin_condition = input_entry.skin_condition
     skin = skin_condition.skin
-    skin_price = get_skin_price(skin.name, skin_condition.condition, skin.stattrak)
+    skin_price = get_skin_price(skin.name, skin_condition.condition, skin_condition.stattrak)
     skin_condition_str = skin_condition.condition
     skin_name = skin.name
     return {
@@ -22,7 +22,7 @@ def get_input_entry_dict(input_entry: InputTradeupEntry) -> InputEntryDict:
 def get_output_entry_dict(output_entry: OutputTradeupEntry) -> OutputEntryDict:
     skin_condition = output_entry.skin_condition
     skin = skin_condition.skin
-    skin_price = get_skin_price(skin.name, skin_condition.condition, skin.stattrak)
+    skin_price = get_skin_price(skin.name, skin_condition.condition, skin_condition.stattrak)
     skin_condition_str = skin_condition.condition
     skin_name = skin.name
     return {
