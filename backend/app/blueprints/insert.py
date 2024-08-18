@@ -8,6 +8,37 @@ bp_insert = Blueprint('bp_insert', __name__)
 @bp_insert.route('/tradeups/create_public', methods=['POST'])
 @login_required # Ensure only authenticated users can access this route
 def create_tradeup_public():
+    """
+    This route allows authenticated users to create a public tradeup. Public tradeups are visible to all users.
+    
+    Request JSON body:
+    {
+        "stattrak": bool,                    # Indicates if the tradeup is for stattrak skins
+        "input_rarity": str,                 # Rarity of the input skins (e.g., "milspec_bg")
+        "input_entries": [                  # List of input entries
+            {
+                "skin_name": str,            # Name of the skin (e.g., "AK-47 | Redline")
+                "skin_condition": str,       # Condition of the skin (e.g., "Factory New")
+                "float": float,              # Float value of the skin (0 to 1)
+                "count": int,                # Number of skins of this type
+                "collection_id": int         # Collection ID for the skin
+            }
+        ],
+        "output_entries": [                 # List of output entries
+            {
+                "skin_name": str,            # Name of the skin (e.g., "M4A4 | Howl")
+                "skin_condition": str,       # Condition of the skin (e.g., "Minimal Wear")
+                "float": float,              # Float value of the skin (0 to 1)
+                "prob": float                # Probability of the output skin
+            }
+        ],
+        "name": str,                        # Optional name for the tradeup
+        "price": float                      # Optional price of the tradeup (not applicable for public tradeups)
+    }
+    
+    Returns:
+        JSON response with tradeup ID and name on success or an error message and code on failure.
+    """
     data = request.json
     tradeup_isstattrak = data.get("stattrak")
     tradeup_input_rarity = data.get("input_rarity")
@@ -30,6 +61,37 @@ def create_tradeup_public():
 @bp_insert.route('/tradeups/create_purchasable', methods=['POST'])
 @login_required # Ensure only authenticated users can access this route
 def create_tradeup_purchasable():
+    """
+    This route allows authenticated users to create a tradeup that can be purchased. Purchasable tradeups have a price.
+
+    Request JSON body:
+    {
+        "stattrak": bool,                    # Indicates if the tradeup is for stattrak skins
+        "input_rarity": str,                 # Rarity of the input skins (e.g., "milspec_bg")
+        "input_entries": [                  # List of input entries
+            {
+                "skin_name": str,            # Name of the skin (e.g., "AK-47 | Redline")
+                "skin_condition": str,       # Condition of the skin (e.g., "Factory New")
+                "float": float,              # Float value of the skin (0 to 1)
+                "count": int,                # Number of skins of this type
+                "collection_id": int         # Collection ID for the skin
+            }
+        ],
+        "output_entries": [                 # List of output entries
+            {
+                "skin_name": str,            # Name of the skin (e.g., "M4A4 | Howl")
+                "skin_condition": str,       # Condition of the skin (e.g., "Minimal Wear")
+                "float": float,              # Float value of the skin (0 to 1)
+                "prob": float                # Probability of the output skin
+            }
+        ],
+        "name": str,                        # Optional name for the tradeup
+        "price": float                      # Price of the tradeup (mandatory for purchasable tradeups)
+    }
+
+    Returns:
+        JSON response with tradeup ID and name on success or an error message and code on failure.
+    """
     data = request.json
     tradeup_isstattrak = data.get("stattrak")
     tradeup_input_rarity = data.get("input_rarity")
@@ -52,6 +114,37 @@ def create_tradeup_purchasable():
 @bp_insert.route('/tradeups/create_private', methods=['POST'])
 @login_required # Ensure only authenticated users can access this route
 def create_tradeup_private():
+    """
+    This route allows authenticated users to create a private tradeup. Private tradeups are only visible to the user who created them.
+
+    Request JSON body:
+    {
+        "stattrak": bool,                    # Indicates if the tradeup is for stattrak skins
+        "input_rarity": str,                 # Rarity of the input skins (e.g., "milspec_bg")
+        "input_entries": [                  # List of input entries
+            {
+                "skin_name": str,            # Name of the skin (e.g., "AK-47 | Redline")
+                "skin_condition": str,       # Condition of the skin (e.g., "Factory New")
+                "float": float,              # Float value of the skin (0 to 1)
+                "count": int,                # Number of skins of this type
+                "collection_id": int         # Collection ID for the skin
+            }
+        ],
+        "output_entries": [                 # List of output entries
+            {
+                "skin_name": str,            # Name of the skin (e.g., "M4A4 | Howl")
+                "skin_condition": str,       # Condition of the skin (e.g., "Minimal Wear")
+                "float": float,              # Float value of the skin (0 to 1)
+                "prob": float                # Probability of the output skin
+            }
+        ],
+        "name": str,                        # Optional name for the tradeup
+        "price": float                      # Optional price of the tradeup (not applicable for private tradeups)
+    }
+
+    Returns:
+        JSON response with tradeup ID and name on success or an error message and code on failure.
+    """
     data = request.json
     tradeup_isstattrak = data.get("stattrak")
     tradeup_input_rarity = data.get("input_rarity")
@@ -74,21 +167,25 @@ def create_tradeup_private():
 
 
 def create_tradeup(tradeup_isstattrak, tradeup_input_rarity, input_entries_dict, output_entries_dict, tradeup_name, tradeup_price, tradeup_type):
-    """Creates a tradeup
+    """
+    Creates a tradeup entry.
+
+    This function creates a tradeup, validates its input and output entries, and stores it in the database.
 
     Args:
-        tradeup_isstattrak (_type_): _description_
-        tradeup_input_rarity (_type_): _description_
-        input_entries_dict (_type_): _description_
-        output_entries_dict (_type_): _description_
-        tradeup_name (_type_): _description_
-        tradeup_price (_type_): _description_
-        tradeup_type (_type_): _description_
+        tradeup_isstattrak (bool): Whether the tradeup is for StatTrak items.
+        tradeup_input_rarity (str): The rarity of the input items.
+        input_entries_dict (list[dict]): List of input entries with details.
+        output_entries_dict (list[dict]): List of output entries with details.
+        tradeup_name (str, optional): Name of the tradeup.
+        tradeup_price (float, optional): Price of the tradeup (applicable for purchasable tradeups).
+        tradeup_type (TradeupType): Type of the tradeup (PUBLIC, PURCHASABLE, PRIVATE).
 
     Returns:
-        tradeup: returns Tradeup object if successful
-        error_msg: returns error message if not successful
-        error_code: returns error code if not successful
+        tuple: (tradeup, error_msg, error_code)
+            - tradeup: The created Tradeup object if successful.
+            - error_msg: Error message if not successful.
+            - error_code: HTTP error code if not successful.
     """
     
     tradeup = Tradeup(tradeup_isstattrak, tradeup_input_rarity, tradeup_type, name=tradeup_name, price=tradeup_price)
@@ -143,18 +240,24 @@ def create_tradeup(tradeup_isstattrak, tradeup_input_rarity, input_entries_dict,
     return tradeup, None, None
 
 def _tradeup_input_checks(is_stattrak, input_rarity, input_entries_dict, output_entries_dict, tradeup_price, tradeup_type: TradeupType):
-    """Ensures the input parameters for a tradeup are correct
+    """
+    Validate input parameters for a tradeup.
+
+    This function checks if all required parameters are provided and if they meet the criteria for creating a tradeup.
 
     Args:
-        is_stattrak (bool): _description_
-        input_rarity (_type_): _description_
-        input_entries_dict (_type_): _description_
-        output_entries_dict (_type_): _description_
-        tradeup_price (_type_): _description_
-        tradeup_type (TradeupType): _description_
+        is_stattrak (bool): Whether the tradeup is for StatTrak items.
+        input_rarity (str): The rarity of the input items.
+        input_entries_dict (list[dict]): List of input entries with details.
+        output_entries_dict (list[dict]): List of output entries with details.
+        tradeup_price (float, optional): Price of the tradeup.
+        tradeup_type (TradeupType): Type of the tradeup (PUBLIC, PURCHASABLE, PRIVATE).
 
     Returns:
-        error message and code if there was a bad input, otherwise None
+        tuple: (json_error, error_code)
+            - json_error: JSON error message if validation fails.
+            - error_code: HTTP error code if validation fails.
+            - None: If validation is successful.
     """
     if None in [is_stattrak, input_rarity, input_entries_dict, output_entries_dict]:
         return jsonify({"error": "Didn't receive all required parameters in tradeup"}), 400
@@ -179,18 +282,21 @@ def _tradeup_input_checks(is_stattrak, input_rarity, input_entries_dict, output_
     return None, None
 
 def _input_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, condition, skin_float):
-    """Applies assert checks for a given input entry
+    """
+    Validates an input entry for a tradeup.
+    This function checks if the provided input entry details are valid by matching them against the available skins in the database.
 
     Args:
-        weapon_paint (str): paint of the skin. For example "AK-47 | Redline"
-        tradeup_isstattrak (bool): boolean indicating if tradeup is stattrak
-        tradeup_input_rarity (str): input rarity of the tradeup. For example "milspec_bg"
-        condition (str): condition of the skin. For example "Factory New"
-        skin_float (float): float of the skin (value 0 to 1)
+        weapon_paint (str): Name of the skin (e.g., "AK-47 | Redline").
+        tradeup_isstattrak (bool): Indicates if the tradeup is for StatTrak™ items.
+        tradeup_input_rarity (str): The rarity of the input items (e.g., "milspec_bg").
+        condition (str): Condition of the skin (e.g., "Factory New").
+        skin_float (float): Float value of the skin (0 to 1).
 
     Returns:
-        result: id of skin condition if no errors, otherwise None
-        error: if errors, returns error message, otherwise None
+        tuple: (skin_condition_id, error_message)
+            - skin_condition_id: ID of the skin condition if valid.
+            - error_message: Error message if validation fails.
     """
 
     # returns array of tuples (min_float, max_float, quality, stattrak)
@@ -218,8 +324,23 @@ def _input_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, c
     return skin_condition_id, None
 
 def _output_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, condition, skin_float):
+    """
+    Validates an output entry for a tradeup.
 
-    # returns array of tuples (min_float, max_float, quality, stattrak)
+    This function checks if the provided output entry details are valid by matching them against the available skins in the database.
+
+    Args:
+        weapon_paint (str): Name of the skin (e.g., "M4A4 | Howl").
+        tradeup_isstattrak (bool): Indicates if the tradeup is for StatTrak™ items.
+        tradeup_input_rarity (str): The rarity of the input items (e.g., "milspec_bg").
+        condition (str): Condition of the skin (e.g., "Minimal Wear").
+        skin_float (float): Float value of the skin (0 to 1).
+
+    Returns:
+        tuple: (skin_condition_id, error_message)
+            - skin_condition_id: ID of the skin condition if valid.
+            - error_message: Error message if validation fails.
+    """
     matching_skins = get_skins_by_name(weapon_paint)
 
     if len(matching_skins) == 0:
@@ -246,7 +367,14 @@ def _output_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, 
 @bp_insert.route('/tradeups/<int:tradeup_id>/purchase', methods=['POST'])
 @login_required
 def purchase_tradeup(tradeup_id):
-    """User purchases a tradeup. Adds the tradeup to the user purchased tradeups
+    """
+    This route allows an authenticated user to purchase a tradeup, adding it to their list of purchased tradeups.
+
+    Args:
+        tradeup_id (int): The ID of the tradeup to purchase.
+
+    Returns:
+        JSON response with a success message and user ID on success, or an error message and code on failure.
     """
     if tradeup_id is None:
         return jsonify({"error": "Must receive tradeup id"}), 400
@@ -274,7 +402,14 @@ def purchase_tradeup(tradeup_id):
 @bp_insert.route('/tradeups/<int:tradeup_id>/track', methods=['POST'])
 @login_required
 def track_tradeup(tradeup_id):
-    """User tracks a tradeup. Adds the tradeup to the user tracked tradeups
+    """
+    This route allows an authenticated user to track a tradeup, adding it to their list of tracked tradeups.
+
+    Args:
+        tradeup_id (int): The ID of the tradeup to track.
+
+    Returns:
+        JSON response with a success message and user ID on success, or an error message and code on failure.
     """
     if tradeup_id is None:
         return jsonify({"error": "Must receive tradeup id"}), 400

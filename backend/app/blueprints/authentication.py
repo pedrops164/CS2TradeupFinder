@@ -9,6 +9,49 @@ bp_auth = Blueprint('bp_authentication', __name__)
 
 @bp_auth.route('/login', methods=['GET', 'POST'])
 def login():
+    """
+    Authenticate a user and start a session.
+
+    This route handles user authentication. If the user provides valid credentials,
+    they are logged in and a session is started. If the user is already authenticated,
+    a message indicating this is returned.
+
+    Methods:
+        GET: Check if the user is already authenticated.
+        POST: Authenticate the user with the provided credentials.
+
+    Request JSON Body:
+        {
+            "email": str,          # The email address of the user.
+            "password": str,       # The password of the user.
+            "remember_me": bool    # Optional. Whether to remember the user across sessions.
+        }
+
+    Query Parameters:
+        next (str): Optional. The URL to redirect to after login. If not provided, redirects to the home page.
+
+    Returns:
+        json: A JSON object containing a message and the next page URL.
+        - message (str): A success or error message.
+        - next_page (str): The URL to redirect to after login.
+
+    Status Codes:
+        200 OK: If the login is successful or the user is already authenticated.
+        400 Bad Request: If the required data is not provided.
+        401 Unauthorized: If the email or password is incorrect.
+
+    Example:
+        >>> POST /login
+        {
+            "email": "user@example.com",
+            "password": "password123",
+            "remember_me": true
+        }
+        {
+            "message": "Login successful",
+            "next_page": "/"
+        }
+    """
     if current_user.is_authenticated:
         return jsonify({'message': 'Already authenticated'}), 200
     
@@ -36,6 +79,43 @@ def login():
 
 @bp_auth.route('/register', methods=['POST'])
 def register_user():
+    """
+    Register a new user.
+
+    This route handles user registration. It creates a new user in the database
+    if the provided email is not already registered and the passwords match.
+
+    Methods:
+        POST: Register a new user with the provided credentials.
+
+    Request JSON Body:
+        {
+            "email": str,               # The email address of the user.
+            "password": str,            # The password of the user.
+            "password_repeat": str      # The password confirmation (must match the password).
+        }
+
+    Returns:
+        json: A JSON object containing a message and the next page URL.
+        - message (str): A success or error message.
+        - next_page (str): The URL to redirect to after registration.
+
+    Status Codes:
+        200 OK: If the registration is successful.
+        400 Bad Request: If the required data is not provided, passwords do not match, or the email is already registered.
+
+    Example:
+        >>> POST /register
+        {
+            "email": "newuser@example.com",
+            "password": "password123",
+            "password_repeat": "password123"
+        }
+        {
+            "message": "Register successful",
+            "next_page": "/login"
+        }
+    """
     if current_user.is_authenticated:
         return jsonify({'message': 'Already authenticated'}), 200
     
@@ -72,6 +152,23 @@ def logout():
 
 @bp_auth.route('/check-auth')
 def check_auth():
+    """
+    Check if the current user is authenticated.
+
+    This route checks whether the current user is authenticated. It can be used to verify
+    if the user is logged in or not.
+
+    Methods:
+        GET: Check if the user is authenticated.
+
+    Returns:
+        json: A JSON object indicating the authentication status.
+        - authenticated (bool): True if the user is authenticated, False otherwise.
+
+    Status Codes:
+        200 OK: If the check is successful, regardless of the authentication status.
+        400 Bad Request: If there is no current user.
+    """
     if not current_user:
         return jsonify({'error': 'No current user'}), 400
     if current_user.is_authenticated:

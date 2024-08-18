@@ -12,7 +12,23 @@ bp_retrieve = Blueprint('bp_retrieve', __name__)
 @bp_retrieve.route('/tradeups/tracked', methods=['GET'])
 @login_required
 def get_tradeups():
-    """Returns an array of dicts, each dict representing a tracked tradeup
+    """
+    This route returns a list of tracked tradeups for the authenticated user. Each tradeup is represented by a dictionary
+     containing details about input and output entries, collections, and tradeup stats.
+
+    Returns:
+        JSON response with a list of tracked tradeups.
+        - tradeup_id: ID of the tradeup.
+        - tradeup_name: Name of the tradeup.
+        - input_entries: List of dictionaries representing input entries.
+        - output_entries: List of dictionaries representing output entries.
+        - collection_names: List of collection names involved.
+        - tradeup_input_rarity: Rarity of the tradeup input.
+        - tradeup_stattrak: Boolean indicating if the tradeup is for StatTrak items.
+        - avg_input_float: Average float value of input skins.
+        - input_skins_cost: Cost of the input skins.
+        - profit_avg_pctg: Average percentage of profit.
+        - profit_odds: Odds of making a profit.
     """
 
     tracked_tradeups = []
@@ -65,14 +81,22 @@ def get_tradeups():
 @bp_retrieve.route('/tradeups/calculate_output', methods=['POST'])
 @login_required
 def get_tradeup_output():
-    """Gets tradeup input entries and returns the corresponding output entries by calculating them, and the tradeup stats
+    """
+    Processes the input entries to compute corresponding output entries and provides statistics related to the tradeup.
+
+    Args:
+        JSON payload containing:
+        - input_entries (list of InputEntryDict): Details of input entries for the tradeup.
+        - stattrak (bool): Boolean indicating if the tradeup is for StatTrak items.
+        - rarity (str): Rarity of the tradeup input.
 
     Returns:
-    average input float
-    tradeup cost
-    profitability average
-    odds to profit
-    output entries
+        JSON response with:
+        - output (list of OutputEntryDict): Computed output entries.
+        - avg_input_float: Average float value of input skins.
+        - tradeup_cost: Total cost of the tradeup.
+        - profit_avg: Average percentage of profit.
+        - profit_odds: Odds of making a profit.
     """
     data = request.get_json()
     
@@ -100,6 +124,21 @@ def get_tradeup_output():
 @bp_retrieve.route("/tradeups/search_skin", methods=["POST"])
 @login_required
 def search_skin():
+    """
+    Searches for skins based on specified criteria.
+    This route allows the user to search for skins using filters such as rarity, StatTrak status, condition, and optional search string and collection names.
+
+    Args:
+        JSON payload containing:
+        - rarity (str): Rarity of the skin.
+        - stattrak (bool): Boolean indicating if the skin is StatTrak.
+        - condition (str): Condition of the skin.
+        - search_string (str, optional): Partial or full name of the skin to search for.
+        - collection_names (list of str, optional): List of collection names to filter by.
+
+    Returns:
+        JSON response with a list of skins matching the search criteria.
+    """
     data = request.get_json()
     
     if not data:
@@ -145,6 +184,15 @@ def search_skin():
 @bp_retrieve.route('/tradeups/purchasable', methods=['GET'])
 @login_required
 def get_purchasable_tradeups():
+    """
+    This route provides a list of tradeups available for purchase, segmented into those that the user has already purchased
+     and those that are still available for purchase.
+
+    Returns:
+        JSON response with:
+        - purchased: List of dictionaries representing tradeups the user has purchased.
+        - not_purchased: List of dictionaries representing tradeups the user has not purchased.
+    """
     user_id = current_user.id
     user_email = current_user.email
     all_purchasable_tradeups = Tradeup.query.filter(Tradeup.tradeup_type == TradeupType.PURCHASABLE).all()
@@ -166,6 +214,12 @@ def get_purchasable_tradeups():
 
 @bp_retrieve.route('/tradeups/public', methods=['GET'])
 def get_public_tradeups():
+    """
+    This route returns a list of tradeups that are publicly available.
+
+    Returns:
+        JSON response with a list of public tradeups.
+    """
     public_tradeups = Tradeup.query.filter(Tradeup.tradeup_type == TradeupType.PUBLIC).all()
     public_tradeups_dicts = []
     for tradeup in public_tradeups:
