@@ -2,7 +2,7 @@
 from backend.app.models import Tradeup, InputTradeupEntry, OutputTradeupEntry
 from typing import List, TypedDict
 from backend.app.types import InputEntryDict, OutputEntryDict, LongTradeupDict, PurchasableTradeupDict
-from backend.app.database import get_skin_price
+from backend.app.database import get_skin_price, get_skin_image_url
 from backend.src.tradeups import calculate_tradeup_stats
 
 def get_input_entry_dict(input_entry: InputTradeupEntry) -> InputEntryDict:
@@ -11,13 +11,18 @@ def get_input_entry_dict(input_entry: InputTradeupEntry) -> InputEntryDict:
     skin_price = get_skin_price(skin.name, skin_condition.condition, skin_condition.stattrak)
     skin_condition_str = skin_condition.condition
     skin_name = skin.name
-    return {
+    image_url = get_skin_image_url(skin.name)
+
+    entry_dict = {
         "count": input_entry.count,
         "skin_float": input_entry.skin_float,
         "price": skin_price,
         "skin_condition": skin_condition_str,
         "skin_name": skin_name
     }
+    if image_url:
+        entry_dict["image_url"] = image_url
+    return entry_dict
 
 def get_output_entry_dict(output_entry: OutputTradeupEntry) -> OutputEntryDict:
     skin_condition = output_entry.skin_condition
@@ -25,13 +30,18 @@ def get_output_entry_dict(output_entry: OutputTradeupEntry) -> OutputEntryDict:
     skin_price = get_skin_price(skin.name, skin_condition.condition, skin_condition.stattrak)
     skin_condition_str = skin_condition.condition
     skin_name = skin.name
-    return {
+    image_url = get_skin_image_url(skin.name)
+
+    entry_dict = {
         "prob": output_entry.prob,
         "skin_float": output_entry.skin_float,
         "price": skin_price,
         "skin_condition": skin_condition_str,
         "skin_name": skin_name
     }
+    if image_url:
+        entry_dict["image_url"] = image_url
+    return entry_dict
 
 class OutputEntryDict(TypedDict):
     prob: float

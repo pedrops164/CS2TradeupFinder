@@ -88,7 +88,7 @@ def get_skins_by_name(weapon_paint: str):
         List of tuples containing (min_float, max_float, quality)
     """
     # Perform the query using SQLAlchemy ORM
-    results = db.session.query(Skin.min_float, Skin.max_float, Skin.quality)\
+    results = db.session.query(Skin.min_float, Skin.max_float, Skin.quality, Skin.stattrak_available)\
         .filter(Skin.name == weapon_paint)\
         .all()  # Get all matching results
 
@@ -117,6 +117,22 @@ def get_skin_price(skin_name: str, skin_condition: str, stattrak: bool):
     skin_price = result.price
     return skin_price
 
+def get_skin_image_url(skin_name: str):
+    """ Retrieves the image url of a skin
+
+    Args:
+        skin_name (str): name of the skin. For example "AK-47 Redline"
+
+    Returns:
+        image_url (str): image url of the skin
+    """
+    result = db.session.query(
+        Skin.image_name.label('image_url')
+    )\
+    .filter(Skin.name == skin_name)\
+    .one() # extract one record. Might raise NoResultFound or MultipleResultsFound exceptions
+
+    return result.image_url
 
 """ User Authentication """
 

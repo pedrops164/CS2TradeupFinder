@@ -93,6 +93,24 @@ def download_skin_image(api_key: str, skin: Skin):
     save_skin_image_name(skin, image_name)
     print(f"Image downloaded and saved for {skin_name}")
 
+def set_skin_image(api_key: str, skin: Skin):
+    skin_name = skin.name
+    skin_name_parts = skin_name.split('|')
+    skin_weapon = skin_name_parts[0]
+    skin_paint = skin_name_parts[1]
+    #search_query = f"{skin_name}"
+    search_query = f"{skin_paint} {skin_weapon}"
+
+    # get url of the image
+    image_url = search_image(search_query, api_key)
+
+    if not image_url:
+        print(f"Image url is none for {skin_name}")
+        return
+    
+    save_skin_image_name(skin, image_url)
+    print(f"Image downloaded and saved for {skin_name}")
+
 def download_skin_images(api_key):
     skins = db.session.execute(db.select(Skin))
     try:
@@ -101,7 +119,8 @@ def download_skin_images(api_key):
                 print(f"Skin '{skin.name}' already has an image. Skipping...")
                 continue
 
-            download_skin_image(api_key, skin)
+            #download_skin_image(api_key, skin)
+            set_skin_image(api_key, skin)
         print("Finished downloading all skin images")
     except DailyRateLimitExceeded:
         print("Daily Rate Limit reached. Gracefully stopping...")

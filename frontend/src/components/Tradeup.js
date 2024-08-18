@@ -1,5 +1,8 @@
 import React, {useState} from 'react';
 import '../styles/Tradeup.css';
+import InputTradeupEntry from './InputTradeupEntry';
+import OutputTradeupEntry from './OutputTradeupEntry';
+import defaultImage from '../assets/default_skin_image.png';
 
 const Tradeup = ({ tradeup }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -26,23 +29,13 @@ const Tradeup = ({ tradeup }) => {
               <div className="input-entries">
                 <h4>Input Skins</h4>
                 {tradeup.input_entries.map((entry, index) => (
-                  <div key={index} className="entry">
-                    <p>{entry.skin_name} ({entry.skin_condition})</p>
-                    <p>Count: {entry.count}</p>
-                    <p>Price: ${entry.price.toFixed(2)}</p>
-                    <p>Float: {entry.skin_float.toFixed(2)}</p>
-                  </div>
+                  <InputTradeupEntry key={index} entry={entry} defaultImage={defaultImage} />
                 ))}
               </div>
               <div className="output-entries">
                 <h4>Possible Outcomes</h4>
                 {tradeup.output_entries.map((entry, index) => (
-                  <div key={index} className="entry">
-                    <p>{entry.skin_name} ({entry.skin_condition})</p>
-                    <p>Price: ${entry.price.toFixed(2)}</p>
-                    <p>Odd: {entry.prob.toFixed(2)}%</p>
-                    <p>Float: {entry.skin_float.toFixed(2)}</p>
-                  </div>
+                  <OutputTradeupEntry key={index} entry={entry} defaultImage={defaultImage} />
                 ))}
               </div>
             </div>
