@@ -73,7 +73,7 @@ def login():
     login_user(user, remember=remember_me)
     next_page = request.args.get('next')
     if not next_page or urlsplit(next_page).netloc != '':
-        next_page = url_for('views.home')
+        next_page = '/'
 
     return jsonify({'message': 'Login successful', 'next_page': next_page}), 200
 
