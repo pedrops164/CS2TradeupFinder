@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from backend.src.tradeups import calculate_output_entries, calculate_tradeup_stats
 from backend.app.models import db, Tradeup, InputTradeupEntry, SkinCondition, OutputTradeupEntry, Skin, Collection, TradeupType
 from sqlalchemy.orm import joinedload
+from sqlalchemy import select
 from flask_login import login_required, current_user
 from backend.app.types import InputEntryDict, OutputEntryDict
 from backend.app.util import get_long_tradeup_dict, get_purchasable_tradeup_dict, get_input_entry_dict, get_output_entry_dict
@@ -107,7 +108,7 @@ def get_tradeup_output():
     stattrak: bool = data.get('stattrak')
     rarity: str = data.get('rarity')
     
-    if not input_entries or not stattrak or not rarity:
+    if input_entries is None or stattrak is None or rarity is None:
         return jsonify({"error": "Missing required fields"}), 400
 
     output_entries = calculate_output_entries(input_entries, stattrak, rarity)
@@ -226,3 +227,74 @@ def get_public_tradeups():
         public_tradeups_dicts.append(get_long_tradeup_dict(tradeup))
     
     return {"public_tradeups": public_tradeups_dicts}, 200
+
+@bp_retrieve.route('/load-all-skins', methods=['GET'])
+def get_all_skins():
+    """
+    This route returns a list of all the skins, each having the following attributes:
+    - skin name
+    - stattrak available
+    - rarity
+    - min float
+    - max float
+    - image url
+    - price for each condition (Factory New, Minimal Wear, etc.)
+    """
+
+    all_skins = []
+
+    # Perform a join between Skin and SkinCondition to get the skin details and price information
+    result = db.session.execute(
+        select(
+            Skin.name, 
+            Skin.stattrak_available, 
+            Skin.quality, 
+            Skin.min_float, 
+            Skin.max_float, 
+            Skin.image_name,
+            SkinCondition.condition,
+            SkinCondition.price,
+            SkinCondition.stattrak,
+            Collection.id.label('collection_id')
+        ).join(SkinCondition, Skin.id == SkinCondition.skin_id)\
+        .join(Collection, Collection.id == Skin.collection_id)
+    )
+
+    # Organize the results
+    skins_dict = {}
+    for row in result:
+        skin_key = row.name
+
+        # If the skin is already added to the dict, update the conditions
+        if skin_key in skins_dict:
+            conditions = skins_dict[skin_key]['conditions']
+        else:
+            # If the skin is not yet added, create a new entry for it
+            skins_dict[skin_key] = {
+                "skin_name": row.name,
+                "stattrak_available": row.stattrak_available,
+                "rarity": row.quality,
+                "min_float": row.min_float,
+                "max_float": row.max_float,
+                "image_url": row.image_name,
+                "conditions": {},
+                "collection_id": row.collection_id
+            }
+            conditions = skins_dict[skin_key]['conditions']
+
+        # Add/update the condition in the dictionary
+        if row.condition not in conditions:
+            conditions[row.condition] = {
+                "stattrak": None,
+                "non_stattrak": None
+            }
+
+        if row.stattrak:
+            conditions[row.condition]["stattrak"] = row.price
+        else:
+            conditions[row.condition]["non_stattrak"] = row.price
+
+    # Convert the dictionary to a list for JSON response
+    all_skins = list(skins_dict.values())
+
+    return {"all_skins": all_skins}, 200

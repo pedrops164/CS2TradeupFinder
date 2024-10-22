@@ -1,0 +1,246 @@
+.tradeup-calculator {
+padding: 20px;
+margin: auto;
+background-color: #f5f5f5;
+border-radius: 8px;
+box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.stattrak-checkbox,
+.rarity-dropdown {
+margin-bottom: 20px;
+}
+
+label {
+display: block;
+font-weight: bold;
+margin-bottom: 10px;
+}
+
+select {
+width: 100%;
+padding: 8px;
+border-radius: 4px;
+border: 1px solid #ddd;
+}
+
+
+.stats-container {
+display: flex;
+justify-content: space-between;
+align-items: center;
+background-color: #e6f7ff;
+padding: 10px 0;
+border-radius: 6px;
+box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.stat-item {
+display: flex;
+flex-direction: column;
+align-items: center;
+flex-grow: 1;
+padding: 10px;
+text-align: center;
+}
+
+.stat-name {
+font-weight: bold;
+color: #333;
+margin-bottom: 5px;
+}
+
+.stat-value {
+font-size: 1.2em;
+color: #4CAF50;
+}
+
+.input-output-container {
+display: flex;
+justify-content: space-between;
+margin-top: 20px;
+}
+
+.input-container,
+.output-container {
+flex: 1;
+margin: 0 10px;
+background-color: #fff;
+border-radius: 6px;
+padding: 15px;
+box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+h4 {
+color: #444;
+margin-bottom: 10px;
+border-bottom: 1px solid #ddd;
+padding-bottom: 5px;
+}
+
+.entry {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Ensure elements are spaced properly */
+    background-color: #f0f8ff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 10px;
+    position: relative; /* Ensure button stays inside the container */
+}
+
+.entry h5 {
+margin: 0;
+font-size: 1em;
+color: #333;
+}
+
+.entry p {
+margin: 5px 0 0;
+color: #666;
+}
+
+/* Image and Text Styling for Entry Details */
+.entry img {
+    margin-right: 10px;
+    width: 50px; /* Adjust image size */
+    height: auto;
+    border-radius: 4px;
+}
+
+.entry-form {
+background-color: #8e96f0;
+border: 1px solid #ddd;
+border-radius: 4px;
+padding: 10px;
+margin-bottom: 10px;
+}
+
+.entry-details {
+    flex-grow: 1; /* Makes sure the entry details use available space */
+    margin-left: 10px;
+    color: #333;
+}
+
+.add-input-entry {
+position: absolute; /* Position the button within the container */
+background-color: #ff0000;
+color: white;
+border: none;
+border-radius: 4px;
+cursor: pointer;
+font-size: 0.9em;
+float: right;
+}
+
+.add-input-entry:hover {
+background-color: #45a049;
+}
+
+.skin-dropdown {
+list-style: none;
+padding: 0;
+margin: 5px 0;
+border: 1px solid #ddd;
+border-radius: 4px;
+background-color: #fff;
+max-height: 150px;
+overflow-y: auto;
+width: 100%;
+}
+
+.skin-dropdown li {
+display: flex;
+align-items: center;
+padding: 8px;
+cursor: pointer;
+}
+
+.skin-dropdown li:hover {
+background-color: #f0f0f0;
+}
+
+.selected-skin {
+display: flex;
+align-items: center;
+margin-bottom: 10px;
+}
+
+.remove-skin-button {
+margin-left: 10px;
+background-color: #ff4d4f;
+color: white;
+border: none;
+border-radius: 4px;
+cursor: pointer;
+padding: 5px 10px;
+}
+
+.remove-skin-button:hover {
+background-color: #d9363e;
+}
+
+.skin-image-small {
+width: 30px;
+height: 30px;
+margin-right: 10px;
+margin-left: 10px;
+}
+
+.skin-image {
+width: 40px;
+height: 40px;
+margin-right: 10px;
+margin-left: 10px;
+}
+
+/* Skin details container */
+.skin-details {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* Styling for the skin name */
+.skin-name {
+    font-weight: bold;
+    font-size: 1.1em;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+/* Float and count container to separate values */
+.float-count-container {
+    display: flex;
+    gap: 20px; /* Space between float value and count */
+}
+
+/* Styling for float value and count */
+.skin-float, .skin-count, .skin-prob {
+    font-size: 0.95em;
+    color: #666;
+}
+
+/* Count container specifically */
+.skin-count, .skin-prob {
+    font-weight: bold;
+    color: #4CAF50;
+}
+
+/* Styling for the Remove Button */
+.remove-entry-button {
+    background-color: #ff4d4d;
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    font-size: 0.9em;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 15px;
+    transition: background-color 0.2s ease;
+}
+
+.remove-entry-button:hover {
+    background-color: #ff1a1a; /* Darker shade on hover */
+}

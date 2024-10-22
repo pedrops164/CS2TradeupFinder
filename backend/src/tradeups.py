@@ -96,26 +96,38 @@ def calculate_output_entries(input_entries: List[InputEntryDict], stattrak: bool
     # get the ids of the collections of the tradeup
     tradeup_collections_ids = list(coll_to_dict.keys())
 
-    # retrieve collection id, number of possible skin outputs, their names, min and max floats, for each collection in the tradeup
+    # retrieve collection id, number of possible skin outputs, their names, min and max floats, and skin image for each collection in the tradeup
     results_output = db.session.query(
         Collection.id.label('coll_id'),
-        func.count(Skin.id).label('output_count'),
-        func.group_concat(Skin.name).label('output_skin_names'),
-        func.group_concat(Skin.min_float).label('min_floats'),
-        func.group_concat(Skin.max_float).label('max_floats')
+        Skin.name,
+        Skin.min_float,
+        Skin.max_float,
+        Skin.image_name
     )\
-    .filter(Collection.id == Skin.collection_id) \
+    .join(Skin, Collection.id == Skin.collection_id) \
     .filter(output_rarity_filter, Collection.id.in_(tradeup_collections_ids)) \
-    .group_by(Collection.id).all()
+    .all()
 
     total_ballots = 0
     # calculate value of total ballots, which is the sum over all collections of the number of input entries multiplied by the number of possible output skins
     for result in results_output:
         col_dict = coll_to_dict[result.coll_id]
-        col_dict["output_count"] = result.output_count
-        col_dict["output_skin_names"] = result.output_skin_names.split(',')
-        col_dict["min_floats"] = result.min_floats.split(',')
-        col_dict["max_floats"] = result.max_floats.split(',')
+        col_dict["output_count"] = col_dict.get("output_count", 0) + 1 
+        col_skins_dict = col_dict.setdefault("skins", [])
+        col_skins_dict.append({
+            "skin_name": result.name,
+            "min_float": result.min_float,
+            "max_float": result.max_float,
+            "image_name": result.image_name,
+        })
+        #col_dict["output_skin_names"] = result.output_skin_names.split(',')
+        #col_dict["min_floats"] = result.min_floats.split(',')
+        #col_dict["max_floats"] = result.max_floats.split(',')
+        #col_dict["image_names"] = result.image_names.split(',')
+        #total_ballots += col_dict["output_count"] * col_dict["input_count"]
+
+    # add up the total number of ballots (multiply the input by the output counts for each collection and sum)
+    for col_dict in coll_to_dict.values():
         total_ballots += col_dict["output_count"] * col_dict["input_count"]
 
     # calculate the average float of the input skins
@@ -127,9 +139,13 @@ def calculate_output_entries(input_entries: List[InputEntryDict], stattrak: bool
     # iterate over the collections of the tradeup
     for (coll_id, coll_dict) in coll_to_dict.items():
         # iterate over the possible output skins of the tradeup
-        for output_skin_name, min_float_str, max_float_str in zip(coll_dict["output_skin_names"], coll_dict["min_floats"], coll_dict["max_floats"]):
+        for col_skins_dict in coll_dict["skins"]:
+            output_skin_name = col_skins_dict["skin_name"]
+            min_float = col_skins_dict["min_float"]
+            max_float = col_skins_dict["max_float"]
+            skin_image = col_skins_dict["image_name"]
             # calculate float of resulting output skin
-            output_float = ((float(max_float_str)-float(min_float_str)) * average_float) + float(min_float_str)
+            output_float = (max_float-min_float) * average_float + float(min_float)
             # get the condition of the skin from the value of the float (for example 0.03 would give "Factory New")
             output_condition = Skin.get_float_str(output_float)
             # calculate probability of getting this output skin
@@ -140,7 +156,8 @@ def calculate_output_entries(input_entries: List[InputEntryDict], stattrak: bool
                 "prob": output_probability,
                 "skin_condition": output_condition,
                 "skin_name": output_skin_name,
-                "price": skin_price
+                "price": skin_price,
+                "image_url": skin_image
             }
             output_entries.append(output_entry)
 

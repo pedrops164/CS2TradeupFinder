@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 const Home = lazy(() => import('./pages/Home'));
 const About = lazy(() => import('./pages/About'));
 const Login = lazy(() => import('./pages/Login'));
+const TradeupCalculator = lazy(() => import('./pages/calculator/TradeupCalculator'));
 const Tradeups = lazy(() => import('./pages/Tradeups'));
 const TradeupsPublic  = lazy(() => import('./pages/TradeupsPublic'));
 const TradeupsPurchasable = lazy(() => import('./pages/TradeupsPurchasable'));
@@ -58,6 +59,10 @@ const App = () => {
 					<Route path="/" element={<Home />} />
 					<Route path="/about" element={<About />} />
 					<Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
+
+					<Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
+						<Route path="calculator" element={<TradeupCalculator />} />
+					</Route>
 
 					<Route path="/tradeups" element={<Tradeups isAuthenticated={isAuthenticated} />}>
 						<Route path="public" element={<TradeupsPublic />} />
