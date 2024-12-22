@@ -11,10 +11,24 @@ const Tradeups = lazy(() => import('./pages/Tradeups'));
 const TradeupsPublic  = lazy(() => import('./pages/TradeupsPublic'));
 const TradeupsPurchasable = lazy(() => import('./pages/TradeupsPurchasable'));
 const TradeupsPrivate = lazy(() => import('./pages/TradeupsPrivate'));
+import Logger from './utils/Logger';
+
+Logger.initialize({
+  minLevel: process.env.NODE_ENV === 'production' ? 'INFO' : 'DEBUG',
+  app: 'tradeup-finder',
+  version: '1.0.0'
+});
+
+// Test each log level
+Logger.debug('Debug message test', { type: 'test' });
+Logger.info('Info message test', { type: 'test' });
+Logger.warn('Warning message test', { type: 'test' });
+Logger.error('Error message test', { type: 'test' });
 
 const App = () => {
 	const [isAuthenticated, setIsAuthenticated] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
+	const [userRole, setUserRole] = useState(null);
   
 	useEffect(() => {
 	  // Check authentication status when the app loads
@@ -33,14 +47,16 @@ const App = () => {
 				else return response.json();
 			})
 			.then(jsonData => {
-				console.log('Authenticated: ' + jsonData.authenticated);
+				Logger.info('Authenticated: ' + jsonData.authenticated);
+				Logger.info('role: ' + jsonData.user_role);
+				setUserRole(jsonData.user_role);
 				setIsAuthenticated(jsonData.authenticated);
 			})
 			.catch((error) => {
 				alert('error: ' + error);
 			});
 		} catch (error) {
-			console.error('Error checking authentication status:', error);
+			Logger.error('Error checking authentication status:', error);
 			setIsAuthenticated(false);
 		} finally {
 			setIsLoading(false);
@@ -61,7 +77,7 @@ const App = () => {
 					<Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
 
 					<Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
-						<Route path="calculator" element={<TradeupCalculator />} />
+						<Route path="calculator" element={<TradeupCalculator user_role={userRole}/>} />
 					</Route>
 
 					<Route path="/tradeups" element={<Tradeups isAuthenticated={isAuthenticated} />}>

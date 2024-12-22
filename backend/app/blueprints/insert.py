@@ -196,7 +196,7 @@ def create_tradeup(tradeup_isstattrak, tradeup_input_rarity, input_entries_dict,
     for tradeup_entry in input_entries_dict:
         weapon_paint = tradeup_entry.get("skin_name")
         condition = tradeup_entry.get("skin_condition")
-        skin_float = tradeup_entry.get("float")
+        skin_float = tradeup_entry.get("skin_float")
         count = tradeup_entry.get("count")
         collection_id = tradeup_entry.get("collection_id")
         
@@ -216,7 +216,7 @@ def create_tradeup(tradeup_isstattrak, tradeup_input_rarity, input_entries_dict,
     for tradeup_entry in output_entries_dict:
         weapon_paint = tradeup_entry["skin_name"]
         condition = tradeup_entry["skin_condition"]
-        skin_float = tradeup_entry["float"]
+        skin_float = tradeup_entry["skin_float"]
         prob = tradeup_entry["prob"]
         
         skin_condition_id, error = _output_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, condition, skin_float)

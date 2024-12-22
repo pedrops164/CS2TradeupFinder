@@ -1,7 +1,7 @@
 from flask import Blueprint, redirect, url_for, flash, request, jsonify, session
 from urllib.parse import urlsplit
 from flask_login import current_user, login_user, logout_user
-from backend.app.models import db, User
+from backend.app.models import db, User, UserRole
 from backend.app.database import add_user
 import sqlalchemy as sa
 
@@ -172,6 +172,7 @@ def check_auth():
     if not current_user:
         return jsonify({'error': 'No current user'}), 400
     if current_user.is_authenticated:
-        return jsonify({'authenticated': True}), 200
+        return jsonify({'authenticated': True, 'user_role': str(current_user.role.value)}), 200
     else:
-        return jsonify({'authenticated': False}), 200
+        # For unauthenticated users, the default role is 'user'
+        return jsonify({'authenticated': False, 'user_role': UserRole.USER.value}), 200

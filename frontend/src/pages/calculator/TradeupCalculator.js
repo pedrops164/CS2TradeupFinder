@@ -6,7 +6,7 @@ import TradeupInputEntryForm from './TradeupInputEntryForm';
 import { getSkinCondition } from '../../utils/helperFunctions';
 import TradeupOutputEntry from './TradeupOutputEntry';
 
-const TradeupCalculator = () => {
+const TradeupCalculator = (userRole) => {
 
     // State to manage skins data
     const [skins, setSkins] = useState([]);
@@ -68,6 +68,9 @@ const TradeupCalculator = () => {
     // error variable for showing error messages
     const [inputEntryError, setInputEntryError] = useState('');
 
+    // type of the tradeup to add (public or purchasable)
+    const [tradeupType, setTradeupType] = useState(null);
+
     // handle add input entry button
     const addInputEntry = (selectedSkin, skin_float, count) => {
         // Receives the parameters of the TradeupInputEntryForm, error checks them (displays msg if error), and adds 
@@ -98,7 +101,8 @@ const TradeupCalculator = () => {
             count: count,
             image_url: selectedSkin.image_url,
             conditions: selectedSkin.conditions,
-            collection_id: selectedSkin.collection_id
+            collection_id: selectedSkin.collection_id,
+            skin_condition: getSkinCondition(skin_float),
         };
         console.log('entry: ', entry);
         // add input entry
@@ -215,6 +219,56 @@ const TradeupCalculator = () => {
         setInputEntries(inputEntries.filter((_, index) => index !== indexToRemove));
     }
 
+    const handleAddTradeup = async (tradeupType) => {
+        // calls the backend route to add the tradeup to the database
+        console.log("handling tradeup. type = " + tradeupType);
+        console.log(userRole.user_role);
+
+        // assert the tradeup is valid (count is 10, ...)
+
+        // create payload
+        const payload = {
+            stattrak: isStattrak,
+            input_rarity: selectedRarity,
+            input_entries: inputEntries,
+            output_entries: outputEntries
+        };
+
+        console.log("payload:", payload);
+
+        // get api route
+        let route = '';
+        if (tradeupType === 'public') {
+            route = '/tradeups/create_public';
+        } else if (tradeupType === 'purchasable') {
+            route = '/tradeups/create_purchasable';
+        }
+
+        // make api call with payload
+        try {
+            const response = await fetch(route, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+    
+            const data = await response.json();
+    
+            if (response.ok) {
+                console.log('Tradeup added successfully!');
+                alert('Tradeup added successfully!');
+            } else {
+                console.log('Error adding tradeup:', data.error);
+                alert('Error adding tradeup');
+            }
+        } catch (error) {
+            console.log('Error happened while handling add tradeup:', error);
+        }
+        
+    }
+
     return (
         <div className="tradeup-calculator">
             <h1>Tradeup Calculator</h1>
@@ -285,6 +339,23 @@ const TradeupCalculator = () => {
                             />
                         ))}
                     </div>
+                    {userRole.user_role === 'admin' && (
+                        <div className="admin-options">
+                        <h3>Admin Options</h3>
+                        
+                        {/* Dropdown to choose the type of tradeup (public or purchasable) */}
+                        <select onChange={(e) => setTradeupType( e.target.value )}>
+                            <option value="" selected disabled hidden>Choose tradeup type</option>
+                            <option value="public">Public Tradeup</option>
+                            <option value="purchasable">Purchasable Tradeup</option>
+                        </select>
+
+                        {/* Button to add tradeup to database */}
+                        <button onClick={() => handleAddTradeup(tradeupType)}>
+                            Add Tradeup
+                        </button>
+                        </div>
+                    )}
                 </div>
             )}
 
