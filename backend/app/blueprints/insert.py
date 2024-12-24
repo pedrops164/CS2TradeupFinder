@@ -317,7 +317,7 @@ def _input_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, c
     if tradeup_input_rarity != matching_skins[0][2]:
         return None, "Tradeup Input rarity doesn't match rarity of input entry"
     
-    skin_condition_id = get_skin_condition_id(weapon_paint, condition)
+    skin_condition_id = get_skin_condition_id(weapon_paint, condition, tradeup_isstattrak)
     
     if skin_condition_id is None:
         return None, f"Invalid weapon_paint or condition for {weapon_paint}, {condition}"
@@ -347,10 +347,10 @@ def _output_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, 
     if len(matching_skins) == 0:
         # no results, so skin with weapon_paint as name doesnt exist
         return None, f"Invalid weapon_paint for '{weapon_paint}'"
-    if not any([res[3] == tradeup_isstattrak for res in matching_skins]):
-        # there isn't a result on this skin with the given stattrak status
-        # (a stattrak skin was requested for a skin which doesn't have stattrak)
-        return None, f"Weapon_paint {weapon_paint} doesn't have given stattrak status"
+    #if not any([res[3] == tradeup_isstattrak for res in matching_skins]):
+    #    # there isn't a result on this skin with the given stattrak status
+    #    # (a stattrak skin was requested for a skin which doesn't have stattrak)
+    #    return None, f"Weapon_paint {weapon_paint} doesn't have given stattrak status"
     # float in bounds check
     if matching_skins[0][0] > skin_float or matching_skins[0][1] < skin_float:
         return None, f"Weapon_paint {weapon_paint} with float {skin_float} is not valid"
@@ -358,7 +358,7 @@ def _output_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, 
     if Tradeup.get_output_quality(tradeup_input_rarity) != matching_skins[0][2]:
         return None, "Tradeup Output rarity doesn't match rarity of output entry"
     
-    skin_condition_id = get_skin_condition_id(weapon_paint, condition)
+    skin_condition_id = get_skin_condition_id(weapon_paint, condition, tradeup_isstattrak)
     
     if skin_condition_id is None:
         return None, f"Invalid weapon_paint or condition for {weapon_paint}, {condition}"

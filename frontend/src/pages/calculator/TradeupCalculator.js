@@ -8,28 +8,11 @@ import TradeupOutputEntry from './TradeupOutputEntry';
 
 const TradeupCalculator = (userRole) => {
 
+    // SET STATES
     // State to manage skins data
     const [skins, setSkins] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
-    // Fetch skin data on component mount
-    useEffect(() => {
-        const fetchSkins = async () => {
-            try {
-                const response = await fetch('load-all-skins');
-                const data = await response.json();
-                setSkins(data.all_skins);
-                setLoading(false);
-            } catch (err) {
-                console.error('Failed to fetch skins data: ', err);
-                setError('Failed to load skins data');
-                setLoading(false);
-            }
-        };
-
-        fetchSkins();
-    }, []);
 
     // state to manage tradeup stattrak status
     const [isStattrak, setIsStattrak] = useState(false);
@@ -39,16 +22,6 @@ const TradeupCalculator = (userRole) => {
 
     // state to manage chosen rarity for the tradeup
     const [selectedRarity, setSelectedRarity] = useState(rarityOptions[0]);
-
-    // Handle stattrak change
-    const handleStattrakChange = (e) => {
-        setIsStattrak(e.target.checked);
-    };
-
-    // Handle rarity change
-    const handleRarityChange = (e) => {
-        setSelectedRarity(e.target.value);
-    };
 
     // state to manage Average Input Float
     const [avgInputFloat, setAvgInputFloat] = useState(0);
@@ -67,9 +40,70 @@ const TradeupCalculator = (userRole) => {
 
     // error variable for showing error messages
     const [inputEntryError, setInputEntryError] = useState('');
-
+    const [validationError, setValidationError] = useState('');
     // type of the tradeup to add (public or purchasable)
     const [tradeupType, setTradeupType] = useState(null);
+
+    // State to manage the disabled status of the Add Tradeup button
+    const [isAddTradeupDisabled, setIsAddTradeupDisabled] = useState(true);
+
+    // Utility function to clear all tradeup-related states
+    const clearTradeup = () => {
+        setInputEntries([]);
+        setOutputEntries([]);
+        setAvgInputFloat(0);
+        setTradeupCost(0);
+        setProfitability(0);
+        setProfitOdds(0);
+        setInputEntryError('');
+        setValidationError('');
+    };
+    // Fetch skin data on component mount
+    useEffect(() => {
+        const fetchSkins = async () => {
+            try {
+                const response = await fetch('load-all-skins');
+                const data = await response.json();
+                setSkins(data.all_skins);
+                setLoading(false);
+            } catch (err) {
+                console.error('Failed to fetch skins data: ', err);
+                setError('Failed to load skins data');
+                setLoading(false);
+            }
+        };
+
+        fetchSkins();
+    }, []);
+
+    // Update the disabled status of the Add Tradeup button based on input entry count
+    useEffect(() => {
+        setIsAddTradeupDisabled(getInputEntryCount() !== 10);
+    }, [inputEntries]);
+
+    // Handle stattrak change with validation
+    const handleStattrakChange = (e) => {
+        const newStattrakValue = e.target.checked;
+        // Check if all current input entries support stattrak
+        if (newStattrakValue && inputEntries.length > 0) {
+            const allStattrakAvailable = inputEntries.every(entry => {
+                const matchingSkin = skins.find(skin => skin.skin_name === entry.skin_name);
+                return matchingSkin && matchingSkin.stattrak_available;
+            });
+            if (!allStattrakAvailable) {
+                setValidationError('One or more selected skins do not support StatTrak™');
+                return;
+            }
+        }
+        setIsStattrak(newStattrakValue);
+        setValidationError('');
+    };
+
+    // Handle rarity change and clear tradeup
+    const handleRarityChange = (e) => {
+        setSelectedRarity(e.target.value);
+        clearTradeup();
+    };
 
     // handle add input entry button
     const addInputEntry = (selectedSkin, skin_float, count) => {
@@ -104,7 +138,6 @@ const TradeupCalculator = (userRole) => {
             collection_id: selectedSkin.collection_id,
             skin_condition: getSkinCondition(skin_float),
         };
-        console.log('entry: ', entry);
         // add input entry
         const updatedEntries = [...inputEntries, entry];
         setInputEntries(updatedEntries);
@@ -148,8 +181,8 @@ const TradeupCalculator = (userRole) => {
             .then((result) => {
                 if (result.error) {
                     console.log(result.error); // Handle error in UI if needed
+                    setInputEntryError(result.error)
                 } else {
-                    console.log('Tradeup Output:', result);
                     setOutputEntries([...result.output_entries]);
                     setAvgInputFloat(result.avg_input_float);
                     setTradeupCost(result.tradeup_cost);
@@ -170,8 +203,6 @@ const TradeupCalculator = (userRole) => {
                 rarity: selectedRarity
             };
 
-            console.log("requestData - ", requestData);
-            
             // Make the request to the route
             const response = await fetch('/tradeups/calculate_output', {
                 method: 'POST',
@@ -181,13 +212,13 @@ const TradeupCalculator = (userRole) => {
                 body: JSON.stringify(requestData)
             });
 
-            // Handle non-200 HTTP responses
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
             // Parse the JSON response
             const data = await response.json();
+
+            // Handle non-200 HTTP responses
+            if (!response.ok) {
+                return {error: data.error};
+            }
 
             return {
                 output_entries: data.output,
@@ -197,7 +228,6 @@ const TradeupCalculator = (userRole) => {
                 profit_odds: data.profit_odds
             };
         } catch (err) {
-            console.error('Error occurred while calculating tradeup output:', err);
             return {
                 error: 'Failed to calculate tradeup output. Please try again later.'
             };
@@ -219,12 +249,75 @@ const TradeupCalculator = (userRole) => {
         setInputEntries(inputEntries.filter((_, index) => index !== indexToRemove));
     }
 
-    const handleAddTradeup = async (tradeupType) => {
-        // calls the backend route to add the tradeup to the database
-        console.log("handling tradeup. type = " + tradeupType);
-        console.log(userRole.user_role);
+    // Validate tradeup requirements
+    const validateTradeup = () => {
+        if (getInputEntryCount() !== 10) {
+            setValidationError('Tradeup must have exactly 10 items');
+            return false;
+        }
 
-        // assert the tradeup is valid (count is 10, ...)
+        const allSameRarity = inputEntries.every(entry => {
+            const matchingSkin = skins.find(skin => skin.skin_name === entry.skin_name);
+            return matchingSkin && matchingSkin.rarity === selectedRarity;
+        });
+
+        if (!allSameRarity) {
+            setValidationError('All items must be of the same rarity');
+            return false;
+        }
+
+        if (isStattrak) {
+            const allStattrakAvailable = inputEntries.every(entry => {
+                const matchingSkin = skins.find(skin => skin.skin_name === entry.skin_name);
+                return matchingSkin && matchingSkin.stattrak_available;
+            });
+
+            if (!allStattrakAvailable) {
+                setValidationError('All items must support StatTrak™ for a StatTrak™ tradeup');
+                return false;
+            }
+        }
+
+        return true;
+    };
+
+    const handleAddTradeup = async (tradeupType) => {
+        setValidationError('');
+
+        if (!validateTradeup()) {
+            return;
+        }
+
+        // Check for duplicate tradeup
+        try {
+            const response = await fetch('/tradeups/check_duplicate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    input_entries: inputEntries,
+                    stattrak: isStattrak,
+                    rarity: selectedRarity
+                })
+            });
+
+            const duplicateCheck = await response.json();
+
+            // Handle non-200 HTTP responses
+            if (!response.ok) {
+                return {error: duplicateCheck.error};
+            }
+
+            if (duplicateCheck.is_duplicate) {
+                setValidationError('This tradeup already exists');
+                return;
+            }
+        } catch (error) {
+            console.error('Error checking for duplicate tradeup:', error);
+            setValidationError('Error checking for duplicate tradeup');
+            return;
+        }
 
         // create payload
         const payload = {
@@ -242,6 +335,8 @@ const TradeupCalculator = (userRole) => {
             route = '/tradeups/create_public';
         } else if (tradeupType === 'purchasable') {
             route = '/tradeups/create_purchasable';
+        } else if (tradeupType === 'private') {
+            route = '/tradeups/create_private';
         }
 
         // make api call with payload
@@ -312,8 +407,9 @@ const TradeupCalculator = (userRole) => {
                             <TradeupInputEntryForm skinsData={skins} addEntry={addInputEntry} isStattrak={isStattrak} selectedRarity={selectedRarity} />
                         </h4>
 
-                        {/*display error*/}
+                        {/* Display errors */}
                         {inputEntryError && <div className='error-msg'>{inputEntryError}</div>}
+                        {validationError && <div className='error-msg'>{validationError}</div>}
 
                         {inputEntries.map((entry, index) => (
                             <TradeupInputEntry
@@ -344,15 +440,27 @@ const TradeupCalculator = (userRole) => {
                         <h3>Admin Options</h3>
                         
                         {/* Dropdown to choose the type of tradeup (public or purchasable) */}
-                        <select onChange={(e) => setTradeupType( e.target.value )}>
-                            <option value="" selected disabled hidden>Choose tradeup type</option>
+                        {/*}
+                        This is commented out because we are only supporting public tradeups for now
+                        <select onChange={(e) => setTradeupType( e.target.value )} defaultValue="">
+                            <option value="" disabled hidden>Choose tradeup type</option>
                             <option value="public">Public Tradeup</option>
                             <option value="purchasable">Purchasable Tradeup</option>
                         </select>
+                        */}
 
                         {/* Button to add tradeup to database */}
-                        <button onClick={() => handleAddTradeup(tradeupType)}>
+                        {/* <button onClick={() => handleAddTradeup(tradeupType)} disabled={isAddTradeupDisabled || tradeupType===null}> */}
+                        <button onClick={() => handleAddTradeup('public')} disabled={isAddTradeupDisabled}>
                             Add Tradeup
+                        </button>
+                        </div>
+                    )}
+
+                    {userRole.user_role === 'user' && (
+                        <div className="user-options">
+                        <button onClick={() => handleAddTradeup('private')} disabled={isAddTradeupDisabled}>
+                            Track Tradeup
                         </button>
                         </div>
                     )}

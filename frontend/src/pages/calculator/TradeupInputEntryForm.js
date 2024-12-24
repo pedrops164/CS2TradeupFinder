@@ -21,11 +21,16 @@ const TradeupInputEntryForm = ({ skinsData, addEntry, isStattrak, selectedRarity
                 skinsData.filter(
                     (skin) =>
                     skin.skin_name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-                    skin.rarity === selectedRarity // Filter by selected rarity
+                    skin.rarity === selectedRarity && // Filter by selected rarity
+                    (!isStattrak || skin.stattrak_available) // Check stattrak availability
                 )
             );
         }
     }, [searchQuery, isStattrak, selectedRarity]);
+
+    useEffect(() => {
+        handleRemoveSkin();
+    }, [isStattrak, selectedRarity]);
 
     const handleSkinSelect = (skin) => {
         setSelectedSkin(skin);

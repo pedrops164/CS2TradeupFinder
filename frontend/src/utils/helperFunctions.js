@@ -16,4 +16,3 @@ export const getSkinCondition = (floatValue) => {
         return "Battle-Scarred";
     }
 };
-  

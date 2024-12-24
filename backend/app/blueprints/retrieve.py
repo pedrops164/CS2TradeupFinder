@@ -7,6 +7,11 @@ from flask_login import login_required, current_user
 from backend.app.types import InputEntryDict, OutputEntryDict
 from backend.app.util import get_long_tradeup_dict, get_purchasable_tradeup_dict, get_input_entry_dict, get_output_entry_dict
 from typing import List
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 bp_retrieve = Blueprint('bp_retrieve', __name__)
 
@@ -31,6 +36,7 @@ def get_tradeups():
         - profit_avg_pctg: Average percentage of profit.
         - profit_odds: Odds of making a profit.
     """
+    logger.info("Fetching tracked tradeups for user: %s", current_user.id)
 
     tracked_tradeups = []
 
@@ -99,6 +105,7 @@ def get_tradeup_output():
         - profit_avg: Average percentage of profit.
         - profit_odds: Odds of making a profit.
     """
+    logger.info("Calculating tradeup output for user: %s", current_user.id)
     data = request.get_json()
     
     if not data:
@@ -111,16 +118,21 @@ def get_tradeup_output():
     if input_entries is None or stattrak is None or rarity is None:
         return jsonify({"error": "Missing required fields"}), 400
 
-    output_entries = calculate_output_entries(input_entries, stattrak, rarity)
-    
-    avg_input_float, tradeup_cost, profit_avg, profit_odds = calculate_tradeup_stats(input_entries, output_entries, stattrak)
+    try:
+        output_entries = calculate_output_entries(input_entries, stattrak, rarity)
 
-    return jsonify({
-        "output": output_entries,
-        "avg_input_float": avg_input_float,
-        "tradeup_cost": tradeup_cost,
-        "profit_avg": profit_avg,
-        "profit_odds": profit_odds}), 201
+        avg_input_float, tradeup_cost, profit_avg, profit_odds = calculate_tradeup_stats(input_entries, output_entries, stattrak)
+
+        return jsonify({
+            "output": output_entries,
+            "avg_input_float": avg_input_float,
+            "tradeup_cost": tradeup_cost,
+            "profit_avg": profit_avg,
+            "profit_odds": profit_odds}), 201
+    except Tradeup.InvalidRarityException as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": "An unexpected error occured: " + str(e)}), 500
 
 @bp_retrieve.route("/tradeups/search_skin", methods=["POST"])
 @login_required
@@ -298,3 +310,64 @@ def get_all_skins():
     all_skins = list(skins_dict.values())
 
     return {"all_skins": all_skins}, 200
+
+@bp_retrieve.route('/tradeups/check_duplicate', methods=['POST'])
+@login_required
+def check_duplicate_tradeup():
+    """
+    Checks if a tradeup with the given input entries, stattrak status, and rarity already exists.
+
+    Args:
+        JSON payload containing:
+        - input_entries (list of InputEntryDict): Details of input entries for the tradeup.
+        - stattrak (bool): Boolean indicating if the tradeup is for StatTrak items.
+        - rarity (str): Rarity of the tradeup input.
+
+    Returns:
+        JSON response with:
+        - is_duplicate (bool): Indicates if the tradeup is a duplicate.
+    """
+    logger.info("Checking for duplicate tradeup for user: %s", current_user.id)
+
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    input_entries: List[InputEntryDict] = data.get('input_entries')
+    stattrak: bool = data.get('stattrak')
+    rarity: str = data.get('rarity')
+
+    if input_entries is None or stattrak is None or rarity is None:
+        return jsonify({"error": "Missing required fields"}), 400
+
+    try:
+        # Query the database to check for duplicates
+        duplicate_tradeups = Tradeup.query.filter(
+            Tradeup.stattrak == stattrak,
+            Tradeup.input_rarity == rarity
+        ).all()
+
+        for tradeup in duplicate_tradeups:
+            tradeup_input_entries = tradeup.input_entries
+            if len(tradeup_input_entries) != len(input_entries):
+                continue
+
+            is_duplicate = all(
+                any(
+                    entry['skin_name'] == tradeup_entry.skin_condition.skin.name and
+                    entry['skin_float'] == tradeup_entry.skin_float and
+                    entry['count'] == tradeup_entry.count
+                    for tradeup_entry in tradeup_input_entries
+                )
+                for entry in input_entries
+            )
+
+            if is_duplicate:
+                return jsonify({"is_duplicate": True}), 200
+
+        return jsonify({"is_duplicate": False}), 200
+
+    except Exception as e:
+        logger.error("Error occurred in check_duplicate_tradeup", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred. Please try again later."}), 500

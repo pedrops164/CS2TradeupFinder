@@ -55,7 +55,7 @@ def add_tradeup_collection(tradeup_collection):
 
 """ Get entries from sql database """
 
-def get_skin_condition_id(weapon_paint: str, condition: str):
+def get_skin_condition_id(weapon_paint: str, condition: str, tradeup_isstattrak: bool):
     """Queries the database to return the ID of a skin condition.
 
     Args:
@@ -70,6 +70,7 @@ def get_skin_condition_id(weapon_paint: str, condition: str):
         .join(Skin, Skin.id == SkinCondition.skin_id)\
         .filter(Skin.name == weapon_paint)\
         .filter(SkinCondition.condition == condition)\
+        .filter(SkinCondition.stattrak == tradeup_isstattrak)\
         .one_or_none()  # Get one result or return None if not found
 
     # Return the ID if found
