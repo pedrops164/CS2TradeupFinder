@@ -66,7 +66,7 @@ def create_tradeup_from_dataframe(df, input_rarity, stattrak: bool):
 
     return trade_up_pool
 
-def calculate_output_entries(input_entries: List[InputEntryDict], stattrak: bool, rarity: str) -> List[OutputEntryDict]:
+def calculate_output_entries(input_entries: List[InputEntryDict], stattrak: bool, input_rarity: str, get_entries_price=True, get_entries_image=True) -> List[OutputEntryDict]:
     """Receives the input entries of a tradeup, and calculates the output entries.
     We assume that the stattrak status and rarity received in the arguments are in accordance with the input entries.
     We assume the price of the input skins is correct
@@ -74,7 +74,7 @@ def calculate_output_entries(input_entries: List[InputEntryDict], stattrak: bool
     Args:
         input_entries (list[dict]): has parameters: skin_name, skin_condition, float, count, collection_id
         stattrak (bool): whether the tradeup is stattrak
-        rarity (str): possible rarities: ["consumer_bg", "industrial_bg", "milspec_bg", "restricted_bg", "classified_bg", "covert_bg"]. The last rarity isnt valid (doesnt have matching output rarity)
+        input_rarity (str): possible rarities: ["consumer_bg", "industrial_bg", "milspec_bg", "restricted_bg", "classified_bg", "covert_bg"]. The last rarity isnt valid (doesnt have matching output rarity)
     """
     coll_to_dict = {}
 
@@ -88,7 +88,7 @@ def calculate_output_entries(input_entries: List[InputEntryDict], stattrak: bool
         col_dict["input_count"] += entry["count"]
 
     # get the rarity of the output skins (the rarity after the input rarity)
-    output_rarity = Tradeup.get_output_quality(rarity)
+    output_rarity = Tradeup.get_output_quality(input_rarity)
 
     # rarity filter for the sql query
     output_rarity_filter = Skin.quality == output_rarity
@@ -155,10 +155,12 @@ def calculate_output_entries(input_entries: List[InputEntryDict], stattrak: bool
                 "skin_float": output_float,
                 "prob": output_probability,
                 "skin_condition": output_condition,
-                "skin_name": output_skin_name,
-                "price": skin_price,
-                "image_url": skin_image
+                "skin_name": output_skin_name
             }
+            if get_entries_price:
+                output_entry["price"] = skin_price
+            if get_entries_image:
+                output_entry["image_url"] = skin_image
             output_entries.append(output_entry)
 
     return output_entries
@@ -184,10 +186,10 @@ def calculate_tradeup_stats(input_entries: List[InputEntryDict], output_entries:
         result = db.session.query(
             SkinCondition.price.label("price")
         )\
-        .filter(Skin.id == SkinCondition.skin_id)\
-        .filter(Skin.name == skin_name)\
-        .filter(SkinCondition.condition == skin_condition)\
-        .filter(SkinCondition.stattrak == stattrak)\
+        .filter(Skin.id == SkinCondition.skin_id,
+        Skin.name == skin_name,
+        SkinCondition.condition == skin_condition,
+        SkinCondition.stattrak == stattrak)\
         .one() # extract one record
         # might raise NoResultFound or MultipleResultsFound exceptions
 

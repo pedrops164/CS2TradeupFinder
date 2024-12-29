@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { handleApiError } from '../../utils/apiErrorHandler';
 import '../../styles/TradeupCalculator.css';
 import TradeupStats from './TradeupStats';
 import TradeupInputEntry from './TradeupInputEntry';
@@ -63,6 +64,12 @@ const TradeupCalculator = (userRole) => {
         const fetchSkins = async () => {
             try {
                 const response = await fetch('load-all-skins');
+                if (!response.ok) {
+                    const errorMessage = await handleApiError(response);
+                    setError(errorMessage);
+                    setLoading(false);
+                    return;
+                }
                 const data = await response.json();
                 setSkins(data.all_skins);
                 setLoading(false);
@@ -163,12 +170,11 @@ const TradeupCalculator = (userRole) => {
             let skin_condition = getSkinCondition(input_entry.skin_float);
 
             // fetch skin price
-            let stattrak_str = isStattrak ? "stattrak" : "non_stattrak";
-            let skin_price = input_entry.conditions[skin_condition][stattrak_str];
+            //let stattrak_str = isStattrak ? "stattrak" : "non_stattrak";
+            //let skin_price = input_entry.conditions[skin_condition][stattrak_str];
             let new_entry = {
                 count: input_entry.count,
                 skin_float: input_entry.skin_float,
-                price: skin_price,
                 skin_condition: skin_condition,
                 skin_name: input_entry.skin_name,
                 collection_id: input_entry.collection_id
@@ -194,7 +200,6 @@ const TradeupCalculator = (userRole) => {
     }
 
     const calculateTradeupOutput = async (input_entries) => {
-
         try {
             // Prepare the request data
             const requestData = {
@@ -212,13 +217,14 @@ const TradeupCalculator = (userRole) => {
                 body: JSON.stringify(requestData)
             });
 
-            // Parse the JSON response
-            const data = await response.json();
-
             // Handle non-200 HTTP responses
             if (!response.ok) {
-                return {error: data.error};
+                const errorMessage = await handleApiError(response);
+                return { error: errorMessage };
             }
+
+            // Parse the JSON response
+            const data = await response.json();
 
             return {
                 output_entries: data.output,
@@ -232,7 +238,6 @@ const TradeupCalculator = (userRole) => {
                 error: 'Failed to calculate tradeup output. Please try again later.'
             };
         }
-
     }
 
     const getInputEntryCount = () => {
@@ -296,19 +301,26 @@ const TradeupCalculator = (userRole) => {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    input_entries: inputEntries,
+                    input_entries: inputEntries.map((entry, _) => ({
+                        "skin_name": entry.skin_name,
+                        "skin_float": entry.skin_float,
+                        "count": entry.count,
+                        "skin_condition": entry.skin_condition,
+                        "collection_id": entry.collection_id
+                    })),
                     stattrak: isStattrak,
                     rarity: selectedRarity
                 })
             });
 
-            const duplicateCheck = await response.json();
-
             // Handle non-200 HTTP responses
             if (!response.ok) {
-                return {error: duplicateCheck.error};
+                const errorMessage = await handleApiError(response);
+                setValidationError(errorMessage);
+                return;
             }
 
+            const duplicateCheck = await response.json();
             if (duplicateCheck.is_duplicate) {
                 setValidationError('This tradeup already exists');
                 return;
@@ -349,19 +361,19 @@ const TradeupCalculator = (userRole) => {
                 body: JSON.stringify(payload)
             });
     
-            const data = await response.json();
-    
-            if (response.ok) {
-                console.log('Tradeup added successfully!');
-                alert('Tradeup added successfully!');
-            } else {
-                console.log('Error adding tradeup:', data.error);
-                alert('Error adding tradeup');
+            if (!response.ok) {
+                const errorMessage = await handleApiError(response);
+                setValidationError(errorMessage);
+                return;
             }
+
+            const data = await response.json();
+            console.log('Tradeup added successfully!');
+            alert('Tradeup added successfully!');
         } catch (error) {
             console.log('Error happened while handling add tradeup:', error);
+            setValidationError('Failed to add tradeup. Please try again.');
         }
-        
     }
 
     return (

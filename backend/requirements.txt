@@ -12,3 +12,5 @@ Werkzeug
 email_validator
 pyscipopt
 Pillow
+marshmallow
+Flask-Limiter

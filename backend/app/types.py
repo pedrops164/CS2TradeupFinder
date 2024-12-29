@@ -8,6 +8,7 @@ class InputEntryDict(TypedDict):
     price: float
     skin_condition: str
     skin_name: str
+    collection_id: int
 
 class OutputEntryDict(TypedDict):
     prob: float
