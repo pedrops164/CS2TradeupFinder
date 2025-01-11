@@ -116,19 +116,6 @@ def get_tradeup_output(input_entries, stattrak, input_rarity, name):
         - profit_odds: Odds of making a profit.
     """
     logger.info("Calculating tradeup output for user: %s", current_user.id)
-    request_data = request.get_json()
-    schema = TradeupInputSchema()
-    try:
-        # Validate request body against schema data types
-        request_data = schema.load(request_data)
-    except ValidationError as err:
-        # Return an error message if validation fails
-        logger.error(err.messages, exc_info=True)
-        return jsonify({}), 400
-    
-    input_entries: InputEntryDict = request_data.get('input_entries')
-    stattrak: bool = request_data.get('stattrak')
-    input_rarity: str = request_data.get('input_rarity')
 
     try:
         output_entries = calculate_output_entries(input_entries, stattrak, input_rarity)
