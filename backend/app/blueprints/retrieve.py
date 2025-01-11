@@ -13,6 +13,7 @@ from .schemas import InputEntrySchema, TradeupInputSchema, SearchSkinSchema, Dup
 from marshmallow import ValidationError
 # import json for serialization and deserialization of data
 from json import dumps, loads
+from webargs.flaskparser import use_kwargs
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -96,7 +97,8 @@ def get_tradeups():
 @bp_retrieve.route('/tradeups/calculate_output', methods=['POST'])
 @login_required
 @limiter.limit("20 per minute", key_func = lambda : current_user.id)
-def get_tradeup_output():
+@use_kwargs(TradeupInputSchema())
+def get_tradeup_output(input_entries, stattrak, input_rarity, name):
     """
     Processes the input entries to compute corresponding output entries and provides statistics related to the tradeup.
 
@@ -150,7 +152,8 @@ def get_tradeup_output():
 @bp_retrieve.route("/tradeups/search_skin", methods=["POST"])
 @limiter.limit("60 per minute")
 @login_required
-def search_skin():
+@use_kwargs(SearchSkinSchema())
+def search_skin(rarity, stattrak, condition, search_string, collection_names):
     """
     Searches for skins based on specified criteria.
     This route allows the user to search for skins using filters such as rarity, StatTrak status, condition, and optional search string and collection names.
@@ -166,20 +169,19 @@ def search_skin():
     Returns:
         JSON response with a list of skins matching the search criteria.
     """
-    request_data = request.get_json()
-    schema = SearchSkinSchema()
-
-    try:
-        request_data = schema.load(request_data)
-    except ValidationError as err:
-        logger.error(err.messages, exc_info=True)
-        return jsonify({}), 400
-    
-    rarity = request_data.get('rarity')
-    stattrak = request_data.get('stattrak')
-    condition = request_data.get('condition')
-    search_string = request_data.get('search_string') # optional
-    collection_names = request_data.get('collection_names') # list of collection names (optional)
+    #request_data = request.get_json()
+    #schema = SearchSkinSchema()
+    #try:
+    #    request_data = schema.load(request_data)
+    #except ValidationError as err:
+    #    logger.error(err.messages, exc_info=True)
+    #    return jsonify({}), 400
+    #
+    #rarity = request_data.get('rarity')
+    #stattrak = request_data.get('stattrak')
+    #condition = request_data.get('condition')
+    #search_string = request_data.get('search_string') # optional
+    #collection_names = request_data.get('collection_names') # list of collection names (optional)
     
     query = db.session.query(
         Skin.name.label('skin_name'),
@@ -331,7 +333,8 @@ def get_all_skins():
 @bp_retrieve.route('/tradeups/check_duplicate', methods=['POST'])
 @login_required
 @limiter.limit("20 per minute", key_func = lambda : current_user.id)
-def check_duplicate_tradeup():
+@use_kwargs(DuplicateTradeupCheckSchema())
+def check_duplicate_tradeup(input_entries, stattrak, input_rarity, name, tradeup_price, tradeup_type):
     """
     Checks if a tradeup with the given input entries, stattrak status, and rarity already exists.
 
@@ -347,18 +350,18 @@ def check_duplicate_tradeup():
     """
     logger.info("Checking for duplicate tradeup for user: %s", current_user.id)
 
-    request_data = request.get_json()
-    schema = DuplicateTradeupCheckSchema()
-    try:
-        request_data = schema.load(request_data)
-    except ValidationError as err:
-        logger.error(err.messages, exc_info=True)
-        return jsonify({}), 400
-    
-    input_entries: List[InputEntryDict] = request_data.get('input_entries')
-    stattrak: bool = request_data.get('stattrak')
-    input_rarity: str = request_data.get('input_rarity')
-    tradeup_type: str = request_data.get('tradeup_type')
+    #request_data = request.get_json()
+    #schema = DuplicateTradeupCheckSchema()
+    #try:
+    #    request_data = schema.load(request_data)
+    #except ValidationError as err:
+    #    logger.error(err.messages, exc_info=True)
+    #    return jsonify({}), 400
+    #
+    #input_entries: List[InputEntryDict] = request_data.get('input_entries')
+    #stattrak: bool = request_data.get('stattrak')
+    #input_rarity: str = request_data.get('input_rarity')
+    #tradeup_type: str = request_data.get('tradeup_type')
 
     try:
         # Query the database to check for duplicates

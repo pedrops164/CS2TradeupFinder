@@ -14,3 +14,4 @@ pyscipopt
 Pillow
 marshmallow
 Flask-Limiter
+webargs
