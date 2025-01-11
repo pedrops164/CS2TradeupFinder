@@ -6,6 +6,7 @@ import TradeupInputEntry from './TradeupInputEntry';
 import TradeupInputEntryForm from './TradeupInputEntryForm';
 import { getSkinCondition } from '../../utils/helperFunctions';
 import TradeupOutputEntry from './TradeupOutputEntry';
+import { TradeupTypeEnum } from './TradeupTypeEnum';
 
 const TradeupCalculator = (userRole) => {
 
@@ -205,7 +206,7 @@ const TradeupCalculator = (userRole) => {
             const requestData = {
                 input_entries: input_entries,
                 stattrak: isStattrak,
-                rarity: selectedRarity
+                input_rarity: selectedRarity
             };
 
             // Make the request to the route
@@ -309,7 +310,8 @@ const TradeupCalculator = (userRole) => {
                         "collection_id": entry.collection_id
                     })),
                     stattrak: isStattrak,
-                    rarity: selectedRarity
+                    input_rarity: selectedRarity,
+                    tradeup_type: tradeupType
                 })
             });
 
@@ -335,8 +337,13 @@ const TradeupCalculator = (userRole) => {
         const payload = {
             stattrak: isStattrak,
             input_rarity: selectedRarity,
-            input_entries: inputEntries,
-            output_entries: outputEntries
+            input_entries: inputEntries.map((entry, _) => ({
+                "skin_name": entry.skin_name,
+                "skin_float": entry.skin_float,
+                "count": entry.count,
+                "skin_condition": entry.skin_condition,
+                "collection_id": entry.collection_id
+            }))
         };
 
         console.log("payload:", payload);
@@ -463,7 +470,7 @@ const TradeupCalculator = (userRole) => {
 
                         {/* Button to add tradeup to database */}
                         {/* <button onClick={() => handleAddTradeup(tradeupType)} disabled={isAddTradeupDisabled || tradeupType===null}> */}
-                        <button onClick={() => handleAddTradeup('public')} disabled={isAddTradeupDisabled}>
+                        <button onClick={() => handleAddTradeup(TradeupTypeEnum.PUBLIC)} disabled={isAddTradeupDisabled}>
                             Add Tradeup
                         </button>
                         </div>
@@ -471,7 +478,7 @@ const TradeupCalculator = (userRole) => {
 
                     {userRole.user_role === 'user' && (
                         <div className="user-options">
-                        <button onClick={() => handleAddTradeup('private')} disabled={isAddTradeupDisabled}>
+                        <button onClick={() => handleAddTradeup(TradeupTypeEnum.PRIVATE)} disabled={isAddTradeupDisabled}>
                             Track Tradeup
                         </button>
                         </div>
