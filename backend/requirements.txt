@@ -15,3 +15,4 @@ Pillow
 marshmallow
 Flask-Limiter
 webargs
+flask-cors
