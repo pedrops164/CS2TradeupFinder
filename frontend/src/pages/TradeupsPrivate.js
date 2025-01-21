@@ -5,7 +5,7 @@ const TradeupsPrivate = () => {
   const [privateTradeups, setPrivateTradeups] = useState([]);
 
   useEffect(() => {
-    fetch('/tradeups/tracked')
+    fetch('/api/tradeups/tracked')
       .then(response => response.json())
       .then(data => setPrivateTradeups(data.result))
       .catch(error => console.error('Error fetching tracked tradeups:', error));

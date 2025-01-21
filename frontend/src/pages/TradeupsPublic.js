@@ -5,7 +5,7 @@ const TradeupsPublic = () => {
   const [publicTradeups, setPublicTradeups] = useState([]);
 
   useEffect(() => {
-    fetch('/tradeups/public')
+    fetch('/api/tradeups/public')
       .then(response => response.json())
       .then(data => setPublicTradeups(data.public_tradeups))
       .catch(error => console.error('Error fetching public tradeups:', error));

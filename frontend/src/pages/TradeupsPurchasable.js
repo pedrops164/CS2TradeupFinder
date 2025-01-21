@@ -7,7 +7,7 @@ const TradeupsPurchasable = () => {
   const [nonpurchasedTradeups, setNonPurchasedTradeups] = useState([]);
 
   useEffect(() => {
-    fetch('/tradeups/purchasable')
+    fetch('/api/tradeups/purchasable')
       .then(response => response.json())
       .then(data => {
         setPurchasedTradeups(data.purchased);

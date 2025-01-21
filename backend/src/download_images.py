@@ -8,6 +8,9 @@ from PIL import Image
 from io import BytesIO
 from backend.app.models import db, Skin
 
+import unicodedata
+from urllib.parse import quote
+
 images_folder = 'skin_images'
 script_dir = os.path.dirname(__file__)
 images_folder_path = os.path.join(script_dir, images_folder)
@@ -44,7 +47,8 @@ def search_image(query, api_key, retries=10):
         data = response.json()
 
         if "items" in data:
-            for i in range(num_images):
+            num_items = len(data['items'])
+            for i in range(min(num_images, num_items)):
                 image_url = data['items'][i]['link']
                 if 'https://steamcdn-a.akamaihd.net/apps/730/icons/' in image_url:
                     return image_url
@@ -72,8 +76,8 @@ def download_image(image_url, save_path):
 def download_skin_image(api_key: str, skin: Skin):
     skin_name = skin.name
     skin_name_parts = skin_name.split('|')
-    skin_weapon = skin_name_parts[0]
-    skin_paint = skin_name_parts[1]
+    skin_weapon = skin_name_parts[0].strip()  # Remove leading/trailing spaces
+    skin_paint = skin_name_parts[1].strip()  # Remove leading/trailing spaces
     #search_query = f"{skin_name}"
     search_query = f"{skin_paint} {skin_weapon}"
 

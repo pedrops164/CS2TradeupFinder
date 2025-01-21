@@ -38,7 +38,7 @@ const App = () => {
 	const checkAuthStatus = async () => {
 		setIsLoading(true);
 		try {
-			const response = await fetch('/check-auth', {
+			const response = await fetch('/api/check-auth', {
 			method: 'GET',
 			credentials: 'include', // Important for sending cookies
 			})

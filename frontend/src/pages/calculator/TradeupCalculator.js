@@ -64,7 +64,7 @@ const TradeupCalculator = (userRole) => {
     useEffect(() => {
         const fetchSkins = async () => {
             try {
-                const response = await fetch('load-all-skins');
+                const response = await fetch('/api/load-all-skins');
                 if (!response.ok) {
                     const errorMessage = await handleApiError(response);
                     setError(errorMessage);
@@ -210,7 +210,7 @@ const TradeupCalculator = (userRole) => {
             };
 
             // Make the request to the route
-            const response = await fetch('/tradeups/calculate_output', {
+            const response = await fetch('/api/tradeups/calculate_output', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -296,7 +296,7 @@ const TradeupCalculator = (userRole) => {
 
         // Check for duplicate tradeup
         try {
-            const response = await fetch('/tradeups/check_duplicate', {
+            const response = await fetch('/api/tradeups/check_duplicate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -351,11 +351,11 @@ const TradeupCalculator = (userRole) => {
         // get api route
         let route = '';
         if (tradeupType === 'public') {
-            route = '/tradeups/create_public';
+            route = '/api/tradeups/create_public';
         } else if (tradeupType === 'purchasable') {
-            route = '/tradeups/create_purchasable';
+            route = '/api/tradeups/create_purchasable';
         } else if (tradeupType === 'private') {
-            route = '/tradeups/create_private';
+            route = '/api/tradeups/create_private';
         }
 
         // make api call with payload
