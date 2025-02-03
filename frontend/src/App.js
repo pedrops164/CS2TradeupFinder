@@ -10,6 +10,7 @@ const TradeupCalculator = lazy(() => import('./pages/calculator/TradeupCalculato
 const Tradeups = lazy(() => import('./pages/Tradeups'));
 const TradeupsPublic  = lazy(() => import('./pages/TradeupsPublic'));
 const TradeupsPurchasable = lazy(() => import('./pages/TradeupsPurchasable'));
+const TradeupsPurchased = lazy(() => import('./pages/TradeupsPurchased'));
 const TradeupsPrivate = lazy(() => import('./pages/TradeupsPrivate'));
 import Logger from './utils/Logger';
 
@@ -84,6 +85,7 @@ const App = () => {
 						<Route path="public" element={<TradeupsPublic />} />
 						<Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
 							<Route path="purchasable" element={<TradeupsPurchasable />} />
+							<Route path="purchased" element={<TradeupsPurchased />} />
 							<Route path="tracked" element={<TradeupsPrivate />} />
 						</Route>
 					</Route>

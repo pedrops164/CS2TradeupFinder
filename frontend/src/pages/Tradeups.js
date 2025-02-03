@@ -18,6 +18,10 @@ const Tradeups = ({ isAuthenticated }) => {
               <h3>Purchasable</h3>
               <p>Browse tradeups available for purchase</p>
             </NavLink>
+            <NavLink to="/tradeups/purchased" className={`tradeups-nav-item ${!isAuthenticated ? 'disabled' : ''}`} onClick={(e) => !isAuthenticated && e.preventDefault()}>
+              <h3>Purchased</h3>
+              <p>Browse purchased tradeups</p>
+            </NavLink>
             <NavLink to="/tradeups/tracked" className={`tradeups-nav-item ${!isAuthenticated ? 'disabled' : ''}`} onClick={(e) => !isAuthenticated && e.preventDefault()}>
               <h3>Tracked</h3>
               <p>Access your tracked and private tradeups</p>

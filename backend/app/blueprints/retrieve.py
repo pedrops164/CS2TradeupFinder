@@ -1,15 +1,15 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from backend.src.tradeups import calculate_output_entries, calculate_tradeup_stats
-from backend.app.models import db, Tradeup, InputTradeupEntry, SkinCondition, OutputTradeupEntry, Skin, Collection, TradeupType
 from sqlalchemy.orm import joinedload
-from sqlalchemy import select
+from sqlalchemy import select, or_, not_
 from flask_login import login_required, current_user
+from backend.app.models import db, Tradeup, InputTradeupEntry, SkinCondition, OutputTradeupEntry, Skin, Collection, TradeupType
 from backend.app.limiter import limiter
 from backend.app.types import InputEntryDict, OutputEntryDict
 from backend.app.util import get_long_tradeup_dict, get_purchasable_tradeup_dict, get_input_entry_dict, get_output_entry_dict
 from typing import List
 import logging
-from .schemas import InputEntrySchema, TradeupInputSchema, SearchSkinSchema, DuplicateTradeupCheckSchema
+from .schemas import InputEntrySchema, TradeupInputSchema, DuplicateTradeupCheckSchema, SkinSearchSchema
 from marshmallow import ValidationError
 # import json for serialization and deserialization of data
 from webargs.flaskparser import use_kwargs
@@ -32,6 +32,7 @@ def get_tradeups():
 
     Returns:
         JSON response with a list of tracked tradeups.
+        Each tradeup dictionary contains the following keys:
         - tradeup_id: ID of the tradeup.
         - tradeup_name: Name of the tradeup.
         - input_entries: List of dictionaries representing input entries.
@@ -91,7 +92,7 @@ def get_tradeups():
             "profit_odds": profit_odds,
         })
     
-    return jsonify({"result": tracked_tradeups}), 200
+    return jsonify({"tradeups": tracked_tradeups}), 200
 
 @bp_retrieve.route('/tradeups/calculate_output', methods=['POST'])
 @login_required
@@ -135,99 +136,216 @@ def get_tradeup_output(input_entries, stattrak, input_rarity, name):
         logger.error(str(e), exc_info=True)
         return jsonify({}), 500
 
-@bp_retrieve.route("/tradeups/search_skin", methods=["POST"])
-@limiter.limit("60 per minute")
-@login_required
-@use_kwargs(SearchSkinSchema())
-def search_skin(rarity, stattrak, condition, search_string, collection_names):
+#@bp_retrieve.route("/tradeups/search_skin", methods=["POST"])
+#@limiter.limit("60 per minute")
+#@login_required
+#@use_kwargs(SearchSkinSchema())
+#def search_skin(rarity, stattrak, condition, search_string, collection_names):
+#    """
+#    Searches for skins based on specified criteria.
+#    This route allows the user to search for skins using filters such as rarity, StatTrak status, condition, and optional search string and collection names.
+#
+#    Args:
+#        JSON payload containing:
+#        - rarity (str): Rarity of the skin.
+#        - stattrak (bool): Boolean indicating if the skin is StatTrak.
+#        - condition (str): Condition of the skin.
+#        - search_string (str, optional): Partial or full name of the skin to search for.
+#        - collection_names (list of str, optional): List of collection names to filter by.
+#
+#    Returns:
+#        JSON response with a list of skins matching the search criteria.
+#    """
+#    query = db.session.query(
+#        Skin.name.label('skin_name'),
+#        SkinCondition.condition.label('skin_condition'),
+#        Skin.min_float.label('min_float'),
+#        Skin.max_float.label('max_float'),
+#        SkinCondition.price.label('price'),
+#        Collection.name.label('collection_name')
+#    )\
+#    .filter(Skin.id == SkinCondition.skin_id,
+#    Collection.id == Skin.collection_id,
+#    Skin.quality == rarity,
+#    SkinCondition.stattrak == stattrak,
+#    SkinCondition.price != None,
+#    SkinCondition.condition == condition)
+#
+#    if collection_names:
+#        query = query.filter(Collection.name.in_(collection_names))
+#
+#    if search_string:
+#        query = query.filter(Skin.name.ilike(f"%{search_string}%"))
+#
+#    skins_result = query.all()
+#
+#    # Convert the result to a list of dictionaries
+#    skins_result_dicts = [row._asdict() for row in skins_result]
+#
+#    return jsonify(skins_result_dicts), 200
+
+@bp_retrieve.route('/skins/search', methods=['GET'])
+@use_kwargs(SkinSearchSchema, location="query")
+def search_skins(search_string, rarity, stattrak, page):
     """
-    Searches for skins based on specified criteria.
-    This route allows the user to search for skins using filters such as rarity, StatTrak status, condition, and optional search string and collection names.
+    Search for skins based on a search string, rarity, and stattrak status.
 
     Args:
-        JSON payload containing:
-        - rarity (str): Rarity of the skin.
-        - stattrak (bool): Boolean indicating if the skin is StatTrak.
-        - condition (str): Condition of the skin.
-        - search_string (str, optional): Partial or full name of the skin to search for.
-        - collection_names (list of str, optional): List of collection names to filter by.
+        search_string (str): The search string to filter skins by name.
+        rarity (str): The rarity of the skins (e.g., "milspec_bg").
+        stattrak (bool): Whether the skins are StatTrak.
+        page (int): The page number for pagination.
+        per_page (int): The number of items per page.
 
     Returns:
-        JSON response with a list of skins matching the search criteria.
+        JSON response with a paginated list of matching skins.
     """
-    query = db.session.query(
-        Skin.name.label('skin_name'),
-        SkinCondition.condition.label('skin_condition'),
-        Skin.min_float.label('min_float'),
-        Skin.max_float.label('max_float'),
-        SkinCondition.price.label('price'),
-        Collection.name.label('collection_name')
-    )\
-    .filter(Skin.id == SkinCondition.skin_id,
-    Collection.id == Skin.collection_id,
-    Skin.quality == rarity,
-    SkinCondition.stattrak == stattrak,
-    SkinCondition.price != None,
-    SkinCondition.condition == condition)
+    # Get the number of tradeups per page from the app config
+    skins_per_page = current_app.config.get('SKINS_PER_PAGE', 10)  # Default to 10 if not set
 
-    if collection_names:
-        query = query.filter(Collection.name.in_(collection_names))
+    # Get unique Skin IDs that match the filters
+    skin_query = db.session.query(Skin.id)\
+        .filter(Skin.quality == rarity)
+
+    # Apply the stattrak filter
+    if stattrak:
+        # Only include skins where stattrak_available is True
+        skin_query = skin_query.filter(Skin.stattrak_available == True)
 
     if search_string:
-        query = query.filter(Skin.name.ilike(f"%{search_string}%"))
+        skin_query = skin_query.filter(Skin.name.ilike(f"%{search_string}%"))
 
-    skins_result = query.all()
+    # Paginate the unique Skin IDs
+    paginated_skin_ids = skin_query.paginate(page=page, per_page=skins_per_page, error_out=False)
 
-    # Convert the result to a list of dictionaries
-    skins_result_dicts = [row._asdict() for row in skins_result]
+    # Extract the list of Skin IDs from the paginated results
+    skin_ids = [skin_id for (skin_id,) in paginated_skin_ids.items]
 
-    return jsonify(skins_result_dicts), 200
+    # Fetch detailed data for the paginated Skin IDs
+    detailed_query = db.session.query(
+        Skin.name,
+        Skin.stattrak_available,
+        Skin.quality,
+        Skin.min_float,
+        Skin.max_float,
+        Skin.image_name,
+        SkinCondition.condition,
+        SkinCondition.price,
+        SkinCondition.stattrak,
+        Collection.id.label('collection_id')
+    ).join(SkinCondition, Skin.id == SkinCondition.skin_id)\
+     .join(Collection, Collection.id == Skin.collection_id)\
+     .filter(Skin.stattrak_available | not_(stattrak), Skin.id.in_(skin_ids))
+
+    # Organize the results into the same structure as get_all_skins
+    skins_dict = {}
+    for row in detailed_query:
+        skin_key = row.name
+
+        # If the skin is already added to the dict, update the conditions
+        if skin_key in skins_dict:
+            conditions = skins_dict[skin_key]['conditions']
+        else:
+            # If the skin is not yet added, create a new entry for it
+            skins_dict[skin_key] = {
+                "skin_name": row.name,
+                "stattrak_available": row.stattrak_available,
+                "rarity": row.quality,
+                "min_float": row.min_float,
+                "max_float": row.max_float,
+                "image_url": row.image_name,
+                "conditions": {},
+                "collection_id": row.collection_id
+            }
+            conditions = skins_dict[skin_key]['conditions']
+
+        # Add/update the condition in the dictionary
+        if row.condition not in conditions:
+            conditions[row.condition] = {
+                "stattrak": None,
+                "non_stattrak": None
+            }
+
+        if row.stattrak:
+            conditions[row.condition]["stattrak"] = row.price
+        else:
+            conditions[row.condition]["non_stattrak"] = row.price
+
+    # Convert the dictionary to a list for JSON response
+    skins_list = list(skins_dict.values())
+
+    # Return the response with pagination metadata
+    return jsonify({
+        "skins": skins_list,
+        "page": paginated_skin_ids.page,
+        "per_page": paginated_skin_ids.per_page,
+        "total_pages": paginated_skin_ids.pages,
+        "total_items": paginated_skin_ids.total
+    }), 200
 
 @bp_retrieve.route('/tradeups/purchasable', methods=['GET'])
 @login_required
 @limiter.limit("20 per minute", key_func = lambda : current_user.id)
 def get_purchasable_tradeups():
     """
-    This route provides a list of tradeups available for purchase, segmented into those that the user has already purchased
-     and those that are still available for purchase.
+    This route provides a list of tradeups available for purchase.
 
     Returns:
         JSON response with:
-        - purchased: List of dictionaries representing tradeups the user has purchased.
-        - not_purchased: List of dictionaries representing tradeups the user has not purchased.
+        - tradeups: List of dictionaries representing tradeups the user has not purchased.
     """
     all_purchasable_tradeups = Tradeup.query.filter(Tradeup.tradeup_type == TradeupType.PURCHASABLE).all()
     user_purchased_tradeups = current_user.tradeups_purchased
-    purchased_tradeups_dicts = []
-    not_purchased_tradeups_dicts = []
-    for tradeup in all_purchasable_tradeups:
-        # check if user purchased tradeup
-        if tradeup in user_purchased_tradeups:
-            # user bought this tradeup. So we return all the information about the tradeup
-            purchased_tradeups_dicts.append(get_long_tradeup_dict(tradeup))
-        else:
-            # user hasn't bought this tradeup. So we return relevant yet non disclosing info about the tradeup
-            not_purchased_tradeups_dicts.append(get_purchasable_tradeup_dict(tradeup))
+    purchasable_tradeups_dicts = [get_long_tradeup_dict(tradeup) for tradeup in all_purchasable_tradeups if tradeup not in user_purchased_tradeups]
 
-    return {
-        'purchased': purchased_tradeups_dicts,
-        'not_purchased': not_purchased_tradeups_dicts}, 200
+    return {'tradeups': purchasable_tradeups_dicts}, 200
+
+@bp_retrieve.route('/tradeups/purchased', methods=['GET'])
+@login_required
+@limiter.limit("20 per minute", key_func = lambda : current_user.id)
+def get_purchased_tradeups():
+    """
+    This route provides a list of tradeups that were purchased by the user
+
+    Returns:
+        JSON response with:
+        - tradeups: List of dictionaries representing tradeups the user has purchased.
+    """
+    user_purchased_tradeups = current_user.tradeups_purchased
+    purchased_tradeups_dicts = [get_long_tradeup_dict(tradeup) for tradeup in user_purchased_tradeups]
+
+    return {'tradeups': purchased_tradeups_dicts}, 200
 
 @bp_retrieve.route('/tradeups/public', methods=['GET'])
 @limiter.limit("60 per minute")
 def get_public_tradeups():
     """
     This route returns a list of tradeups that are publicly available.
+    Receives the page number as an argument to allow pagination.
 
     Returns:
         JSON response with a list of public tradeups.
     """
-    public_tradeups = Tradeup.query.filter(Tradeup.tradeup_type == TradeupType.PUBLIC).all()
-    public_tradeups_dicts = []
-    for tradeup in public_tradeups:
-        public_tradeups_dicts.append(get_long_tradeup_dict(tradeup))
+    # Get the page number from the query parameters, defaulting to 1
+    page = request.args.get('page', 1, type=int)
+    # Get the number of tradeups per page from the app config
+    tradeups_per_page = current_app.config.get('TRADEUPS_PER_PAGE', 10)  # Default to 10 if not set
+    public_tradeups_paginated = Tradeup.query.\
+        filter(Tradeup.tradeup_type == TradeupType.PUBLIC).\
+            paginate(page=page, per_page=tradeups_per_page)
+
+    # Convert the pagination object to a list of tradeup dictionaries
+    public_tradeups_dicts = [
+        get_long_tradeup_dict(tradeup) for tradeup in public_tradeups_paginated.items
+    ]
     
-    return {"public_tradeups": public_tradeups_dicts}, 200
+    return {
+        "tradeups": public_tradeups_dicts,
+        "page": public_tradeups_paginated.page,
+        "per_page": public_tradeups_paginated.per_page,
+        "total_pages": public_tradeups_paginated.pages,
+        "total_items": public_tradeups_paginated.total
+    }, 200
 
 @bp_retrieve.route('/load-all-skins', methods=['GET'])
 @login_required

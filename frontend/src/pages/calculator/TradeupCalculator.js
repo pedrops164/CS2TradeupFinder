@@ -12,8 +12,7 @@ const TradeupCalculator = (userRole) => {
 
     // SET STATES
     // State to manage skins data
-    const [skins, setSkins] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
     // state to manage tradeup stattrak status
@@ -60,29 +59,6 @@ const TradeupCalculator = (userRole) => {
         setInputEntryError('');
         setValidationError('');
     };
-    // Fetch skin data on component mount
-    useEffect(() => {
-        const fetchSkins = async () => {
-            try {
-                const response = await fetch('/api/load-all-skins');
-                if (!response.ok) {
-                    const errorMessage = await handleApiError(response);
-                    setError(errorMessage);
-                    setLoading(false);
-                    return;
-                }
-                const data = await response.json();
-                setSkins(data.all_skins);
-                setLoading(false);
-            } catch (err) {
-                console.error('Failed to fetch skins data: ', err);
-                setError('Failed to load skins data');
-                setLoading(false);
-            }
-        };
-
-        fetchSkins();
-    }, []);
 
     // Update the disabled status of the Add Tradeup button based on input entry count
     useEffect(() => {
@@ -95,8 +71,9 @@ const TradeupCalculator = (userRole) => {
         // Check if all current input entries support stattrak
         if (newStattrakValue && inputEntries.length > 0) {
             const allStattrakAvailable = inputEntries.every(entry => {
-                const matchingSkin = skins.find(skin => skin.skin_name === entry.skin_name);
-                return matchingSkin && matchingSkin.stattrak_available;
+                //const matchingSkin = skins.find(skin => skin.skin_name === entry.skin_name);
+                //return matchingSkin && matchingSkin.stattrak_available;
+                return entry.stattrak_available;
             });
             if (!allStattrakAvailable) {
                 setValidationError('One or more selected skins do not support StatTrak™');
@@ -145,6 +122,8 @@ const TradeupCalculator = (userRole) => {
             conditions: selectedSkin.conditions,
             collection_id: selectedSkin.collection_id,
             skin_condition: getSkinCondition(skin_float),
+            stattrak_available: selectedSkin.stattrak_available,
+            rarity: selectedSkin.rarity
         };
         // add input entry
         const updatedEntries = [...inputEntries, entry];
@@ -263,8 +242,9 @@ const TradeupCalculator = (userRole) => {
         }
 
         const allSameRarity = inputEntries.every(entry => {
-            const matchingSkin = skins.find(skin => skin.skin_name === entry.skin_name);
-            return matchingSkin && matchingSkin.rarity === selectedRarity;
+            //const matchingSkin = skins.find(skin => skin.skin_name === entry.skin_name);
+            //return matchingSkin && matchingSkin.rarity === selectedRarity;
+            return entry.rarity === selectedRarity;
         });
 
         if (!allSameRarity) {
@@ -274,8 +254,9 @@ const TradeupCalculator = (userRole) => {
 
         if (isStattrak) {
             const allStattrakAvailable = inputEntries.every(entry => {
-                const matchingSkin = skins.find(skin => skin.skin_name === entry.skin_name);
-                return matchingSkin && matchingSkin.stattrak_available;
+                //const matchingSkin = skins.find(skin => skin.skin_name === entry.skin_name);
+                //return matchingSkin && matchingSkin.stattrak_available;
+                return entry.stattrak_available;
             });
 
             if (!allStattrakAvailable) {
@@ -423,7 +404,7 @@ const TradeupCalculator = (userRole) => {
                 <div className="input-output-container">
                     <div className="input-container">
                         <h4>Input Entries
-                            <TradeupInputEntryForm skinsData={skins} addEntry={addInputEntry} isStattrak={isStattrak} selectedRarity={selectedRarity} />
+                            <TradeupInputEntryForm addEntry={addInputEntry} isStattrak={isStattrak} selectedRarity={selectedRarity} />
                         </h4>
 
                         {/* Display errors */}

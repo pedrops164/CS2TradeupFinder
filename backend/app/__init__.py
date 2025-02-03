@@ -25,7 +25,7 @@ def create_app(config_class=Config):
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
-    limiter.init_app(app)
+    #limiter.init_app(app) -> turn on limiter later
     cors.init_app(app)
     #csrf.init_app(app) -> need to do some things with postman. Will active this later
 

@@ -1,7 +1,7 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import '../../styles/TradeupCalculator.css';
 
-const TradeupInputEntryForm = ({ skinsData, addEntry, isStattrak, selectedRarity }) => {
+const TradeupInputEntryForm = ({ addEntry, isStattrak, selectedRarity }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [filteredSkins, setFilteredSkins] = useState([]);
     const [selectedSkin, setSelectedSkin] = useState(null);
@@ -13,18 +13,41 @@ const TradeupInputEntryForm = ({ skinsData, addEntry, isStattrak, selectedRarity
     const [floatValue, setFloatValue] = useState(minFloat);
     const [count, setCountValue] = useState(minCount);
 
-    useEffect(() => {
-        if (searchQuery === '') {
-            setFilteredSkins([]);
-        } else {
-            setFilteredSkins(
-                skinsData.filter(
-                    (skin) =>
-                    skin.skin_name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-                    skin.rarity === selectedRarity && // Filter by selected rarity
-                    (!isStattrak || skin.stattrak_available) // Check stattrak availability
-                )
+    // vars to handle scrolling down on the searched skins dropdown
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [isLoadingSkins, setIsLoadingSkins] = useState(false);
+
+    // Fetch filtered skins from the backend
+    const fetchFilteredSkins = useCallback(async (page) => {
+        try {
+            const response = await fetch(
+                `/api/skins/search?search_string=${searchQuery}&rarity=${selectedRarity}&stattrak=${isStattrak}&page=${page}`
             );
+            const data = await response.json();
+            
+            if (page === 1) {
+                setFilteredSkins(data.skins); // Reset the list for the first page
+            } else {
+                setFilteredSkins((prevSkins) => [...prevSkins, ...data.skins]); // Append new skins
+            }
+            setTotalPages(data.total_pages);
+        } catch (error) {
+            console.error('Error fetching filtered skins:', error);
+        } finally {
+            setIsLoadingSkins(false);
+        }
+    }, [searchQuery, isStattrak, selectedRarity]);
+
+    // Activated whenever searchQuery, selectedRarity, or isStattrak changes
+    useEffect(() => {
+        setCurrentPage(1); // Reset page to 1 whenever search query or isStattrak or selectedRarity changes
+
+        // Only fetch if there's a search query
+        if (searchQuery !== '') {
+            fetchFilteredSkins(1); //fetch first page
+        } else {
+            setFilteredSkins([]); // Clear filtered skins if no filters are applied
         }
     }, [searchQuery, isStattrak, selectedRarity]);
 
@@ -87,6 +110,19 @@ const TradeupInputEntryForm = ({ skinsData, addEntry, isStattrak, selectedRarity
         }
     }
 
+    const listenSkinsScrollEvent = (e) => {
+        const bottom = e.target.scrollHeight - e.target.scrollTop === e.target.clientHeight;
+        if (bottom && !isLoadingSkins && currentPage < totalPages) {
+            // user scrolled to the bottom
+            console.log('Reached the bottom!');
+            setIsLoadingSkins(true);
+            fetchFilteredSkins(currentPage + 1);
+            console.log('fetching page:', currentPage + 1);
+            console.log('total pages:', totalPages);
+            setCurrentPage((prevPage) => prevPage + 1);
+        }
+    }
+
     return (
         <div className="entry-form">
             {selectedSkin ? (
@@ -106,8 +142,8 @@ const TradeupInputEntryForm = ({ skinsData, addEntry, isStattrak, selectedRarity
                     
                     {/* Display filtered results in a dropdown with images */}
                     {filteredSkins.length > 0 && (
-                      <ul className="skin-dropdown">
-                        {filteredSkins.slice(0, 15).map((skin, idx) => ( // Limit to 5 results for simplicity
+                      <ul className="skin-dropdown" onScroll={listenSkinsScrollEvent}>
+                        {filteredSkins.map((skin, idx) => (
                           <li key={idx} onClick={() => handleSkinSelect(skin)}>
                             {skin.skin_name}
                             <img src={skin.image_url} className="skin-image-small" />
@@ -115,6 +151,9 @@ const TradeupInputEntryForm = ({ skinsData, addEntry, isStattrak, selectedRarity
                         ))}
                       </ul>
                     )}
+
+                    {/* Show loading spinner when fetching more skins */}
+                    {isLoadingSkins && <div className="loading-spinner">Loading...</div>}
                 </>
             )}
 

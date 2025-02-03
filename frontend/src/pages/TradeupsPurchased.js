@@ -3,8 +3,8 @@ import usePagination from '../hooks/usePagination';
 import Pagination from '../components/Pagination';
 import Tradeup from '../components/Tradeup';
 
-const TradeupsPrivate = () => {
-  const { data: privateTradeups, currentPage, totalPages, handlePageChange, isLoading, error } = usePagination('/api/tradeups/tracked');
+const TradeupsPurchased = () => {
+  const { data: purchasedTradeups, currentPage, totalPages, handlePageChange, isLoading, error } = usePagination('/api/tradeups/purchased');
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -16,9 +16,9 @@ const TradeupsPrivate = () => {
 
   return (
     <div className="tradeup-subpage">
-      <h2>Private Tradeups</h2>
+      <h2>Purchased Tradeups</h2>
       <div className="tradeup-list">
-        {privateTradeups.map(tradeup => (
+        {purchasedTradeups.map(tradeup => (
           <Tradeup key={tradeup.tradeup_id} tradeup={tradeup} />
         ))}
       </div>
@@ -31,4 +31,4 @@ const TradeupsPrivate = () => {
   );
 };
 
-export default TradeupsPrivate;
+export default TradeupsPurchased;

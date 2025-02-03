@@ -32,9 +32,16 @@ class DuplicateTradeupCheckSchema(TradeupInputSchema):
         validate=validate.OneOf([e.value for e in TradeupType])
     )
 
-class SearchSkinSchema(Schema):
-    rarity = fields.String(required=True)
+#class SearchSkinSchema(Schema):
+#    rarity = fields.String(required=True)
+#    stattrak = fields.Boolean(required=True)
+#    condition = fields.String(required=True)
+#    search_string = fields.String(required=False, load_default=None)
+#    collection_names = fields.List(fields.String(), required=False, load_default=None)
+
+
+class SkinSearchSchema(Schema):
+    search_string = fields.String(required=False, load_default='')
+    rarity = fields.String(required=True, validate=validate.OneOf(["consumer_bg", "industrial_bg", "milspec_bg", "restricted_bg", "classified_bg", "covert_bg"]))
     stattrak = fields.Boolean(required=True)
-    condition = fields.String(required=True)
-    search_string = fields.String(required=False, load_default=None)
-    collection_names = fields.List(fields.String(), required=False, load_default=None)
+    page = fields.Integer(required=False, load_default=1, validate=validate.Range(min=1))  # Default to page 1

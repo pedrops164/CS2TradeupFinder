@@ -1,35 +1,32 @@
-import React, { useEffect, useState } from 'react';
-import Tradeup from '../components/Tradeup';
+import React from 'react';
+import usePagination from '../hooks/usePagination';
+import Pagination from '../components/Pagination';
 import TradeupCensored from '../components/TradeupCensored';
 
 const TradeupsPurchasable = () => {
-  const [purchasedTradeups, setPurchasedTradeups] = useState([]);
-  const [nonpurchasedTradeups, setNonPurchasedTradeups] = useState([]);
+  const { data: purchasableTradeups, currentPage, totalPages, handlePageChange, isLoading, error } = usePagination('/api/tradeups/purchasable');
 
-  useEffect(() => {
-    fetch('/api/tradeups/purchasable')
-      .then(response => response.json())
-      .then(data => {
-        setPurchasedTradeups(data.purchased);
-        setNonPurchasedTradeups(data.not_purchased);
-      })
-      .catch(error => console.error('Error fetching purchasable tradeups:', error));
-  }, []);
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>{error}</div>;
+  }
 
   return (
     <div className="tradeup-subpage">
+      <h2>Purchasable Tradeups</h2>
       <div className="tradeup-list">
-        <h2>Acquired Tradeups</h2>
-        {purchasedTradeups.map(tradeup => (
-          <Tradeup key={tradeup.tradeup_id} tradeup={tradeup} />
-        ))}
-      </div>
-      <div className="tradeup-list">
-        <h2>Purchasable Tradeups</h2>
-        {nonpurchasedTradeups.map(tradeup => (
+        {purchasableTradeups.map(tradeup => (
           <TradeupCensored key={tradeup.tradeup_id} tradeup={tradeup} />
         ))}
       </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        handlePageChange={handlePageChange}
+      />
     </div>
   );
 };
