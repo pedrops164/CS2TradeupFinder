@@ -28,7 +28,6 @@ const NavBar = ({ isAuthenticated, setIsAuthenticated }) => {
 				<div className="navbar">
 					<div className="navbarEsq ">
 						<NavLink className="navbarItem" to="/">Home</NavLink>
-						<NavLink className="navbarItem" to="/about">About</NavLink>
                         <NavLink className="navbarItem" to="/tradeups">Tradeups</NavLink>
 					</div>
 					<div className="trapezoid-shadow">

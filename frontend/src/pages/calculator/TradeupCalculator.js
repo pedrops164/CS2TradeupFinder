@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { handleApiError } from '../../utils/apiErrorHandler';
 import '../../styles/TradeupCalculator.css';
-import TradeupStats from './TradeupStats';
+import TradeupStats from './tradeup-stats/TradeupStats';
 import TradeupInputEntry from './TradeupInputEntry';
 import TradeupInputEntryForm from './TradeupInputEntryForm';
 import { getSkinCondition } from '../../utils/helperFunctions';
@@ -11,10 +11,6 @@ import { TradeupTypeEnum } from './TradeupTypeEnum';
 const TradeupCalculator = (userRole) => {
 
     // SET STATES
-    // State to manage skins data
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-
     // state to manage tradeup stattrak status
     const [isStattrak, setIsStattrak] = useState(false);
 
@@ -42,8 +38,6 @@ const TradeupCalculator = (userRole) => {
     // error variable for showing error messages
     const [inputEntryError, setInputEntryError] = useState('');
     const [validationError, setValidationError] = useState('');
-    // type of the tradeup to add (public or purchasable)
-    const [tradeupType, setTradeupType] = useState(null);
 
     // State to manage the disabled status of the Add Tradeup button
     const [isAddTradeupDisabled, setIsAddTradeupDisabled] = useState(true);
@@ -60,10 +54,19 @@ const TradeupCalculator = (userRole) => {
         setValidationError('');
     };
 
+    const getInputEntryCount = useCallback(() => {
+        // Sum up the count of all input entries to get the total count, and return it
+        const totalCount = inputEntries.reduce((prev, current) => {
+            prev += current.count;
+            return prev;
+        }, 0);
+        return totalCount;
+    }, [inputEntries]);
+
     // Update the disabled status of the Add Tradeup button based on input entry count
     useEffect(() => {
         setIsAddTradeupDisabled(getInputEntryCount() !== 10);
-    }, [inputEntries]);
+    }, [getInputEntryCount]);
 
     // Handle stattrak change with validation
     const handleStattrakChange = (e) => {
@@ -220,15 +223,6 @@ const TradeupCalculator = (userRole) => {
         }
     }
 
-    const getInputEntryCount = () => {
-        // Sum up the count of all input entries to get the total count, and return it
-        const totalCount = inputEntries.reduce((prev, current) => {
-            prev += current.count;
-            return prev;
-        }, 0);
-        return totalCount;
-    }
-
     const removeEntry = (indexToRemove) => {
         // removes a specific input entry given its id
         setInputEntries(inputEntries.filter((_, index) => index !== indexToRemove));
@@ -355,7 +349,7 @@ const TradeupCalculator = (userRole) => {
                 return;
             }
 
-            const data = await response.json();
+            await response.json();
             console.log('Tradeup added successfully!');
             alert('Tradeup added successfully!');
         } catch (error) {
@@ -365,44 +359,40 @@ const TradeupCalculator = (userRole) => {
     }
 
     return (
-        <div className="tradeup-calculator">
-            <h1>Tradeup Calculator</h1>
-            <div className="stattrak-checkbox">
-                <label>
-                    Stattrak
-                    <input 
-                    type="checkbox"
-                    checked={isStattrak}
-                    onChange={handleStattrakChange}
-                    />
-                </label>
-            </div>
-
-            <div className="rarity-dropdown">
-                <label htmlFor='rarityDropdown'>Rarity</label>
-                <select
-                id="rarityDropdown"
-                value={selectedRarity}
-                onChange={handleRarityChange}
-                >
-                {rarityOptions.map((rarityOption, index) => (
-                    <option key={index} value={rarityOption}>
-                        {rarityOption}
-                    </option>
-                ))}
-                </select>
-            </div>
-
-            <TradeupStats avgInputFloat={avgInputFloat} tradeupCost={tradeupCost} profitability={profitability} profitOdds={profitOdds}/>
-
-            {/* Section for input and output containers */}
-            {loading ? (
-                <p>Loading skins...</p>
-            ) : error ? (
-                <p>{error}</p>
-            ) : (
+        <div class="main">
+            <div className="tradeup-calculator">
+                <h1>Tradeup Calculator</h1>
+                {/* Section for input and output containers */}
                 <div className="input-output-container">
                     <div className="input-container">
+                        <div className="stattrak-rarity-container">
+                            <div className="stattrak-checkbox">
+                                <label>
+                                    StatTrak™
+                                    <input 
+                                    type="checkbox"
+                                    checked={isStattrak}
+                                    onChange={handleStattrakChange}
+                                    />
+                                </label>
+                            </div>
+
+                            <div className="rarity-dropdown">
+                                <select
+                                value={selectedRarity}
+                                onChange={handleRarityChange}
+                                >
+                                {rarityOptions.map((rarityOption, index) => (
+                                    <option key={index} value={rarityOption}>
+                                        {rarityOption}
+                                    </option>
+                                ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <TradeupStats avgInputFloat={avgInputFloat} tradeupCost={tradeupCost} profitability={profitability} profitOdds={profitOdds}/>
+
                         <h4>Input Entries
                             <TradeupInputEntryForm addEntry={addInputEntry} isStattrak={isStattrak} selectedRarity={selectedRarity} />
                         </h4>
@@ -422,7 +412,7 @@ const TradeupCalculator = (userRole) => {
                             />
                         ))}
                     </div>
-    
+
                     <div className="output-container">
                         <h4>Output Entries</h4>
                         {outputEntries.map((entry, index) => (
@@ -465,8 +455,7 @@ const TradeupCalculator = (userRole) => {
                         </div>
                     )}
                 </div>
-            )}
-
+            </div>
         </div>
     );
 };

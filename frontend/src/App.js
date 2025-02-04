@@ -2,9 +2,9 @@ import { lazy, Suspense, useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import NavBar from './components/NavBar';
 import ProtectedRoute from './components/ProtectedRoute';
+import Logger from './utils/Logger';
 
 const Home = lazy(() => import('./pages/Home'));
-const About = lazy(() => import('./pages/About'));
 const Login = lazy(() => import('./pages/Login'));
 const TradeupCalculator = lazy(() => import('./pages/calculator/TradeupCalculator'));
 const Tradeups = lazy(() => import('./pages/Tradeups'));
@@ -12,7 +12,6 @@ const TradeupsPublic  = lazy(() => import('./pages/TradeupsPublic'));
 const TradeupsPurchasable = lazy(() => import('./pages/TradeupsPurchasable'));
 const TradeupsPurchased = lazy(() => import('./pages/TradeupsPurchased'));
 const TradeupsPrivate = lazy(() => import('./pages/TradeupsPrivate'));
-import Logger from './utils/Logger';
 
 Logger.initialize({
   minLevel: process.env.NODE_ENV === 'production' ? 'INFO' : 'DEBUG',
@@ -39,7 +38,7 @@ const App = () => {
 	const checkAuthStatus = async () => {
 		setIsLoading(true);
 		try {
-			const response = await fetch('/api/check-auth', {
+			await fetch('/api/check-auth', {
 			method: 'GET',
 			credentials: 'include', // Important for sending cookies
 			})
@@ -74,7 +73,6 @@ const App = () => {
 			<Suspense fallback={<div className="container">Loading...</div>}>
 				<Routes>
 					<Route path="/" element={<Home />} />
-					<Route path="/about" element={<About />} />
 					<Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
 
 					<Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>

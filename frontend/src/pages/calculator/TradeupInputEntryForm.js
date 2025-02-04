@@ -49,7 +49,7 @@ const TradeupInputEntryForm = ({ addEntry, isStattrak, selectedRarity }) => {
         } else {
             setFilteredSkins([]); // Clear filtered skins if no filters are applied
         }
-    }, [searchQuery, isStattrak, selectedRarity]);
+    }, [searchQuery, fetchFilteredSkins]);
 
     useEffect(() => {
         handleRemoveSkin();
@@ -128,7 +128,7 @@ const TradeupInputEntryForm = ({ addEntry, isStattrak, selectedRarity }) => {
             {selectedSkin ? (
                 <div className='selected-skin'>
                     <span>{selectedSkin.skin_name}</span>
-                    <img src={selectedSkin.image_url} className="skin-image" />
+                    <img src={selectedSkin.image_url} className="skin-image" alt={selectedSkin.skin_name}/>
                     <button className='remove-skin-button' onClick={handleRemoveSkin}>X</button>
                 </div>
             ) : (
@@ -146,7 +146,7 @@ const TradeupInputEntryForm = ({ addEntry, isStattrak, selectedRarity }) => {
                         {filteredSkins.map((skin, idx) => (
                           <li key={idx} onClick={() => handleSkinSelect(skin)}>
                             {skin.skin_name}
-                            <img src={skin.image_url} className="skin-image-small" />
+                            <img src={skin.image_url} className="skin-image-small" alt=''/>
                             </li>
                         ))}
                       </ul>

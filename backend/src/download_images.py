@@ -120,7 +120,7 @@ def download_skin_images(api_key):
     try:
         for skin in skins.scalars():
             if skin.image_name is not None:
-                print(f"Skin '{skin.name}' already has an image. Skipping...")
+                # print(f"Skin '{skin.name}' already has an image. Skipping...")
                 continue
 
             #download_skin_image(api_key, skin)
