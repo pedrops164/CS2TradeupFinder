@@ -1,27 +1,59 @@
 import React from 'react';
-import '../../styles/TradeupCalculator.css';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
 import default_skin_image from '../../assets/default_skin_image.png';
 
 const TradeupInputEntry = ({ index, skin_name, skin_float, count, image_url, removeEntry }) => {
-    return (
-        <div className="entry">
-            <div className="selected-skin">
-                {/* Skin Image */}
-                <img src={image_url ? image_url : default_skin_image} alt={skin_name} className="skin-image" />
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        p: 2,
+        m: 1,
+        borderRadius: 2,
+        borderColor: 'text.secondary',
+        border: 1,
+        boxShadow: 1,
+        backgroundColor: 'primary.main',
+        width: '100%',
+      }}
+    >
+      {/* Skin Image */}
+      <Box
+        component="img"
+        src={image_url || default_skin_image}
+        alt={skin_name}
+        sx={{
+          width: 80,
+          height: 80,
+          borderRadius: 1,
+          mr: 2,
+        }}
+      />
 
-                {/* Skin Details */}
-                <div className="skin-details">
-                    <span className="skin-name">{skin_name}</span>
-                    <div className="float-count-container">
-                        <span className="skin-float">Float: {skin_float}</span>
-                        <span className="skin-count">Count: {count}</span>
-                    </div>
-                </div>
+      {/* Skin Details */}
+      <Box sx={{ flexGrow: 1 }}>
+        <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+          {skin_name}
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+          <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+            Float: {skin_float}
+          </Typography>
+          <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+            Count: {count}
+          </Typography>
+        </Box>
+      </Box>
 
-                <button onClick={() => removeEntry(index)} className='remove-entry-button'>X</button>
-            </div>
-        </div>
-    );
+      {/* Remove Button */}
+      <Button onClick={() => removeEntry(index)} sx={{ bgcolor: 'error.main' }}>
+        X
+      </Button>
+    </Box>
+  );
 };
 
 export default TradeupInputEntry;

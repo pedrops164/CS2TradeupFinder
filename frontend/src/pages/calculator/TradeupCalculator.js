@@ -8,6 +8,55 @@ import { getSkinCondition } from '../../utils/helperFunctions';
 import TradeupOutputEntry from './TradeupOutputEntry';
 import { TradeupTypeEnum } from './TradeupTypeEnum';
 
+// mui imports
+import Card from '@mui/material/Card';
+import CardHeader from '@mui/material/CardHeader';
+import CardContent from '@mui/material/CardContent';
+import Typography from '@mui/material/Typography';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+
+const theme = createTheme({
+    palette: {
+        primary: {
+            main: '#000000',  // Primary color for the app
+        },
+        secondary: {
+            main: '#262626',  // Secondary color for the app
+        },
+        text: {
+            primary: '#ffffff',
+            secondary: '#979797',
+        },
+    },
+    components: {
+        MuiCard: {
+            styleOverrides: {
+                root: {
+                    backgroundColor: '#000000',  // Use the theme's paper background
+                    color: '#ffffff',            // Ensure text is white by default
+                    border: '1px solid #ffffff', // For example, set a default border color
+                },
+            },
+        },
+        MuiCardHeader: {
+            styleOverrides: {
+                root: {
+                    color: '#ffffff',  // Set the header text color
+                },
+            },
+        },
+        MuiTypography: {
+            styleOverrides: {
+                root: {
+                    color: '#ffffff',  // Default typography color
+                },
+            },
+        },
+    },
+});
+
 const TradeupCalculator = (userRole) => {
 
     // SET STATES
@@ -359,104 +408,151 @@ const TradeupCalculator = (userRole) => {
     }
 
     return (
-        <div class="main">
-            <div className="tradeup-calculator">
-                <h1>Tradeup Calculator</h1>
-                {/* Section for input and output containers */}
-                <div className="input-output-container">
-                    <div className="input-container">
-                        <div className="stattrak-rarity-container">
-                            <div className="stattrak-checkbox">
-                                <label>
-                                    StatTrak™
-                                    <input 
-                                    type="checkbox"
-                                    checked={isStattrak}
-                                    onChange={handleStattrakChange}
-                                    />
-                                </label>
-                            </div>
-
-                            <div className="rarity-dropdown">
-                                <select
-                                value={selectedRarity}
-                                onChange={handleRarityChange}
-                                >
-                                {rarityOptions.map((rarityOption, index) => (
-                                    <option key={index} value={rarityOption}>
-                                        {rarityOption}
-                                    </option>
-                                ))}
-                                </select>
-                            </div>
+        <ThemeProvider theme={theme}>
+            <div class="main">
+                <div className="tradeup-calculator">
+                    <h1>Tradeup Calculator</h1>
+                    
+                    <div className="stattrak-rarity-container">
+                        <div className="stattrak-checkbox">
+                            <label>
+                                StatTrak™
+                                <input 
+                                type="checkbox"
+                                checked={isStattrak}
+                                onChange={handleStattrakChange}
+                                />
+                            </label>
                         </div>
 
-                        <TradeupStats avgInputFloat={avgInputFloat} tradeupCost={tradeupCost} profitability={profitability} profitOdds={profitOdds}/>
-
-                        <h4>Input Entries
-                            <TradeupInputEntryForm addEntry={addInputEntry} isStattrak={isStattrak} selectedRarity={selectedRarity} />
-                        </h4>
-
-                        {/* Display errors */}
-                        {inputEntryError && <div className='error-msg'>{inputEntryError}</div>}
-                        {validationError && <div className='error-msg'>{validationError}</div>}
-
-                        {inputEntries.map((entry, index) => (
-                            <TradeupInputEntry
-                                index={index}
-                                skin_name={entry.skin_name}
-                                skin_float={entry.skin_float}
-                                count={entry.count}
-                                image_url={entry.image_url}
-                                removeEntry={removeEntry}
-                            />
-                        ))}
+                        <div className="rarity-dropdown">
+                            <select
+                            value={selectedRarity}
+                            onChange={handleRarityChange}
+                            >
+                            {rarityOptions.map((rarityOption, index) => (
+                                <option key={index} value={rarityOption}>
+                                    {rarityOption}
+                                </option>
+                            ))}
+                            </select>
+                        </div>
                     </div>
 
-                    <div className="output-container">
-                        <h4>Output Entries</h4>
-                        {outputEntries.map((entry, index) => (
-                            <TradeupOutputEntry
-                                index={index}
-                                skin_name={entry.skin_name}
-                                skin_float={entry.skin_float}
-                                skin_prob={entry.prob}
-                                image_url={entry.image_url}
-                            />
-                        ))}
+                    <TradeupStats avgInputFloat={avgInputFloat} tradeupCost={tradeupCost} profitability={profitability} profitOdds={profitOdds}/>
+
+                    {/* Section for input and output containers */}
+                    <div className="input-output-container">
+                        {/*<Card variant="outlined" className="input-container">*/}
+                        <Card variant="outlined" 
+                                sx={{ 
+                                    m: 2, 
+                                    flex: 1, 
+                                    border: '2px solid',
+                                    borderRadius: 2, 
+                                    borderColor: 'text.primary', 
+                                    bgcolor: 'primary.main' 
+                                }}>
+                            <CardHeader title="Input Entries" />
+                            <CardContent>
+                                {/* Render the input entry form */}
+                                <TradeupInputEntryForm 
+                                    addEntry={addInputEntry} 
+                                    isStattrak={isStattrak} 
+                                    selectedRarity={selectedRarity} 
+                                />
+
+                                {/* Display error messages using MUI Typography */}
+                                {inputEntryError && (
+                                    <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                                        {inputEntryError}
+                                    </Typography>
+                                )}
+                                {validationError && (
+                                    <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                                        {validationError}
+                                    </Typography>
+                                )}
+
+                                {/* Use an MUI List to render each input entry */}
+                                <List>
+                                    {inputEntries.map((entry, index) => (
+                                        <ListItem key={index} disablePadding>
+                                            <TradeupInputEntry
+                                                index={index}
+                                                skin_name={entry.skin_name}
+                                                skin_float={entry.skin_float}
+                                                count={entry.count}
+                                                image_url={entry.image_url}
+                                                removeEntry={removeEntry}
+                                            />
+                                        </ListItem>
+                                    ))}
+                                </List>
+                            </CardContent>
+                        </Card>
+
+                        {/*<Card variant="outlined" className="output-container">*/}
+                        <Card variant="outlined" 
+                                sx={{ 
+                                    m: 2, 
+                                    flex: 1, 
+                                    border: '2px solid',
+                                    borderRadius: 2, 
+                                    borderColor: 'text.primary', 
+                                    bgcolor: 'primary.main' 
+                                }}>
+                            <CardHeader title="Output Entries" />
+                            <CardContent>
+                                <List>
+                                    {outputEntries.map((entry, index) => (
+                                        <ListItem key={index} disablePadding>
+                                            <TradeupOutputEntry
+                                                index={index}
+                                                skin_name={entry.skin_name}
+                                                skin_float={entry.skin_float}
+                                                skin_prob={entry.prob}
+                                                image_url={entry.image_url}
+                                            />
+                                        </ListItem>
+                                    ))}
+                                </List>
+                            </CardContent>
+                        </Card>
+
+                        {userRole.user_role === 'admin' && (
+                            <div className="admin-options">
+                            <h3>Admin Options</h3>
+                            
+                            {/* Dropdown to choose the type of tradeup (public or purchasable) */}
+                            {/*}
+                            This is commented out because we are only supporting public tradeups for now
+                            <select onChange={(e) => setTradeupType( e.target.value )} defaultValue="">
+                                <option value="" disabled hidden>Choose tradeup type</option>
+                                <option value="public">Public Tradeup</option>
+                                <option value="purchasable">Purchasable Tradeup</option>
+                            </select>
+                            */}
+
+                            {/* Button to add tradeup to database */}
+                            {/* <button onClick={() => handleAddTradeup(tradeupType)} disabled={isAddTradeupDisabled || tradeupType===null}> */}
+                            <button onClick={() => handleAddTradeup(TradeupTypeEnum.PUBLIC)} disabled={isAddTradeupDisabled}>
+                                Add Tradeup
+                            </button>
+                            </div>
+                        )}
+
+                        {userRole.user_role === 'user' && (
+                            <div className="user-options">
+                            <button onClick={() => handleAddTradeup(TradeupTypeEnum.PRIVATE)} disabled={isAddTradeupDisabled}>
+                                Track Tradeup
+                            </button>
+                            </div>
+                        )}
                     </div>
-                    {userRole.user_role === 'admin' && (
-                        <div className="admin-options">
-                        <h3>Admin Options</h3>
-                        
-                        {/* Dropdown to choose the type of tradeup (public or purchasable) */}
-                        {/*}
-                        This is commented out because we are only supporting public tradeups for now
-                        <select onChange={(e) => setTradeupType( e.target.value )} defaultValue="">
-                            <option value="" disabled hidden>Choose tradeup type</option>
-                            <option value="public">Public Tradeup</option>
-                            <option value="purchasable">Purchasable Tradeup</option>
-                        </select>
-                        */}
-
-                        {/* Button to add tradeup to database */}
-                        {/* <button onClick={() => handleAddTradeup(tradeupType)} disabled={isAddTradeupDisabled || tradeupType===null}> */}
-                        <button onClick={() => handleAddTradeup(TradeupTypeEnum.PUBLIC)} disabled={isAddTradeupDisabled}>
-                            Add Tradeup
-                        </button>
-                        </div>
-                    )}
-
-                    {userRole.user_role === 'user' && (
-                        <div className="user-options">
-                        <button onClick={() => handleAddTradeup(TradeupTypeEnum.PRIVATE)} disabled={isAddTradeupDisabled}>
-                            Track Tradeup
-                        </button>
-                        </div>
-                    )}
                 </div>
             </div>
-        </div>
+        </ThemeProvider>
     );
 };
 

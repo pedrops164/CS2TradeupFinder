@@ -1,186 +1,252 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import Box from '@mui/material/Box';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
+import ListItemButton from '@mui/material/ListItemButton';
+import CircularProgress from '@mui/material/CircularProgress';
+import Typography from '@mui/material/Typography';
 import '../../styles/TradeupCalculator.css';
+import { styled } from '@mui/material/styles';
 
 const TradeupInputEntryForm = ({ addEntry, isStattrak, selectedRarity }) => {
-    const [searchQuery, setSearchQuery] = useState('');
-    const [filteredSkins, setFilteredSkins] = useState([]);
-    const [selectedSkin, setSelectedSkin] = useState(null);
-    const [minFloat, setMinFloat] = useState(0); // Default min float
-    const [maxFloat, setMaxFloat] = useState(1); // Default max float
-    const minCount = 1;
-    const maxCount = 10;
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredSkins, setFilteredSkins] = useState([]);
+  const [selectedSkin, setSelectedSkin] = useState(null);
+  const [minFloat, setMinFloat] = useState(0); // Default min float
+  const [maxFloat, setMaxFloat] = useState(1); // Default max float
+  const minCount = 1;
+  const maxCount = 10;
 
-    const [floatValue, setFloatValue] = useState(minFloat);
-    const [count, setCountValue] = useState(minCount);
+  const [floatValue, setFloatValue] = useState(minFloat);
+  const [count, setCountValue] = useState(minCount);
 
-    // vars to handle scrolling down on the searched skins dropdown
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [isLoadingSkins, setIsLoadingSkins] = useState(false);
+  // Variables to handle pagination when scrolling the skin dropdown
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoadingSkins, setIsLoadingSkins] = useState(false);
 
-    // Fetch filtered skins from the backend
-    const fetchFilteredSkins = useCallback(async (page) => {
-        try {
-            const response = await fetch(
-                `/api/skins/search?search_string=${searchQuery}&rarity=${selectedRarity}&stattrak=${isStattrak}&page=${page}`
-            );
-            const data = await response.json();
-            
-            if (page === 1) {
-                setFilteredSkins(data.skins); // Reset the list for the first page
-            } else {
-                setFilteredSkins((prevSkins) => [...prevSkins, ...data.skins]); // Append new skins
-            }
-            setTotalPages(data.total_pages);
-        } catch (error) {
-            console.error('Error fetching filtered skins:', error);
-        } finally {
-            setIsLoadingSkins(false);
-        }
-    }, [searchQuery, isStattrak, selectedRarity]);
-
-    // Activated whenever searchQuery, selectedRarity, or isStattrak changes
-    useEffect(() => {
-        setCurrentPage(1); // Reset page to 1 whenever search query or isStattrak or selectedRarity changes
-
-        // Only fetch if there's a search query
-        if (searchQuery !== '') {
-            fetchFilteredSkins(1); //fetch first page
-        } else {
-            setFilteredSkins([]); // Clear filtered skins if no filters are applied
-        }
-    }, [searchQuery, fetchFilteredSkins]);
-
-    useEffect(() => {
-        handleRemoveSkin();
-    }, [isStattrak, selectedRarity]);
-
-    const handleSkinSelect = (skin) => {
-        setSelectedSkin(skin);
-        //onChange(index, 'skinName', skin.name);
-        setFilteredSkins([]);
-        setSearchQuery('');
-        setMinFloat(skin.min_float);
-        setMaxFloat(skin.max_float);
-    };
-
-    const handleRemoveSkin = () => {
-        setSelectedSkin(null);
-        //onChange(index, 'skinName', '');
-        setMinFloat(0); // Reset to default min float
-        setMaxFloat(1); // Reset to default max float
-    };
-
-    // Validate and enforce float value within range
-    const handleFloatChange = (e) => {
-        let value = parseFloat(e.target.value);
-
-        // If the value is outside of min/max bounds, clamp it
-        if (value < minFloat) {
-            value = minFloat;
-        } else if (value > maxFloat) {
-            value = maxFloat;
-        }
-
-        setFloatValue(value);
-        //onChange(index, 'floatValue', value); // Ensure it's a fixed float precision
-    };
-
-    // Set default value of 1 for count if it's not set
-    const handleCountChange = (e) => {
-        let value = parseInt(e.target.value, 10);
-        if (!isNaN(value)) {
-            if (value < 1) {
-                value = 1;
-            } else if (value > 10) {
-                value = 10;
-            }
-        }
-
-        setCountValue(value);
-        //onChange(index, 'count', value);
-    };
-
-    const addInputEntry = () => {
-        const successfullyAdded = addEntry(selectedSkin, floatValue, count);
-        if (successfullyAdded) {
-            handleRemoveSkin();
-            setFloatValue(0);
-            setCountValue(1);
-        }
+  // Fetch filtered skins from the backend
+  const fetchFilteredSkins = useCallback(async (page) => {
+    try {
+      const response = await fetch(
+        `/api/skins/search?search_string=${searchQuery}&rarity=${selectedRarity}&stattrak=${isStattrak}&page=${page}`
+      );
+      const data = await response.json();
+      if (page === 1) {
+        setFilteredSkins(data.skins); // Reset the list for the first page
+      } else {
+        setFilteredSkins((prevSkins) => [...prevSkins, ...data.skins]); // Append new skins
+      }
+      setTotalPages(data.total_pages);
+    } catch (error) {
+      console.error('Error fetching filtered skins:', error);
+    } finally {
+      setIsLoadingSkins(false);
     }
+  }, [searchQuery, isStattrak, selectedRarity]);
 
-    const listenSkinsScrollEvent = (e) => {
-        const bottom = e.target.scrollHeight - e.target.scrollTop === e.target.clientHeight;
-        if (bottom && !isLoadingSkins && currentPage < totalPages) {
-            // user scrolled to the bottom
-            console.log('Reached the bottom!');
-            setIsLoadingSkins(true);
-            fetchFilteredSkins(currentPage + 1);
-            console.log('fetching page:', currentPage + 1);
-            console.log('total pages:', totalPages);
-            setCurrentPage((prevPage) => prevPage + 1);
-        }
+  // Trigger fetch when searchQuery changes
+  useEffect(() => {
+    setCurrentPage(1); // Reset page to 1 on query change
+    if (searchQuery !== '') {
+      fetchFilteredSkins(1);
+    } else {
+      setFilteredSkins([]);
     }
+  }, [searchQuery, fetchFilteredSkins]);
 
-    return (
-        <div className="entry-form">
+  // Remove the currently selected skin when isStattrak or selectedRarity changes
+  useEffect(() => {
+    handleRemoveSkin();
+  }, [isStattrak, selectedRarity]);
+
+  const handleSkinSelect = (skin) => {
+    setSelectedSkin(skin);
+    setFilteredSkins([]);
+    setSearchQuery('');
+    setMinFloat(skin.min_float);
+    setMaxFloat(skin.max_float);
+  };
+
+  const handleRemoveSkin = () => {
+    setSelectedSkin(null);
+    setMinFloat(0); // Reset to default
+    setMaxFloat(1); // Reset to default
+  };
+
+  // Clamp the float value within the min/max range
+  const handleFloatChange = (e) => {
+    let value = parseFloat(e.target.value);
+    if (value < minFloat) {
+      value = minFloat;
+    } else if (value > maxFloat) {
+      value = maxFloat;
+    }
+    setFloatValue(value);
+  };
+
+  // Ensure count is between minCount and maxCount
+  const handleCountChange = (e) => {
+    let value = parseInt(e.target.value, 10);
+    if (!isNaN(value)) {
+      if (value < minCount) {
+        value = minCount;
+      } else if (value > maxCount) {
+        value = maxCount;
+      }
+    }
+    setCountValue(value);
+  };
+
+  const addInputEntry = () => {
+    const successfullyAdded = addEntry(selectedSkin, floatValue, count);
+    if (successfullyAdded) {
+      handleRemoveSkin();
+      setFloatValue(0);
+      setCountValue(1);
+    }
+  };
+
+  // Handle scroll event to fetch additional skins when at the bottom of the list
+  const listenSkinsScrollEvent = (e) => {
+    const bottom = e.target.scrollHeight - e.target.scrollTop === e.target.clientHeight;
+    if (bottom && !isLoadingSkins && currentPage < totalPages) {
+      setIsLoadingSkins(true);
+      fetchFilteredSkins(currentPage + 1);
+      setCurrentPage((prevPage) => prevPage + 1);
+    }
+  };
+
+  return (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, bgcolor: 'secondary.main', p: 2, borderRadius: '4px' }}>
             {selectedSkin ? (
-                <div className='selected-skin'>
-                    <span>{selectedSkin.skin_name}</span>
-                    <img src={selectedSkin.image_url} className="skin-image" alt={selectedSkin.skin_name}/>
-                    <button className='remove-skin-button' onClick={handleRemoveSkin}>X</button>
-                </div>
-            ) : (
-                <>
-                    <input
-                        type="text"
-                        placeholder="Search Skin Name"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                    
-                    {/* Display filtered results in a dropdown with images */}
-                    {filteredSkins.length > 0 && (
-                      <ul className="skin-dropdown" onScroll={listenSkinsScrollEvent}>
-                        {filteredSkins.map((skin, idx) => (
-                          <li key={idx} onClick={() => handleSkinSelect(skin)}>
-                            {skin.skin_name}
-                            <img src={skin.image_url} className="skin-image-small" alt=''/>
-                            </li>
-                        ))}
-                      </ul>
-                    )}
+            // If a skin is selected, show a flex container with three columns and the add entry button below.
+            <>
+                {/* Top row: Image | Skin Info | Count and Float */}
+                <Box
+                    sx={{
+                        display: 'flex',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                    }}
+                >
+                    {/* Left Column: Skin Image */}
+                    <Box sx={{ flex: '0 0 auto' }}>
+                        <img
+                        src={selectedSkin.image_url}
+                        alt={selectedSkin.skin_name}
+                        style={{ width: '60px', height: '60px', borderRadius: '4px' }}
+                        />
+                    </Box>
 
-                    {/* Show loading spinner when fetching more skins */}
-                    {isLoadingSkins && <div className="loading-spinner">Loading...</div>}
-                </>
+                    {/* Middle Column: Skin Name and Price */}
+                    <Box
+                        sx={{
+                        flex: '1 1 auto',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-start',
+                        ml: 2, // margin-left for spacing from the image
+                        }}
+                    >
+                        <Typography variant="h6">{selectedSkin.skin_name}</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                        {selectedSkin.price ? `$${selectedSkin.price}` : 'Price N/A'}
+                        </Typography>
+                    </Box>
+
+                    {/* Right Column: Count (top) and Float Value (bottom) */}
+                    <Box
+                        sx={{
+                        flex: '0 0 auto',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-end',
+                        gap: 1, // vertical spacing between the two fields
+                        }}
+                    >
+                        <TextField
+                            label="Count"
+                            type="number"
+                            size="small"
+                            value={count}
+                            onChange={handleCountChange}
+                            inputProps={{ min: minCount, max: maxCount }}
+                            sx={{ width: '80px' }}
+                        />
+                        <TextField
+                            label="Float Value"
+                            type="number"
+                            size="small"
+                            value={floatValue}
+                            onChange={handleFloatChange}
+                            inputProps={{ step: '0.01', min: minFloat, max: maxFloat }}
+                            sx={{ width: '100px' }}
+                        />
+                    </Box>
+                </Box>
+            </>
+        ) : (
+            // If no skin is selected, show the search field and dropdown for skins.
+            <>
+            <TextField
+                label="Search Skin Name"
+                variant="outlined"
+                size="small"
+                color="text.secondary"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                sx={{
+                    // Root class for the input field
+                    "& .MuiOutlinedInput-root": {
+                      fontWeight: "bold",
+                      // Class for the border around the input field
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#2e2e2e",
+                        borderWidth: "2px",
+                      },
+                    },
+                    // Class for the label of the input field
+                    "& .MuiInputLabel-outlined": {
+                      color: 'text.secondary',
+                      fontWeight: "bold",
+                    },
+                  }}
+            />
+            {/* Display filtered results in a dropdown */}
+            {filteredSkins.length > 0 && (
+                <List onScroll={listenSkinsScrollEvent} sx={{maxHeight: '200px', overflow: 'auto'}}>
+                {filteredSkins.map((skin, idx) => (
+                    <ListItemButton divider key={idx} onClick={() => handleSkinSelect(skin)}>
+                        <img src={skin.image_url} alt={skin.skin_name} className="skin-image-small" />
+                        <ListItemText primary={skin.skin_name} /> 
+                    </ListItemButton>
+                ))}
+                </List>
             )}
+            {/* Show a loading spinner when fetching more skins */}
+            {isLoadingSkins && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
+                <CircularProgress size={20} />
+                </Box>
+            )}
+            </>
+        )}
+        
+            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                <Button variant="contained" color="primary" onClick={addInputEntry}>
+                Add Entry
+                </Button>
+            </Box>
 
-            {/* Float Value Input */}
-            <input
-                type="number"
-                step="0.01"
-                placeholder="Float Value"
-                value={floatValue}
-                onChange={handleFloatChange}
-                min={minFloat}
-                max={maxFloat}
-            />
-
-            {/* Count Input */}
-            <input
-                type="number"
-                placeholder="Count"
-                value={count || 1}
-                onChange={handleCountChange}
-                min={minCount}
-                max={maxCount}
-            />
-
-            <button className='add-input-entry' onClick={addInputEntry}>Add Entry</button>
-        </div>
-    );
+            {/* Horizontal line separator */}
+            <Box sx={{ borderBottom: '1px solid rgb(0, 0, 0)', width: '100%' }} />
+        </Box>
+  );
 };
 
 export default TradeupInputEntryForm;
