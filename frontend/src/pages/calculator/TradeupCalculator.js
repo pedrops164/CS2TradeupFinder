@@ -15,6 +15,7 @@ import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
+import Button from '@mui/material/Button';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 
 const theme = createTheme({
@@ -64,7 +65,14 @@ const TradeupCalculator = (userRole) => {
     const [isStattrak, setIsStattrak] = useState(false);
 
     // Pool of rarity strings for the dropdown
-    const rarityOptions = ["consumer_bg", "industrial_bg", "milspec_bg", "restricted_bg", "classified_bg", "covert_bg"];
+    const rarityOptions = [
+        ["consumer_bg", "Consumer Grade"],
+        ["industrial_bg", "Industrial Grade"],
+        ["milspec_bg", "Mil-Spec"],
+        ["restricted_bg", "Restricted"],
+        ["classified_bg", "Classified"],
+        ["covert_bg", "Covert"]
+    ];
 
     // state to manage chosen rarity for the tradeup
     const [selectedRarity, setSelectedRarity] = useState(rarityOptions[0]);
@@ -431,8 +439,8 @@ const TradeupCalculator = (userRole) => {
                             onChange={handleRarityChange}
                             >
                             {rarityOptions.map((rarityOption, index) => (
-                                <option key={index} value={rarityOption}>
-                                    {rarityOption}
+                                <option key={index} value={rarityOption[0]}>
+                                    {rarityOption[1]}
                                 </option>
                             ))}
                             </select>
@@ -502,7 +510,20 @@ const TradeupCalculator = (userRole) => {
                                     borderColor: 'text.primary', 
                                     bgcolor: 'primary.main' 
                                 }}>
-                            <CardHeader title="Output Entries" />
+                            <CardHeader title="Output Entries" action={
+                                <>
+                                    {userRole.user_role === 'admin' && (
+                                        <Button onClick={() => handleAddTradeup(TradeupTypeEnum.PUBLIC)} disabled={isAddTradeupDisabled} variant="contained" bgcolor="text.primary">
+                                            Add Tradeup
+                                        </Button>
+                                    )}
+                                    {userRole.user_role === 'user' && (
+                                        <Button onClick={() => handleAddTradeup(TradeupTypeEnum.PRIVATE)} disabled={isAddTradeupDisabled} variant="contained" bgcolor="text.primary">
+                                            Track Tradeup
+                                        </Button>
+                                    )}
+                                </>
+                            } />
                             <CardContent>
                                 <List>
                                     {outputEntries.map((entry, index) => (
@@ -519,36 +540,6 @@ const TradeupCalculator = (userRole) => {
                                 </List>
                             </CardContent>
                         </Card>
-
-                        {userRole.user_role === 'admin' && (
-                            <div className="admin-options">
-                            <h3>Admin Options</h3>
-                            
-                            {/* Dropdown to choose the type of tradeup (public or purchasable) */}
-                            {/*}
-                            This is commented out because we are only supporting public tradeups for now
-                            <select onChange={(e) => setTradeupType( e.target.value )} defaultValue="">
-                                <option value="" disabled hidden>Choose tradeup type</option>
-                                <option value="public">Public Tradeup</option>
-                                <option value="purchasable">Purchasable Tradeup</option>
-                            </select>
-                            */}
-
-                            {/* Button to add tradeup to database */}
-                            {/* <button onClick={() => handleAddTradeup(tradeupType)} disabled={isAddTradeupDisabled || tradeupType===null}> */}
-                            <button onClick={() => handleAddTradeup(TradeupTypeEnum.PUBLIC)} disabled={isAddTradeupDisabled}>
-                                Add Tradeup
-                            </button>
-                            </div>
-                        )}
-
-                        {userRole.user_role === 'user' && (
-                            <div className="user-options">
-                            <button onClick={() => handleAddTradeup(TradeupTypeEnum.PRIVATE)} disabled={isAddTradeupDisabled}>
-                                Track Tradeup
-                            </button>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>

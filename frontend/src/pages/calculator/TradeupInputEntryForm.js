@@ -241,6 +241,10 @@ const TradeupInputEntryForm = ({ addEntry, isStattrak, selectedRarity }) => {
                 <Button variant="contained" color="primary" onClick={addInputEntry}>
                 Add Entry
                 </Button>
+                {/* Remove Button */}
+                <Button onClick={() => handleRemoveSkin()} sx={{ bgcolor: 'error.main' }}>
+                  X
+                </Button>
             </Box>
 
             {/* Horizontal line separator */}
