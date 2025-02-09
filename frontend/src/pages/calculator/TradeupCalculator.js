@@ -245,7 +245,7 @@ const TradeupCalculator = (userRole) => {
             const requestData = {
                 input_entries: input_entries,
                 stattrak: isStattrak,
-                input_rarity: selectedRarity
+                input_rarity: selectedRarity[0]
             };
 
             // Make the request to the route
@@ -295,7 +295,7 @@ const TradeupCalculator = (userRole) => {
         const allSameRarity = inputEntries.every(entry => {
             //const matchingSkin = skins.find(skin => skin.skin_name === entry.skin_name);
             //return matchingSkin && matchingSkin.rarity === selectedRarity;
-            return entry.rarity === selectedRarity;
+            return entry.rarity === selectedRarity[0];
         });
 
         if (!allSameRarity) {
@@ -342,7 +342,7 @@ const TradeupCalculator = (userRole) => {
                         "collection_id": entry.collection_id
                     })),
                     stattrak: isStattrak,
-                    input_rarity: selectedRarity,
+                    input_rarity: selectedRarity[0],
                     tradeup_type: tradeupType
                 })
             });
@@ -368,7 +368,7 @@ const TradeupCalculator = (userRole) => {
         // create payload
         const payload = {
             stattrak: isStattrak,
-            input_rarity: selectedRarity,
+            input_rarity: selectedRarity[0],
             input_entries: inputEntries.map((entry, _) => ({
                 "skin_name": entry.skin_name,
                 "skin_float": entry.skin_float,
@@ -417,7 +417,7 @@ const TradeupCalculator = (userRole) => {
 
     return (
         <ThemeProvider theme={theme}>
-            <div class="main">
+            <div className="main">
                 <div className="tradeup-calculator">
                     <h1>Tradeup Calculator</h1>
                     
@@ -467,7 +467,7 @@ const TradeupCalculator = (userRole) => {
                                 <TradeupInputEntryForm 
                                     addEntry={addInputEntry} 
                                     isStattrak={isStattrak} 
-                                    selectedRarity={selectedRarity} 
+                                    selectedRarity={selectedRarity[0]} 
                                 />
 
                                 {/* Display error messages using MUI Typography */}
