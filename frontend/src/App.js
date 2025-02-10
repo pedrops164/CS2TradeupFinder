@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import NavBar from './components/NavBar';
 import ProtectedRoute from './components/ProtectedRoute';
 import Logger from './utils/Logger';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 
 const Home = lazy(() => import('./pages/Home'));
 const Login = lazy(() => import('./pages/Login'));
@@ -24,6 +25,22 @@ Logger.debug('Debug message test', { type: 'test' });
 Logger.info('Info message test', { type: 'test' });
 Logger.warn('Warning message test', { type: 'test' });
 Logger.error('Error message test', { type: 'test' });
+
+const theme = createTheme({
+    palette: {
+	  	mode: 'dark',
+	  	primary: {
+            main: '#000000',  // Primary color for the app
+        },
+        secondary: {
+            main: '#262626',  // Secondary color for the app
+        },
+        text: {
+            primary: '#ffffff',
+            secondary: '#979797',
+        },
+    },
+});
 
 const App = () => {
 	const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -69,25 +86,27 @@ const App = () => {
   
 	return (
 		<>
-			<NavBar isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated} />
+			{/* <NavBar isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated} /> */}
 			<Suspense fallback={<div className="container">Loading...</div>}>
-				<Routes>
-					<Route path="/" element={<Home />} />
-					<Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
+				<ThemeProvider theme={theme} defaultMode="dark">
+					<Routes>
+						<Route path="/" element={<Home />} />
+						<Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
 
-					<Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
-						<Route path="calculator" element={<TradeupCalculator user_role={userRole}/>} />
-					</Route>
-
-					<Route path="/tradeups" element={<Tradeups isAuthenticated={isAuthenticated} />}>
-						<Route path="public" element={<TradeupsPublic />} />
 						<Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
-							<Route path="purchasable" element={<TradeupsPurchasable />} />
-							<Route path="purchased" element={<TradeupsPurchased />} />
-							<Route path="tracked" element={<TradeupsPrivate />} />
+							<Route path="calculator" element={<TradeupCalculator user_role={userRole}/>} />
 						</Route>
-					</Route>
-				</Routes>
+
+						<Route path="/tradeups" element={<Tradeups isAuthenticated={isAuthenticated} />}>
+							<Route path="public" element={<TradeupsPublic />} />
+							<Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
+								<Route path="purchasable" element={<TradeupsPurchasable />} />
+								<Route path="purchased" element={<TradeupsPurchased />} />
+								<Route path="tracked" element={<TradeupsPrivate />} />
+							</Route>
+						</Route>
+					</Routes>
+				</ThemeProvider>
 			</Suspense>
 		</>
 	);

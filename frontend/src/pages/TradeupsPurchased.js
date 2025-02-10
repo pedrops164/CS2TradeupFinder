@@ -1,33 +1,56 @@
+// TradeupsPurchased.js
 import React from 'react';
+import { Box, Typography, Pagination } from '@mui/material';
 import usePagination from '../hooks/usePagination';
-import Pagination from '../components/Pagination';
 import Tradeup from '../components/Tradeup';
 
 const TradeupsPurchased = () => {
-  const { data: purchasedTradeups, currentPage, totalPages, handlePageChange, isLoading, error } = usePagination('/api/tradeups/purchased');
+  const {
+    data: purchasedTradeups,
+    currentPage,
+    totalPages,
+    handlePageChange,
+    isLoading,
+    error,
+  } = usePagination('/api/tradeups/purchased');
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <Box sx={{ p: 2 }}>
+        <Typography variant="h6" color="text.secondary">
+          Loading...
+        </Typography>
+      </Box>
+    );
   }
 
   if (error) {
-    return <div>{error}</div>;
+    return (
+      <Box sx={{ p: 2 }}>
+        <Typography variant="h6" color="error">
+          {error}
+        </Typography>
+      </Box>
+    );
   }
 
   return (
-    <div className="tradeup-subpage">
-      <h2>Purchased Tradeups</h2>
-      <div className="tradeup-list">
-        {purchasedTradeups.map(tradeup => (
+    <Box sx={{ p: 2, backgroundColor: 'background.default', minHeight: '100vh' }}>
+      <Typography variant="h4" sx={{ mb: 3, color: 'text.primary' }}>
+        Purchased Tradeups
+      </Typography>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
+        {purchasedTradeups.map((tradeup) => (
           <Tradeup key={tradeup.tradeup_id} tradeup={tradeup} />
         ))}
-      </div>
+      </Box>
       <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        handlePageChange={handlePageChange}
+        count={totalPages}
+        page={currentPage}
+        onChange={(event, value) => handlePageChange(value)}
+        sx={{ display: 'flex', justifyContent: 'center' }}
       />
-    </div>
+    </Box>
   );
 };
 

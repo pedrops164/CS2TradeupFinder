@@ -9,7 +9,6 @@ import ListItemButton from '@mui/material/ListItemButton';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import '../../styles/TradeupCalculator.css';
-import { styled } from '@mui/material/styles';
 
 const TradeupInputEntryForm = ({ addEntry, isStattrak, selectedRarity }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -176,7 +175,7 @@ const TradeupInputEntryForm = ({ addEntry, isStattrak, selectedRarity }) => {
                             value={count}
                             onChange={handleCountChange}
                             inputProps={{ min: minCount, max: maxCount }}
-                            sx={{ width: '80px' }}
+                            sx={{ width: '100px' }}
                         />
                         <TextField
                             label="Float Value"

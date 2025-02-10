@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { handleApiError } from '../../utils/apiErrorHandler';
-import '../../styles/TradeupCalculator.css';
 import TradeupStats from './tradeup-stats/TradeupStats';
 import TradeupInputEntry from './TradeupInputEntry';
 import TradeupInputEntryForm from './TradeupInputEntryForm';
 import { getSkinCondition } from '../../utils/helperFunctions';
 import TradeupOutputEntry from './TradeupOutputEntry';
 import { TradeupTypeEnum } from './TradeupTypeEnum';
+import TradeupInputEntryFormNew from './TradeupInputEntryFormNew';
 
 // mui imports
 import Card from '@mui/material/Card';
@@ -16,47 +16,11 @@ import Typography from '@mui/material/Typography';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import Button from '@mui/material/Button';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-
-const theme = createTheme({
-    palette: {
-        primary: {
-            main: '#000000',  // Primary color for the app
-        },
-        secondary: {
-            main: '#262626',  // Secondary color for the app
-        },
-        text: {
-            primary: '#ffffff',
-            secondary: '#979797',
-        },
-    },
-    components: {
-        MuiCard: {
-            styleOverrides: {
-                root: {
-                    backgroundColor: '#000000',  // Use the theme's paper background
-                    color: '#ffffff',            // Ensure text is white by default
-                    border: '1px solid #ffffff', // For example, set a default border color
-                },
-            },
-        },
-        MuiCardHeader: {
-            styleOverrides: {
-                root: {
-                    color: '#ffffff',  // Set the header text color
-                },
-            },
-        },
-        MuiTypography: {
-            styleOverrides: {
-                root: {
-                    color: '#ffffff',  // Default typography color
-                },
-            },
-        },
-    },
-});
+import Box from '@mui/material/Box';
+import { FormControl, FormControlLabel, FormGroup } from '@mui/material';
+import Switch from '@mui/material/Switch';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
 
 const TradeupCalculator = (userRole) => {
 
@@ -75,7 +39,7 @@ const TradeupCalculator = (userRole) => {
     ];
 
     // state to manage chosen rarity for the tradeup
-    const [selectedRarity, setSelectedRarity] = useState(rarityOptions[0]);
+    const [selectedRarity, setSelectedRarity] = useState(rarityOptions[0][0]);
 
     // state to manage Average Input Float
     const [avgInputFloat, setAvgInputFloat] = useState(0);
@@ -146,6 +110,7 @@ const TradeupCalculator = (userRole) => {
 
     // Handle rarity change and clear tradeup
     const handleRarityChange = (e) => {
+        // e is the rarity string, NOT the array (e.g. "consumer_bg", instead of ["consumer_bg", "Consumer Grade"])
         setSelectedRarity(e.target.value);
         clearTradeup();
     };
@@ -161,6 +126,9 @@ const TradeupCalculator = (userRole) => {
         // error checking
         if (!selectedSkin) {
             setInputEntryError('Must select a skin!');
+            return false;
+        } else if (isNaN(skin_float) || isNaN(count)) {
+            setInputEntryError('Either skin float or count are invalid!');
             return false;
         } else if (skin_float < selectedSkin.min_float || skin_float > selectedSkin.max_float) {
             setInputEntryError('Float out of bounds!');
@@ -245,7 +213,7 @@ const TradeupCalculator = (userRole) => {
             const requestData = {
                 input_entries: input_entries,
                 stattrak: isStattrak,
-                input_rarity: selectedRarity[0]
+                input_rarity: selectedRarity
             };
 
             // Make the request to the route
@@ -295,7 +263,7 @@ const TradeupCalculator = (userRole) => {
         const allSameRarity = inputEntries.every(entry => {
             //const matchingSkin = skins.find(skin => skin.skin_name === entry.skin_name);
             //return matchingSkin && matchingSkin.rarity === selectedRarity;
-            return entry.rarity === selectedRarity[0];
+            return entry.rarity === selectedRarity;
         });
 
         if (!allSameRarity) {
@@ -342,7 +310,7 @@ const TradeupCalculator = (userRole) => {
                         "collection_id": entry.collection_id
                     })),
                     stattrak: isStattrak,
-                    input_rarity: selectedRarity[0],
+                    input_rarity: selectedRarity,
                     tradeup_type: tradeupType
                 })
             });
@@ -368,7 +336,7 @@ const TradeupCalculator = (userRole) => {
         // create payload
         const payload = {
             stattrak: isStattrak,
-            input_rarity: selectedRarity[0],
+            input_rarity: selectedRarity,
             input_entries: inputEntries.map((entry, _) => ({
                 "skin_name": entry.skin_name,
                 "skin_float": entry.skin_float,
@@ -416,134 +384,142 @@ const TradeupCalculator = (userRole) => {
     }
 
     return (
-        <ThemeProvider theme={theme}>
-            <div className="main">
-                <div className="tradeup-calculator">
-                    <h1>Tradeup Calculator</h1>
-                    
-                    <div className="stattrak-rarity-container">
-                        <div className="stattrak-checkbox">
-                            <label>
-                                StatTrak™
-                                <input 
-                                type="checkbox"
-                                checked={isStattrak}
-                                onChange={handleStattrakChange}
-                                />
-                            </label>
-                        </div>
+        <Box
+            sx={(theme) => ({
+                height: '100vh',
+                overflowY: 'auto',
+                backgroundColor: theme.palette.background.default, // uses theme background color
+            })}
+            >
+            <Box
+                sx={{
+                    paddingTop: '50px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                }}>
+                <Typography variant="h4" component="h1"
+                  sx={(theme) => ({
+                    color: theme.palette.text.primary,
+                    m: 2,
+                  })}>
+                    Tradeup Calculator 
+                </Typography>
+                
+                <Box sx={{display: 'flex', flexDirection: 'row', alignItems: 'center', mb: '10px'}} >
+                    <FormGroup sx={{ml: 3}}>
+                        <FormControlLabel 
+                        control={
+                        <Switch checked={isStattrak} 
+                                onChange={handleStattrakChange} 
+                                color="secondary"/>}
+                        label="StatTrak™"
+                        sx={(theme) => ({
+                            color: theme.palette.text.primary
+                          })}/>
+                    </FormGroup>
 
-                        <div className="rarity-dropdown">
-                            <select
+                    <FormControl>
+                        <Select 
                             value={selectedRarity}
                             onChange={handleRarityChange}
                             >
                             {rarityOptions.map((rarityOption, index) => (
-                                <option key={index} value={rarityOption[0]}>
+                                <MenuItem key={index} value={rarityOption[0]}>
                                     {rarityOption[1]}
-                                </option>
+                                </MenuItem>
                             ))}
-                            </select>
-                        </div>
-                    </div>
+                            </Select>
+                    </FormControl>
+                </Box>
 
-                    <TradeupStats avgInputFloat={avgInputFloat} tradeupCost={tradeupCost} profitability={profitability} profitOdds={profitOdds}/>
+                <TradeupStats avgInputFloat={avgInputFloat} tradeupCost={tradeupCost} profitability={profitability} profitOdds={profitOdds}/>
 
-                    {/* Section for input and output containers */}
-                    <div className="input-output-container">
-                        {/*<Card variant="outlined" className="input-container">*/}
-                        <Card variant="outlined" 
-                                sx={{ 
-                                    m: 2, 
-                                    flex: 1, 
-                                    border: '2px solid',
-                                    borderRadius: 2, 
-                                    borderColor: 'text.primary', 
-                                    bgcolor: 'primary.main' 
-                                }}>
-                            <CardHeader title="Input Entries" />
-                            <CardContent>
-                                {/* Render the input entry form */}
-                                <TradeupInputEntryForm 
-                                    addEntry={addInputEntry} 
-                                    isStattrak={isStattrak} 
-                                    selectedRarity={selectedRarity[0]} 
-                                />
+                {/* Section for input and output containers */}
+                <Box sx={{display: 'flex', justifyContent: 'space-between', flex: '1 0 1'}}>
+                    <Card variant="outlined"
+                            sx={{ 
+                                m: 2, 
+                                flex: 1, 
+                                borderRadius: 2,
+                            }}>
+                        
+                        <CardHeader title="Input Entries" />
+                        <CardContent>
+                            {/* Render the input entry form */}
+                            <TradeupInputEntryForm 
+                                addEntry={addInputEntry} 
+                                isStattrak={isStattrak} 
+                                selectedRarity={selectedRarity} 
+                            />
 
-                                {/* Display error messages using MUI Typography */}
-                                {inputEntryError && (
-                                    <Typography color="error" variant="body2" sx={{ mt: 1 }}>
-                                        {inputEntryError}
-                                    </Typography>
+                            {/* Display error messages using MUI Typography */}
+                            {inputEntryError && (
+                                <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                                    {inputEntryError}
+                                </Typography>
+                            )}
+                            {validationError && (
+                                <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                                    {validationError}
+                                </Typography>
+                            )}
+
+                            {/* Use an MUI List to render each input entry */}
+                            <List>
+                                {inputEntries.map((entry, index) => (
+                                    <ListItem key={index} disablePadding>
+                                        <TradeupInputEntry
+                                            index={index}
+                                            skin_name={entry.skin_name}
+                                            skin_float={entry.skin_float}
+                                            count={entry.count}
+                                            image_url={entry.image_url}
+                                            removeEntry={removeEntry}
+                                        />
+                                    </ListItem>
+                                ))}
+                            </List>
+                        </CardContent>
+                    </Card>
+
+                    <Card variant="outlined" 
+                            sx={{ 
+                                m: 2, 
+                                flex: 1, 
+                                borderRadius: 2,
+                            }}>
+                        <CardHeader title="Output Entries" action={
+                            <>
+                                {userRole.user_role === 'admin' && (
+                                    <Button onClick={() => handleAddTradeup(TradeupTypeEnum.PUBLIC)} disabled={isAddTradeupDisabled} variant="contained" bgcolor="text.primary">
+                                        Add Tradeup
+                                    </Button>
                                 )}
-                                {validationError && (
-                                    <Typography color="error" variant="body2" sx={{ mt: 1 }}>
-                                        {validationError}
-                                    </Typography>
+                                {userRole.user_role === 'user' && (
+                                    <Button onClick={() => handleAddTradeup(TradeupTypeEnum.PRIVATE)} disabled={isAddTradeupDisabled} variant="contained" bgcolor="text.primary">
+                                        Track Tradeup
+                                    </Button>
                                 )}
-
-                                {/* Use an MUI List to render each input entry */}
-                                <List>
-                                    {inputEntries.map((entry, index) => (
-                                        <ListItem key={index} disablePadding>
-                                            <TradeupInputEntry
-                                                index={index}
-                                                skin_name={entry.skin_name}
-                                                skin_float={entry.skin_float}
-                                                count={entry.count}
-                                                image_url={entry.image_url}
-                                                removeEntry={removeEntry}
-                                            />
-                                        </ListItem>
-                                    ))}
-                                </List>
-                            </CardContent>
-                        </Card>
-
-                        {/*<Card variant="outlined" className="output-container">*/}
-                        <Card variant="outlined" 
-                                sx={{ 
-                                    m: 2, 
-                                    flex: 1, 
-                                    border: '2px solid',
-                                    borderRadius: 2, 
-                                    borderColor: 'text.primary', 
-                                    bgcolor: 'primary.main' 
-                                }}>
-                            <CardHeader title="Output Entries" action={
-                                <>
-                                    {userRole.user_role === 'admin' && (
-                                        <Button onClick={() => handleAddTradeup(TradeupTypeEnum.PUBLIC)} disabled={isAddTradeupDisabled} variant="contained" bgcolor="text.primary">
-                                            Add Tradeup
-                                        </Button>
-                                    )}
-                                    {userRole.user_role === 'user' && (
-                                        <Button onClick={() => handleAddTradeup(TradeupTypeEnum.PRIVATE)} disabled={isAddTradeupDisabled} variant="contained" bgcolor="text.primary">
-                                            Track Tradeup
-                                        </Button>
-                                    )}
-                                </>
-                            } />
-                            <CardContent>
-                                <List>
-                                    {outputEntries.map((entry, index) => (
-                                        <ListItem key={index} disablePadding>
-                                            <TradeupOutputEntry
-                                                index={index}
-                                                skin_name={entry.skin_name}
-                                                skin_float={entry.skin_float}
-                                                skin_prob={entry.prob}
-                                                image_url={entry.image_url}
-                                            />
-                                        </ListItem>
-                                    ))}
-                                </List>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
-            </div>
-        </ThemeProvider>
+                            </>
+                        } />
+                        <CardContent>
+                            <List>
+                                {outputEntries.map((entry, index) => (
+                                    <ListItem key={index} disablePadding>
+                                        <TradeupOutputEntry
+                                            skin_name={entry.skin_name}
+                                            skin_float={entry.skin_float}
+                                            skin_prob={entry.prob}
+                                            image_url={entry.image_url}
+                                        />
+                                    </ListItem>
+                                ))}
+                            </List>
+                        </CardContent>
+                    </Card>
+                </Box>
+            </Box>
+        </Box>
     );
 };
 

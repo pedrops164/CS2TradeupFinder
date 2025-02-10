@@ -1,19 +1,31 @@
 import React from 'react';
-import '../styles/Tradeup.css';
+import { Box, Typography, Paper } from '@mui/material';
 
 const TradeupCensored = ({ tradeup }) => {
-    return (
-        <div className="tradeup-box">
-          <div className="tradeup-summary">
-            <h3>{tradeup.tradeup_name}</h3>
-            <p>Input Rarity: {tradeup.tradeup_input_rarity}</p>
-            <p>Input Cost: {tradeup.input_skins_cost.toFixed(2)}€</p>
-            <p>Profit Average Profit: {tradeup.profit_avg_pctg.toFixed(2)}%</p>
-            <p>Profit Odds: {tradeup.profit_odds.toFixed(2)}%</p>
-            <p>StatTrak: {tradeup.tradeup_stattrak ? 'Yes' : 'No'}</p>
-          </div>
-        </div>
-      );
-}
+  return (
+    <Paper elevation={3} sx={{ p: 2, mb: 2 }}>
+      <Box>
+        <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+          {tradeup.tradeup_name}
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 0.5 }}>
+          Input Rarity: {tradeup.tradeup_input_rarity}
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 0.5 }}>
+          Input Cost: {tradeup.input_skins_cost.toFixed(2)}€
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 0.5 }}>
+          Profit Average: {tradeup.profit_avg_pctg.toFixed(2)}%
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 0.5 }}>
+          Profit Odds: {tradeup.profit_odds.toFixed(2)}%
+        </Typography>
+        <Typography variant="body2">
+          StatTrak: {tradeup.tradeup_stattrak ? 'Yes' : 'No'}
+        </Typography>
+      </Box>
+    </Paper>
+  );
+};
 
 export default TradeupCensored;

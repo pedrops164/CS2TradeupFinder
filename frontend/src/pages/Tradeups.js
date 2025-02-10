@@ -1,39 +1,117 @@
+// Tradeups.js
 import React from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import '../styles/Tradeups.css'; // Create this CSS file
+import { Box, Typography, Paper } from '@mui/material';
 
 const Tradeups = ({ isAuthenticated }) => {
-    const location = useLocation();
-    const isSubpageSelected = location.pathname !== '/tradeups';
-  
-    return (
-        <div className="tradeups-container">
-          <h1>Tradeups</h1>
-          <div className="tradeups-nav">
-            <NavLink to="/tradeups/public" className="tradeups-nav-item">
-              <h3>Public</h3>
-              <p>Show all publicly available tradeups, free of charge</p>
-            </NavLink>
-            <NavLink to="/tradeups/purchasable" className={`tradeups-nav-item ${!isAuthenticated ? 'disabled' : ''}`} onClick={(e) => !isAuthenticated && e.preventDefault()}>
-              <h3>Purchasable</h3>
-              <p>Browse tradeups available for purchase</p>
-            </NavLink>
-            <NavLink to="/tradeups/purchased" className={`tradeups-nav-item ${!isAuthenticated ? 'disabled' : ''}`} onClick={(e) => !isAuthenticated && e.preventDefault()}>
-              <h3>Purchased</h3>
-              <p>Browse purchased tradeups</p>
-            </NavLink>
-            <NavLink to="/tradeups/tracked" className={`tradeups-nav-item ${!isAuthenticated ? 'disabled' : ''}`} onClick={(e) => !isAuthenticated && e.preventDefault()}>
-              <h3>Tracked</h3>
-              <p>Access your tracked and private tradeups</p>
-            </NavLink>
-          </div>
-          {isSubpageSelected && (
-            <div className="tradeups-content">
-              <Outlet />
-            </div>
-          )}
-        </div>
-      );
-    };
+  const location = useLocation();
+  const isSubpageSelected = location.pathname !== '/tradeups';
+
+  return (
+    <Box sx={{ p: 2, backgroundColor: 'background.default', minHeight: '100vh' }}>
+      {/* Page Title */}
+      <Typography variant="h3" sx={{ mb: 3, color: 'text.primary' }}>
+        Tradeups
+      </Typography>
+
+      {/* Navigation Section */}
+      <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+        <Paper
+          component={NavLink}
+          to="/tradeups/public"
+          sx={{
+            p: 2,
+            flex: 1,
+            textDecoration: 'none',
+            '&:hover': { boxShadow: 3 },
+          }}
+        >
+          <Typography variant="h6" color="text.primary">
+            Public
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Show all publicly available tradeups, free of charge
+          </Typography>
+        </Paper>
+
+        <Paper
+          component={NavLink}
+          to="/tradeups/purchasable"
+          onClick={(e) => !isAuthenticated && e.preventDefault()}
+          sx={{
+            p: 2,
+            flex: 1,
+            textDecoration: 'none',
+            ...( !isAuthenticated && {
+              opacity: 0.5,
+              pointerEvents: 'none',
+            }),
+            '&:hover': { boxShadow: 3 },
+          }}
+        >
+          <Typography variant="h6" color="text.primary">
+            Purchasable
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Browse tradeups available for purchase
+          </Typography>
+        </Paper>
+
+        <Paper
+          component={NavLink}
+          to="/tradeups/purchased"
+          onClick={(e) => !isAuthenticated && e.preventDefault()}
+          sx={{
+            p: 2,
+            flex: 1,
+            textDecoration: 'none',
+            ...( !isAuthenticated && {
+              opacity: 0.5,
+              pointerEvents: 'none',
+            }),
+            '&:hover': { boxShadow: 3 },
+          }}
+        >
+          <Typography variant="h6" color="text.primary">
+            Purchased
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Browse purchased tradeups
+          </Typography>
+        </Paper>
+
+        <Paper
+          component={NavLink}
+          to="/tradeups/tracked"
+          onClick={(e) => !isAuthenticated && e.preventDefault()}
+          sx={{
+            p: 2,
+            flex: 1,
+            textDecoration: 'none',
+            ...( !isAuthenticated && {
+              opacity: 0.5,
+              pointerEvents: 'none',
+            }),
+            '&:hover': { boxShadow: 3 },
+          }}
+        >
+          <Typography variant="h6" color="text.primary">
+            Tracked
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Access your tracked and private tradeups
+          </Typography>
+        </Paper>
+      </Box>
+
+      {/* Subpage Content */}
+      {isSubpageSelected && (
+        <Box sx={{ p: 2, backgroundColor: 'background.paper', borderRadius: 1 }}>
+          <Outlet />
+        </Box>
+      )}
+    </Box>
+  );
+};
 
 export default Tradeups;

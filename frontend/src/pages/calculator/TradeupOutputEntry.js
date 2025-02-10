@@ -1,21 +1,21 @@
 import React from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
+import Card from '@mui/material/Card';
+import Paper from '@mui/material/Card';
 import default_skin_image from '../../assets/default_skin_image.png';
 
-const TradeupOutputEntry = ({ index, skin_name, skin_float, skin_prob, image_url }) => {
+const TradeupOutputEntry = ({ skin_name, skin_float, skin_prob, image_url }) => {
   return (
-    <Box
+    <Card
     sx={{
         display: 'flex',
         alignItems: 'center',
         p: 2,
         m: 1,
         borderRadius: 2,
-        borderColor: 'text.secondary',
         border: 1,
         boxShadow: 1,
-        backgroundColor: 'primary.main',
         width: '100%',
       }}
     >
@@ -48,7 +48,7 @@ const TradeupOutputEntry = ({ index, skin_name, skin_float, skin_prob, image_url
           )}
         </Box>
       </Box>
-    </Box>
+    </Card>
   );
 };
 
