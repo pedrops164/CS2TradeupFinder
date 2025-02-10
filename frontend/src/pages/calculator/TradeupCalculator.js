@@ -116,7 +116,7 @@ const TradeupCalculator = (userRole) => {
     };
 
     // handle add input entry button
-    const addInputEntry = (selectedSkin, skin_float, count) => {
+    const addInputEntry = (selectedSkin, skin_float, count, skinCondition, skinPrice) => {
         // Receives the parameters of the TradeupInputEntryForm, error checks them (displays msg if error), and adds 
         //   entry to list of added entries.
         // Returns false if error, true if added successfully
@@ -149,9 +149,10 @@ const TradeupCalculator = (userRole) => {
             image_url: selectedSkin.image_url,
             conditions: selectedSkin.conditions,
             collection_id: selectedSkin.collection_id,
-            skin_condition: getSkinCondition(skin_float),
+            skin_condition: skinCondition,
             stattrak_available: selectedSkin.stattrak_available,
-            rarity: selectedSkin.rarity
+            rarity: selectedSkin.rarity,
+            skin_price: skinPrice
         };
         // add input entry
         const updatedEntries = [...inputEntries, entry];
@@ -393,7 +394,6 @@ const TradeupCalculator = (userRole) => {
             >
             <Box
                 sx={{
-                    paddingTop: '50px',
                     display: 'flex',
                     flexDirection: 'column',
                 }}>
@@ -475,6 +475,7 @@ const TradeupCalculator = (userRole) => {
                                             count={entry.count}
                                             image_url={entry.image_url}
                                             removeEntry={removeEntry}
+                                            skin_price={entry.skin_price}
                                         />
                                     </ListItem>
                                 ))}
@@ -511,6 +512,7 @@ const TradeupCalculator = (userRole) => {
                                             skin_float={entry.skin_float}
                                             skin_prob={entry.prob}
                                             image_url={entry.image_url}
+                                            skin_price={entry.price}
                                         />
                                     </ListItem>
                                 ))}

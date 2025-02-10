@@ -6,7 +6,7 @@ import Card from '@mui/material/Card';
 import Paper from '@mui/material/Card';
 import default_skin_image from '../../assets/default_skin_image.png';
 
-const TradeupInputEntry = ({ index, skin_name, skin_float, count, image_url, removeEntry }) => {
+const TradeupInputEntry = ({ index, skin_name, skin_float, count, image_url, removeEntry, skin_price }) => {
   return (
     <Card
       sx={{
@@ -44,6 +44,9 @@ const TradeupInputEntry = ({ index, skin_name, skin_float, count, image_url, rem
           </Typography>
           <Typography variant="body1" sx={{ color: 'text.secondary' }}>
             Count: {count}
+          </Typography>
+          <Typography variant="body1" sx={{ color: 'success.main' }}>
+            Price: ${skin_price}
           </Typography>
         </Box>
       </Box>

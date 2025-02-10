@@ -16,7 +16,7 @@ const TradeupsPurchased = () => {
 
   if (isLoading) {
     return (
-      <Box sx={{ p: 2 }}>
+      <Box sx={{ p: 2, backgroundColor: 'background.default', minHeight: '100vh' }}>
         <Typography variant="h6" color="text.secondary">
           Loading...
         </Typography>
@@ -26,7 +26,7 @@ const TradeupsPurchased = () => {
 
   if (error) {
     return (
-      <Box sx={{ p: 2 }}>
+      <Box sx={{ p: 2, backgroundColor: 'background.default', minHeight: '100vh' }}>
         <Typography variant="h6" color="error">
           {error}
         </Typography>

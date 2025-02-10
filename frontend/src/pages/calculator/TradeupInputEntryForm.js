@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { getSkinCondition } from '../../utils/helperFunctions';
+
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
@@ -8,6 +10,8 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemButton from '@mui/material/ListItemButton';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
+import Divider from '@mui/material/Divider';
 import '../../styles/TradeupCalculator.css';
 
 const TradeupInputEntryForm = ({ addEntry, isStattrak, selectedRarity }) => {
@@ -27,6 +31,19 @@ const TradeupInputEntryForm = ({ addEntry, isStattrak, selectedRarity }) => {
   const [totalPages, setTotalPages] = useState(1);
   const [isLoadingSkins, setIsLoadingSkins] = useState(false);
 
+  // List of conditions for skins
+  const skin_conditions = ['Factory New', 'Minimal Wear', 'Field-Tested', 'Well-Worn', 'Battle-Scarred'];
+
+  // Compute the condition based on the current floatValue
+  const skinCondition = getSkinCondition(floatValue);
+
+  // Look up the price for that condition (using the stattrak flag)
+  const skinPrice =
+    selectedSkin &&
+    selectedSkin.conditions &&
+    selectedSkin.conditions[skinCondition] &&
+    selectedSkin.conditions[skinCondition][isStattrak ? 'stattrak' : 'non_stattrak'];
+
   // Fetch filtered skins from the backend
   const fetchFilteredSkins = useCallback(async (page) => {
     try {
@@ -39,6 +56,7 @@ const TradeupInputEntryForm = ({ addEntry, isStattrak, selectedRarity }) => {
       } else {
         setFilteredSkins((prevSkins) => [...prevSkins, ...data.skins]); // Append new skins
       }
+      console.log('data.skins - ', data.skins);
       setTotalPages(data.total_pages);
     } catch (error) {
       console.error('Error fetching filtered skins:', error);
@@ -68,6 +86,7 @@ const TradeupInputEntryForm = ({ addEntry, isStattrak, selectedRarity }) => {
     setSearchQuery('');
     setMinFloat(skin.min_float);
     setMaxFloat(skin.max_float);
+    setFloatValue(skin.min_float);
   };
 
   const handleRemoveSkin = () => {
@@ -101,7 +120,7 @@ const TradeupInputEntryForm = ({ addEntry, isStattrak, selectedRarity }) => {
   };
 
   const addInputEntry = () => {
-    const successfullyAdded = addEntry(selectedSkin, floatValue, count);
+    const successfullyAdded = addEntry(selectedSkin, floatValue, count, skinCondition, skinPrice);
     if (successfullyAdded) {
       handleRemoveSkin();
       setFloatValue(0);
@@ -154,7 +173,7 @@ const TradeupInputEntryForm = ({ addEntry, isStattrak, selectedRarity }) => {
                     >
                         <Typography variant="h6">{selectedSkin.skin_name}</Typography>
                         <Typography variant="body2" color="text.secondary">
-                        {selectedSkin.price ? `$${selectedSkin.price}` : 'Price N/A'}
+                          {skinPrice ? `${skinCondition} | $${skinPrice}` : 'Price N/A'}
                         </Typography>
                     </Box>
 
@@ -223,6 +242,34 @@ const TradeupInputEntryForm = ({ addEntry, isStattrak, selectedRarity }) => {
                     <ListItemButton divider key={idx} onClick={() => handleSkinSelect(skin)}>
                         <img src={skin.image_url} alt={skin.skin_name} className="skin-image-small" />
                         <ListItemText primary={skin.skin_name} /> 
+                        {/* Show prices for the 5 floats. In dark-grey the unavailable floats, and green the available ones.
+                        Box for the outer container, Chips for each float, Divider dividing each chip. */}
+                        <List sx={{ display: 'flex', flexDirection: 'row' }}>
+                            {skin_conditions.map((condition, idx) => (
+                              <React.Fragment key={idx}>
+                                <Chip
+                                  label={
+                                    skin.conditions[condition]
+                                      ? `$${isStattrak ? skin.conditions[condition]['stattrak'] : skin.conditions[condition]['non_stattrak']}`
+                                      : 'N/A'
+                                  }
+                                  color={skin.conditions[condition] ? 'success' : 'default'}
+                                  size="small"
+                                  sx={{
+                                    m: 0, // Remove any default margin
+                                    borderRadius: 0, // Reset the border radius so we can control it on first/last
+                                    // For the first chip, restore the left border radii.
+                                    ...(idx === 0 && {borderTopLeftRadius: 12, borderBottomLeftRadius: 12}),
+                                    // For the last chip, restore the right border radii.
+                                    ...(idx === skin_conditions.length - 1 && {borderTopRightRadius: 12, borderBottomRightRadius: 12}),
+                                  }}
+                                />
+                                {idx !== skin_conditions.length - 1 && (
+                                  <Divider orientation="vertical" flexItem />
+                                )}
+                              </React.Fragment>
+                            ))}
+                        </List>
                     </ListItemButton>
                 ))}
                 </List>

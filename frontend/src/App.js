@@ -1,9 +1,11 @@
-import { lazy, Suspense, useState, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import NavBar from './components/NavBar';
 import ProtectedRoute from './components/ProtectedRoute';
 import Logger from './utils/Logger';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { Box, Typography, CircularProgress } from '@mui/material';
+import NavigationBar from './components/NavigationBar';
 
 const Home = lazy(() => import('./pages/Home'));
 const Login = lazy(() => import('./pages/Login'));
@@ -41,6 +43,20 @@ const theme = createTheme({
         },
     },
 });
+
+const FullScreenLoader = () => (
+  <Box
+    sx={{
+      backgroundColor: 'background.default',
+      minHeight: '100vh',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+    }}
+  >
+    <CircularProgress color="inherit" />
+  </Box>
+);
 
 const App = () => {
 	const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -80,35 +96,33 @@ const App = () => {
 		}
 	};
 
-	if (isLoading) {
-	  return <div>Loading...</div>; // Or a loading spinner component
-	}
-  
 	return (
-		<>
-			{/* <NavBar isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated} /> */}
-			<Suspense fallback={<div className="container">Loading...</div>}>
-				<ThemeProvider theme={theme} defaultMode="dark">
-					<Routes>
-						<Route path="/" element={<Home />} />
-						<Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
+			<ThemeProvider theme={theme} defaultMode="dark">
+				{isLoading ? <FullScreenLoader /> : (
+					<React.Fragment>
+						<NavigationBar />
+						<Suspense fallback={<FullScreenLoader />}>
+								<Routes>
+									<Route path="/" element={<Home />} />
+									<Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
 
-						<Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
-							<Route path="calculator" element={<TradeupCalculator user_role={userRole}/>} />
-						</Route>
+									<Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
+										<Route path="calculator" element={<TradeupCalculator user_role={userRole}/>} />
+									</Route>
 
-						<Route path="/tradeups" element={<Tradeups isAuthenticated={isAuthenticated} />}>
-							<Route path="public" element={<TradeupsPublic />} />
-							<Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
-								<Route path="purchasable" element={<TradeupsPurchasable />} />
-								<Route path="purchased" element={<TradeupsPurchased />} />
-								<Route path="tracked" element={<TradeupsPrivate />} />
-							</Route>
-						</Route>
-					</Routes>
-				</ThemeProvider>
-			</Suspense>
-		</>
+									<Route path="/tradeups" element={<Tradeups isAuthenticated={isAuthenticated} />}>
+										<Route path="public" element={<TradeupsPublic />} />
+										<Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
+											<Route path="purchasable" element={<TradeupsPurchasable />} />
+											<Route path="purchased" element={<TradeupsPurchased />} />
+											<Route path="tracked" element={<TradeupsPrivate />} />
+										</Route>
+									</Route>
+								</Routes>
+						</Suspense>
+					</React.Fragment>
+				)}
+			</ThemeProvider>
 	);
 };
 
