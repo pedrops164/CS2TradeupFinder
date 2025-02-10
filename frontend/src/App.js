@@ -100,7 +100,7 @@ const App = () => {
 			<ThemeProvider theme={theme} defaultMode="dark">
 				{isLoading ? <FullScreenLoader /> : (
 					<React.Fragment>
-						<NavigationBar />
+						<NavigationBar isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated}/>
 						<Suspense fallback={<FullScreenLoader />}>
 								<Routes>
 									<Route path="/" element={<Home />} />

@@ -1,8 +1,29 @@
 import React from 'react';
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate  } from 'react-router-dom';
 
-const NavigationBar = () => {
+const NavigationBar = ({ isAuthenticated, setIsAuthenticated }) => {
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (response.ok) {
+        setIsAuthenticated(false);
+        //alert('Logout successful');
+        navigate('/login');
+      } else {
+        alert('Logout failed');
+      }
+    } catch (error) {
+      //console.error('Logout error:', error);
+      alert('Logout failed');
+    }
+  };
+
   return (
     <>
       {/* The AppBar is fixed at the top */}
@@ -16,7 +37,7 @@ const NavigationBar = () => {
           <Button
             color="inherit"
             component={NavLink}
-            to="/home"
+            to="/"
             sx={{
               '&.active': { fontWeight: 'bold', textDecoration: 'underline' },
             }}
@@ -43,6 +64,23 @@ const NavigationBar = () => {
           >
             Calculator
           </Button>
+          {/* Conditionally render Login/Logout button */}
+          {isAuthenticated ? (
+            <Button color="inherit" onClick={handleLogout}>
+              Logout
+            </Button>
+          ) : (
+            <Button
+              color="inherit"
+              component={NavLink}
+              to="/login"
+              sx={{
+                '&.active': { fontWeight: 'bold', textDecoration: 'underline' },
+              }}
+            >
+              Login
+            </Button>
+          )}
         </Toolbar>
       </AppBar>
       {/* Adding a spacer so that the page content doesn't get hidden under the fixed AppBar */}
