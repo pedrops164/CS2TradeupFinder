@@ -229,6 +229,18 @@ class User(UserMixin, db.Model):
                 db.session.commit()
                 return token.user
 
+    @staticmethod
+    def verify_refresh_token(refresh_token, access_token_jwt):
+        token = Token.from_jwt(access_token_jwt)
+        if token and token.refresh_token == refresh_token:
+            if token.refresh_expiration > naive_utcnow():
+                return token
+
+            # someone tried to refresh with an expired token
+            # revoke all tokens from this user as a precaution
+            token.user.revoke_all()
+            db.session.commit()
+
 import sqlalchemy as sa
 import jwt
 import secrets

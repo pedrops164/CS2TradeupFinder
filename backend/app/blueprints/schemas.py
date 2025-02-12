@@ -69,3 +69,7 @@ class TokenSchema(ma.Schema):
 
     access_token = ma.String(required=True)
     refresh_token = ma.String()
+
+class OAuth2Schema(ma.Schema):
+    code = ma.String(required=True)
+    state = ma.String(required=True)

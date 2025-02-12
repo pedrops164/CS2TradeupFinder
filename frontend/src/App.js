@@ -22,6 +22,8 @@ import TradeupsPurchased from './pages/TradeupsPurchased';
 import TradeupsPrivate from './pages/TradeupsPrivate';
 import PublicRoute from './components/PublicRoute';
 import PrivateRoute from './components/PrivateRoute';
+import SocialLoginPage from './pages/SocialLoginPage';
+import SocialCallbackPage from './pages/SocialCallbackPage';
 
 Logger.initialize({
   minLevel: process.env.NODE_ENV === 'production' ? 'INFO' : 'DEBUG',
@@ -74,6 +76,8 @@ const App = () => {
 						<Routes>
 							<Route path="/" element={<Home />} />
 							<Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+							<Route path="/oauth2/:provider" element={<PublicRoute><SocialLoginPage /></PublicRoute>} />
+							<Route path="/oauth2/:provider/callback" element={<PublicRoute><SocialCallbackPage /></PublicRoute>} />
 
 							<Route path="/calculator" element={<PrivateRoute><TradeupCalculator /></PrivateRoute>} />
 

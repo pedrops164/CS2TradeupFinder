@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -100,6 +100,16 @@ const Login = () => {
             />
             <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
               Login
+            </Button>
+            {/* Button to link to /oauth2/google so that Social Login Page can perform oauth2 log in */}
+            <Button
+              variant="contained"
+              color="primary"
+              fullWidth
+              sx={{ mt: 2 }}
+              onClick={() => navigate('/oauth2/google')}
+            >
+              Login with Google
             </Button>
           </Box>
         </Paper>

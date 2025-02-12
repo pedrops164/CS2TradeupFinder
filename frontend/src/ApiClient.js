@@ -1,4 +1,4 @@
-//https://blog.miguelgrinberg.com/post/the-react-mega-tutorial-chapter-6-building-an-api-client
+//https://github.com/miguelgrinberg/react-microblog/blob/e44edd3264b6261f5630943c9417c00df70909ce/src/MicroblogApiClient.js
 
 const BASE_API_URL = process.env.REACT_APP_BASE_API_URL;
 
@@ -8,6 +8,23 @@ export default class ApiClient {
   }
 
   async request(options) {
+    let response = await this.requestInternal(options);
+    if (response.status === 401 && options.url !== '/tokens') {
+      const refreshResponse = await this.put('/tokens', {
+        access_token: localStorage.getItem('accessToken'),
+      });
+      if (refreshResponse.ok) {
+        localStorage.setItem('accessToken', refreshResponse.body.access_token);
+        response = await this.requestInternal(options);
+      }
+    }
+    //if (response.status >= 500 && this.onError) {
+    //  this.onError(response);
+    //}
+    return response;
+  }
+
+  async requestInternal(options) {
     let query = new URLSearchParams(options.query || {}).toString();
     if (query !== '') {
       query = '?' + query;
@@ -22,6 +39,7 @@ export default class ApiClient {
           'Authorization': 'Bearer ' + localStorage.getItem('accessToken'),
           ...options.headers,
         },
+        credentials: options.url.startsWith('/tokens') ? 'include' : 'omit',
         body: options.body ? JSON.stringify(options.body) : null,
       });
     }

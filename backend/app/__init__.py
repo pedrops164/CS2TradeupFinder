@@ -9,14 +9,17 @@ from .limiter import limiter
 from flask_cors import CORS
 from flask_wtf.csrf import CSRFProtect
 from flask_marshmallow import Marshmallow
+from apifairy import APIFairy
 
 migrate = Migrate()
 login_manager = LoginManager()
 login_manager.login_view = 'bp_authentication.login'
 # need to define this better later
-cors = CORS(origins=["http://localhost:8080"], supports_credentials=True)
+#cors = CORS(origins=["http://localhost:8080"], supports_credentials=True)
+cors = CORS()
 csrf = CSRFProtect()
 ma = Marshmallow()
+apifairy = APIFairy()
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -28,7 +31,9 @@ def create_app(config_class=Config):
     ma.init_app(app)
     login_manager.init_app(app)
     #limiter.init_app(app) -> turn on limiter later
-    cors.init_app(app)
+    if app.config['USE_CORS']:
+        cors.init_app(app)
+    apifairy.init_app(app)
     #csrf.init_app(app) -> need to do some things with postman. Will active this later
 
     # Import and register Blueprints
