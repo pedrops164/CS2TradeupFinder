@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Logger from './utils/Logger';
 
@@ -7,7 +7,6 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { Box, CircularProgress } from '@mui/material';
 
 // components, contexts imports
-import ProtectedRoute from './components/ProtectedRoute';
 import NavigationBar from './components/NavigationBar';
 import ApiProvider from './contexts/ApiProvider';
 import UserProvider from './contexts/UserProvider';
@@ -66,64 +65,12 @@ const theme = createTheme({
 ); */
 
 const App = () => {
-	/* const [isAuthenticated, setIsAuthenticated] = useState(false);
-	const [isLoading, setIsLoading] = useState(true);
-  
-	useEffect(() => {
-	  // Check authentication status when the app loads
-	  checkAuthStatus();
-	}, []);
-
-	const checkAuthStatus = async () => {
-		setIsLoading(true);
-		try {
-			await fetch('/api/check-auth', {
-			method: 'GET',
-			credentials: 'include', // Important for sending cookies
-			})
-			.then(response => {
-				if(!response.ok) throw new Error(response.status);
-				else return response.json();
-			})
-			.then(jsonData => {
-				Logger.info('Authenticated: ' + jsonData.authenticated);
-				Logger.info('role: ' + jsonData.user_role);
-				setUserRole(jsonData.user_role);
-				setIsAuthenticated(jsonData.authenticated);
-			})
-			.catch((error) => {
-				alert('error: ' + error);
-			});
-		} catch (error) {
-			Logger.error('Error checking authentication status:', error);
-			setIsAuthenticated(false);
-		} finally {
-			setIsLoading(false);
-		}
-	}; */
 
 	return (
 			<ThemeProvider theme={theme}>
 				<ApiProvider>
 					<UserProvider>
 						<NavigationBar />
-						{/* <Routes>
-							<Route path="/" element={<Home />} />
-							<Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
-
-							<Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
-								<Route path="calculator" element={<TradeupCalculator user_role={userRole}/>} />
-							</Route>
-
-							<Route path="/tradeups" element={<Tradeups isAuthenticated={isAuthenticated} />}>
-								<Route path="public" element={<TradeupsPublic />} />
-								<Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
-									<Route path="purchasable" element={<TradeupsPurchasable />} />
-									<Route path="purchased" element={<TradeupsPurchased />} />
-									<Route path="tracked" element={<TradeupsPrivate />} />
-								</Route>
-							</Route>
-						</Routes> */}
 						<Routes>
 							<Route path="/" element={<Home />} />
 							<Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
@@ -141,9 +88,6 @@ const App = () => {
 										</Routes>
 									</PrivateRoute>
 								}/>
-								{/* <Route path="purchasable" element={<TradeupsPurchasable />} />
-								<Route path="purchased" element={<TradeupsPurchased />} />
-								<Route path="tracked" element={<TradeupsPrivate />} /> */}
 							</Route>
 						</Routes>
 					</UserProvider>

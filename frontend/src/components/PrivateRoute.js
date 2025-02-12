@@ -10,15 +10,12 @@ export default function PrivateRoute({ children }) {
   const api = useApi();
 
   if (user === undefined) {
-    console.log('user is null');
     return null;
   }
   else if (user) {
     return children;
   }
   else {
-    console.log('isAuthenticated', api.isAuthenticated());
-    console.log('PrivateRoute', user, location.pathname, location.search, location.hash);
     const url = location.pathname + location.search + location.hash;
     return <Navigate to="/login" state={{next: url}} />
   }

@@ -22,9 +22,7 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('submitting login form');
     const result = await login(email, password);
-    console.log('Login result:', result);
     if (result === 'fail') {
       alert('Invalid email or password');
     }

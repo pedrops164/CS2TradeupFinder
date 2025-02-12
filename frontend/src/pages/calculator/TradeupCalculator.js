@@ -8,6 +8,7 @@ import TradeupOutputEntry from './TradeupOutputEntry';
 import { TradeupTypeEnum } from './TradeupTypeEnum';
 import TradeupInputEntryFormNew from './TradeupInputEntryFormNew';
 import { useApi } from '../../contexts/ApiProvider';
+import { useUser } from '../../contexts/UserProvider';
 
 // mui imports
 import Card from '@mui/material/Card';
@@ -24,6 +25,7 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 
 const TradeupCalculator = () => {
+    const { user } = useUser();
     const userRole = 'admin'; // CHANGE LATER !!!!!!!!!!!!!!!!!!!!!
 
     // SET STATES
@@ -199,7 +201,6 @@ const TradeupCalculator = () => {
         calculateTradeupOutput(input_entries)
             .then((result) => {
                 if (result.error) {
-                    console.log(result.error); // Handle error in UI if needed
                     setInputEntryError(result.error)
                 } else {
                     setOutputEntries([...result.output_entries]);
@@ -221,7 +222,6 @@ const TradeupCalculator = () => {
         };
 
         // Make the request to the route
-        console.log('isAuthenticated - ', api.isAuthenticated());
         const response = await api.post('/tradeups/calculate_output', requestData);
 
         // Handle non-200 HTTP responses
@@ -458,12 +458,12 @@ const TradeupCalculator = () => {
                             }}>
                         <CardHeader title="Output Entries" action={
                             <>
-                                {userRole.user_role === 'admin' && (
+                                {user.role === 'admin' && (
                                     <Button onClick={() => handleAddTradeup(TradeupTypeEnum.PUBLIC)} disabled={isAddTradeupDisabled} variant="contained" bgcolor="text.primary">
                                         Add Tradeup
                                     </Button>
                                 )}
-                                {userRole.user_role === 'user' && (
+                                {user.role === 'user' && (
                                     <Button onClick={() => handleAddTradeup(TradeupTypeEnum.PRIVATE)} disabled={isAddTradeupDisabled} variant="contained" bgcolor="text.primary">
                                         Track Tradeup
                                     </Button>

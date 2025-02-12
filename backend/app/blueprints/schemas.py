@@ -1,6 +1,6 @@
 # import marshmallow for schema validation and serialization of data in the request
 from marshmallow import Schema, fields, validate
-from backend.app.models import TradeupType, User
+from backend.app.models import TradeupType, User, UserRole
 from backend.app import ma
 
 class EmptySchema(ma.Schema):
@@ -59,6 +59,9 @@ class UserSchema(ma.SQLAlchemySchema):
     email = ma.auto_field(required=True, validate=[validate.Length(max=120),
                                                    validate.Email()])
     password = ma.String(required=True, load_only=True)
+    # Add the role field using a function to return the enum's value.
+    # role = ma.Function(lambda obj: obj.role.value if obj.role is not None else None)
+    role = fields.Enum(UserRole, required=True, by_value=True)
 
 class TokenSchema(ma.Schema):
     class Meta:

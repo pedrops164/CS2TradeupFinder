@@ -15,7 +15,6 @@ export default class ApiClient {
 
     let response;
     try {
-      console.log('request url - ', this.base_url + options.url + query);
       response = await fetch(this.base_url + options.url + query, {
         method: options.method,
         headers: {
