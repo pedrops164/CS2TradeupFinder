@@ -16,3 +16,7 @@ marshmallow
 Flask-Limiter
 webargs
 flask-cors
+pyjwt
+flask-marshmallow
+marshmallow-sqlalchemy
+apifairy

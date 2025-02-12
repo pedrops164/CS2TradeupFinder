@@ -13,6 +13,7 @@ import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import Divider from '@mui/material/Divider';
 import '../../styles/TradeupCalculator.css';
+import { useApi } from '../../contexts/ApiProvider';
 
 const TradeupInputEntryForm = ({ addEntry, isStattrak, selectedRarity }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,25 +45,25 @@ const TradeupInputEntryForm = ({ addEntry, isStattrak, selectedRarity }) => {
     selectedSkin.conditions[skinCondition] &&
     selectedSkin.conditions[skinCondition][isStattrak ? 'stattrak' : 'non_stattrak'];
 
+  const api = useApi();
+
   // Fetch filtered skins from the backend
   const fetchFilteredSkins = useCallback(async (page) => {
-    try {
-      const response = await fetch(
-        `/api/skins/search?search_string=${searchQuery}&rarity=${selectedRarity}&stattrak=${isStattrak}&page=${page}`
-      );
-      const data = await response.json();
+    const response = await api.get(
+      `/skins/search?search_string=${searchQuery}&rarity=${selectedRarity}&stattrak=${isStattrak}&page=${page}`
+    );
+    const data = response.body;
+    if (response.ok) {
       if (page === 1) {
         setFilteredSkins(data.skins); // Reset the list for the first page
       } else {
         setFilteredSkins((prevSkins) => [...prevSkins, ...data.skins]); // Append new skins
       }
-      console.log('data.skins - ', data.skins);
       setTotalPages(data.total_pages);
-    } catch (error) {
-      console.error('Error fetching filtered skins:', error);
-    } finally {
-      setIsLoadingSkins(false);
+    } else {
+      console.error('Error fetching filtered skins:', data);
     }
+    setIsLoadingSkins(false);
   }, [searchQuery, isStattrak, selectedRarity]);
 
   // Trigger fetch when searchQuery changes

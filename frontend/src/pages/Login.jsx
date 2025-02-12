@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -10,27 +10,30 @@ import {
   FormControlLabel,
   Button
 } from '@mui/material';
+import { useUser } from '../contexts/UserProvider';
 
-const Login = ({ setIsAuthenticated }) => {
+const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useUser();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const response = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, remember_me: rememberMe })
-    });
-    if (response.ok) {
-      setIsAuthenticated(true);
-      //alert('Login successful');
-      navigate('/');
-    } else {
-      const errorData = await response.json();
-      //alert('Login failed: ' + (errorData.error || 'Unknown error'));
+    console.log('submitting login form');
+    const result = await login(email, password);
+    console.log('Login result:', result);
+    if (result === 'fail') {
+      alert('Invalid email or password');
+    }
+    else if (result === 'ok') {
+      let next = '/';
+      if (location.state && location.state.next) {
+        next = location.state.next;
+      }
+      navigate(next);
     }
   };
 

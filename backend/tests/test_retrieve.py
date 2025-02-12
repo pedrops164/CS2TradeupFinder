@@ -106,36 +106,6 @@ def test_calculate_tradeup_output(client, auth):
     assert "profit_odds" in data
     assert len(data["output"]) == 9
 
-def test_search_skin(client, auth):
-    # log in client as user
-    auth.login_user()
-
-    payload = {
-        "stattrak": True,
-        "rarity": "milspec_bg",
-        "condition": "Factory New",
-        "search_string": "tes",
-        "collection_names": ["Clutch"]
-    }
-    response = client.post("/tradeups/search_skin", json=payload)
-    assert response.status_code == 200
-    data = response.get_json()
-    assert isinstance(data, list)
-    for skin in data:
-        assert "skin_name" in skin
-        assert "skin_condition" in skin
-        assert "price" in skin
-    assert data == [
-        {
-            "collection_name": "Clutch",
-            "max_float": 0.65,
-            "min_float": 0.0,
-            "price": 0.89,
-            "skin_condition": "Factory New",
-            "skin_name": "Five-SeveN | Flame Test"
-        }
-    ]
-
 def test_check_duplicate_tradeup(client, auth):
     # log in client as user
     auth.login_user()

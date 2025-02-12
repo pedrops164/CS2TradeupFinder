@@ -9,6 +9,7 @@ import ListItemButton from '@mui/material/ListItemButton';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import '../../styles/TradeupCalculator.css';
+import { useApi } from '../../contexts/ApiProvider';
 import { Autocomplete } from '@mui/material';
 
 const TradeupInputEntryFormNew = ({ addEntry, isStattrak, selectedRarity }) => {
@@ -32,25 +33,26 @@ const TradeupInputEntryFormNew = ({ addEntry, isStattrak, selectedRarity }) => {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
 
+  const api = useApi();
+
   // Fetch filtered skins from the backend
   const fetchFilteredSkins = useCallback(async (page) => {
-    try {
-      const response = await fetch(
-        `/api/skins/search?search_string=${searchQuery}&rarity=${selectedRarity}&stattrak=${isStattrak}&page=${page}`
+      const response = await api.get(
+        `/skins/search?search_string=${searchQuery}&rarity=${selectedRarity}&stattrak=${isStattrak}&page=${page}`
       );
-      const data = await response.json();
-      if (page === 1) {
-        setFilteredSkins(data.skins); // Reset the list for the first page
+      const data = response.body;
+      if (response.ok) {
+        if (page === 1) {
+          setFilteredSkins(data.skins); // Reset the list for the first page
+        } else {
+          setFilteredSkins((prevSkins) => [...prevSkins, ...data.skins]); // Append new skins
+        }
+        setTotalPages(data.total_pages);
       } else {
-        setFilteredSkins((prevSkins) => [...prevSkins, ...data.skins]); // Append new skins
+        console.error('Error fetching filtered skins:', data);
       }
-      setTotalPages(data.total_pages);
-    } catch (error) {
-      console.error('Error fetching filtered skins:', error);
-    } finally {
       setIsLoadingSkins(false);
-    }
-  }, [searchQuery, isStattrak, selectedRarity]);
+    }, [searchQuery, isStattrak, selectedRarity]);
 
   // Trigger fetch when searchQuery changes
   useEffect(() => {

@@ -1,13 +1,15 @@
 from flask import Blueprint, request, jsonify, flash
 from backend.app.database import add_tradeup, add_tradeup_entry, get_skin_condition_id, get_skins_by_name, add_tradeup_collection
 from backend.app.models import Tradeup, InputTradeupEntry, OutputTradeupEntry, TradeupCollections, TradeupType, db
-from flask_login import login_required, current_user
 import logging
 from .schemas import TradeupInputSchema, PurchasableTradeupInputSchema
 from marshmallow import ValidationError
 from backend.src.tradeups import calculate_output_entries
 from backend.app.limiter import limiter
 from webargs.flaskparser import use_kwargs
+
+from backend.app.auth import token_auth
+from apifairy import authenticate # restrict function access to authenticated users
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -16,8 +18,8 @@ logger = logging.getLogger(__name__)
 bp_insert = Blueprint('bp_insert', __name__)
 
 @bp_insert.route('/tradeups/create_public', methods=['POST'])
-@login_required # Ensure only authenticated users can access this route
-@limiter.limit("20 per minute", key_func = lambda : current_user.id)
+@authenticate(token_auth) # Ensure only authenticated users can access this route
+@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().id)
 @use_kwargs(TradeupInputSchema())
 def create_tradeup_public(input_entries, stattrak, input_rarity, name):
     """
@@ -60,8 +62,8 @@ def create_tradeup_public(input_entries, stattrak, input_rarity, name):
         return jsonify({"tradeup_id": tradeup.id, "name": tradeup.name}), 201
     
 @bp_insert.route('/tradeups/create_purchasable', methods=['POST'])
-@login_required # Ensure only authenticated users can access this route
-@limiter.limit("20 per minute", key_func = lambda : current_user.id)
+@authenticate(token_auth) # Ensure only authenticated users can access this route
+@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().id)
 @use_kwargs(PurchasableTradeupInputSchema())
 def create_tradeup_purchasable(input_entries, stattrak, input_rarity, name, tradeup_price):
     """
@@ -105,8 +107,8 @@ def create_tradeup_purchasable(input_entries, stattrak, input_rarity, name, trad
         return jsonify({"tradeup_id": tradeup.id, "name": tradeup.name}), 201
     
 @bp_insert.route('/tradeups/create_private', methods=['POST'])
-@login_required # Ensure only authenticated users can access this route
-@limiter.limit("20 per minute", key_func = lambda : current_user.id)
+@authenticate(token_auth) # Ensure only authenticated users can access this route
+@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().id)
 @use_kwargs(TradeupInputSchema())
 def create_tradeup_private(input_entries, stattrak, input_rarity, name):
     """
@@ -252,7 +254,7 @@ def _tradeup_input_checks(is_stattrak, input_rarity, input_entries_dict, output_
         return "The total count of all entries must be 10", 400
     
     # Check permissions
-    if tradeup_type in [TradeupType.PUBLIC, TradeupType.PURCHASABLE] and current_user.is_user():
+    if tradeup_type in [TradeupType.PUBLIC, TradeupType.PURCHASABLE] and token_auth.current_user().is_user():
         return "Only administrators can create public or purchasable tradeups", 400
 
     if tradeup_type == TradeupType.PUBLIC and tradeup_price:
@@ -350,8 +352,8 @@ def _output_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, 
     return skin_condition_id, None
 
 @bp_insert.route('/tradeups/<int:tradeup_id>/purchase', methods=['POST'])
-@login_required
-@limiter.limit("60 per minute", key_func = lambda : current_user.id)
+@authenticate(token_auth)
+@limiter.limit("60 per minute", key_func = lambda : token_auth.current_user().id)
 def purchase_tradeup(tradeup_id):
     """
     This route allows an authenticated user to purchase a tradeup, adding it to their list of purchased tradeups.
@@ -373,21 +375,21 @@ def purchase_tradeup(tradeup_id):
     if tradeup.tradeup_type != TradeupType.PURCHASABLE:
         return jsonify({"error": "Tradeup with given ID is not purchasable"}), 400
     
-    if tradeup in current_user.tradeups_purchased:
+    if tradeup in token_auth.current_user().tradeups_purchased:
         return jsonify({"error": "User already purchased tradeup"}), 400
     
     # add tradeup to current user
-    current_user.tradeups_purchased.append(tradeup)
+    token_auth.current_user().tradeups_purchased.append(tradeup)
 
     # persist changes in database
     db.session.commit()
 
-    return jsonify({"message": "Tradeup purchased successfully", "user_id": current_user.id}), 200
+    return jsonify({"message": "Tradeup purchased successfully", "user_id": token_auth.current_user().id}), 200
 
 
 @bp_insert.route('/tradeups/<int:tradeup_id>/track', methods=['POST'])
-@login_required
-@limiter.limit("20 per minute", key_func = lambda : current_user.id)
+@authenticate(token_auth)
+@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().id)
 def track_tradeup(tradeup_id):
     """
     This route allows an authenticated user to track a tradeup, adding it to their list of tracked tradeups.
@@ -406,13 +408,13 @@ def track_tradeup(tradeup_id):
     if tradeup is None:
         return jsonify({"error": "No tradeup with given id"}), 400
     
-    if tradeup in current_user.tracked_tradeups:
+    if tradeup in token_auth.current_user().tracked_tradeups:
         return jsonify({"error": "User already tracked the given tradeup"}), 400
     
     # add tradeup to current user
-    current_user.tracked_tradeups.append(tradeup)
+    token_auth.current_user().tracked_tradeups.append(tradeup)
 
     # persist changes in database
     db.session.commit()
 
-    return jsonify({"message": "Tradeup tracked successfully", "user_id": current_user.id}), 200
+    return jsonify({"message": "Tradeup tracked successfully", "user_id": token_auth.current_user().id}), 200

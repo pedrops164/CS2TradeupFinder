@@ -12,7 +12,7 @@ const TradeupsPurchased = () => {
     handlePageChange,
     isLoading,
     error,
-  } = usePagination('/api/tradeups/purchased');
+  } = usePagination('/tradeups/purchased');
 
   if (isLoading) {
     return (

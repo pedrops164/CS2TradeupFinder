@@ -1,25 +1,21 @@
 import React from 'react';
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
 import { NavLink, useNavigate  } from 'react-router-dom';
+import { useApi } from '../contexts/ApiProvider';
+import { useUser } from '../contexts/UserProvider';
 
-const NavigationBar = ({ isAuthenticated, setIsAuthenticated }) => {
+const NavigationBar = () => {
   const navigate = useNavigate();
+  const api = useApi();
+  const { logout } = useUser();
+  const isAuthenticated = api.isAuthenticated();
 
   const handleLogout = async () => {
-    try {
-      const response = await fetch('/api/logout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      if (response.ok) {
-        setIsAuthenticated(false);
-        //alert('Logout successful');
-        navigate('/login');
-      } else {
-        alert('Logout failed');
-      }
-    } catch (error) {
-      //console.error('Logout error:', error);
+    const response = await api.post('/logout');
+    if (response.ok) {
+      await logout();
+      navigate('/login');
+    } else {
       alert('Logout failed');
     }
   };

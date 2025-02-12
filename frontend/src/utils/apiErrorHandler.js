@@ -5,7 +5,7 @@
  */
 export const handleApiError = async (response) => {
     try {
-        const data = await response.json();
+        const data = response.body;
         
         switch (response.status) {
             case 429:

@@ -2,10 +2,13 @@
 import React from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Box, Typography, Paper } from '@mui/material';
+import { useApi } from '../contexts/ApiProvider';
 
-const Tradeups = ({ isAuthenticated }) => {
+const Tradeups = () => {
   const location = useLocation();
   const isSubpageSelected = location.pathname !== '/tradeups';
+  const api = useApi();
+  const isAuthenticated = api.isAuthenticated();
 
   return (
     <Box sx={{ p: 2, backgroundColor: 'background.default', minHeight: '100vh' }}>

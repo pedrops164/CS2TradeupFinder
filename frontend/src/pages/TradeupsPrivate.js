@@ -6,7 +6,7 @@ import Tradeup from '../components/Tradeup';
 
 const TradeupsPrivate = () => {
   const { data: privateTradeups, currentPage, totalPages, handlePageChange, isLoading, error } =
-    usePagination('/api/tradeups/tracked');
+    usePagination('/tradeups/tracked');
 
   if (isLoading) {
     return (

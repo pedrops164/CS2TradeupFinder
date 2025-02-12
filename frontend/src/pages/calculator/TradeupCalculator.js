@@ -7,6 +7,7 @@ import { getSkinCondition } from '../../utils/helperFunctions';
 import TradeupOutputEntry from './TradeupOutputEntry';
 import { TradeupTypeEnum } from './TradeupTypeEnum';
 import TradeupInputEntryFormNew from './TradeupInputEntryFormNew';
+import { useApi } from '../../contexts/ApiProvider';
 
 // mui imports
 import Card from '@mui/material/Card';
@@ -22,7 +23,8 @@ import Switch from '@mui/material/Switch';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 
-const TradeupCalculator = (userRole) => {
+const TradeupCalculator = () => {
+    const userRole = 'admin'; // CHANGE LATER !!!!!!!!!!!!!!!!!!!!!
 
     // SET STATES
     // state to manage tradeup stattrak status
@@ -62,6 +64,8 @@ const TradeupCalculator = (userRole) => {
 
     // State to manage the disabled status of the Add Tradeup button
     const [isAddTradeupDisabled, setIsAddTradeupDisabled] = useState(true);
+
+    const api = useApi();
 
     // Utility function to clear all tradeup-related states
     const clearTradeup = () => {
@@ -209,44 +213,34 @@ const TradeupCalculator = (userRole) => {
     }
 
     const calculateTradeupOutput = async (input_entries) => {
-        try {
-            // Prepare the request data
-            const requestData = {
-                input_entries: input_entries,
-                stattrak: isStattrak,
-                input_rarity: selectedRarity
-            };
+        // Prepare the request data
+        const requestData = {
+            input_entries: input_entries,
+            stattrak: isStattrak,
+            input_rarity: selectedRarity
+        };
 
-            // Make the request to the route
-            const response = await fetch('/api/tradeups/calculate_output', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestData)
-            });
+        // Make the request to the route
+        console.log('isAuthenticated - ', api.isAuthenticated());
+        const response = await api.post('/tradeups/calculate_output', requestData);
 
-            // Handle non-200 HTTP responses
-            if (!response.ok) {
-                const errorMessage = await handleApiError(response);
-                return { error: errorMessage };
-            }
-
-            // Parse the JSON response
-            const data = await response.json();
-
-            return {
-                output_entries: data.output,
-                avg_input_float: data.avg_input_float,
-                tradeup_cost: data.tradeup_cost,
-                profit_avg: data.profit_avg,
-                profit_odds: data.profit_odds
-            };
-        } catch (err) {
+        // Handle non-200 HTTP responses
+        if (!response.ok) {
             return {
                 error: 'Failed to calculate tradeup output. Please try again later.'
             };
         }
+
+        // Parse the JSON response
+        const data = response.body;
+
+        return {
+            output_entries: data.output,
+            avg_input_float: data.avg_input_float,
+            tradeup_cost: data.tradeup_cost,
+            profit_avg: data.profit_avg,
+            profit_odds: data.profit_odds
+        };
     }
 
     const removeEntry = (indexToRemove) => {
@@ -296,41 +290,29 @@ const TradeupCalculator = (userRole) => {
         }
 
         // Check for duplicate tradeup
-        try {
-            const response = await fetch('/api/tradeups/check_duplicate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    input_entries: inputEntries.map((entry, _) => ({
-                        "skin_name": entry.skin_name,
-                        "skin_float": entry.skin_float,
-                        "count": entry.count,
-                        "skin_condition": entry.skin_condition,
-                        "collection_id": entry.collection_id
-                    })),
-                    stattrak: isStattrak,
-                    input_rarity: selectedRarity,
-                    tradeup_type: tradeupType
-                })
-            });
+        const response = await api.post('/tradeups/check_duplicate', {
+                input_entries: inputEntries.map((entry, _) => ({
+                    "skin_name": entry.skin_name,
+                    "skin_float": entry.skin_float,
+                    "count": entry.count,
+                    "skin_condition": entry.skin_condition,
+                    "collection_id": entry.collection_id
+                })),
+                stattrak: isStattrak,
+                input_rarity: selectedRarity,
+                tradeup_type: tradeupType
+        });
 
-            // Handle non-200 HTTP responses
-            if (!response.ok) {
-                const errorMessage = await handleApiError(response);
-                setValidationError(errorMessage);
-                return;
-            }
+        // Handle non-200 HTTP responses
+        if (!response.ok) {
+            const errorMessage = await handleApiError(response);
+            setValidationError(errorMessage);
+            return;
+        }
 
-            const duplicateCheck = await response.json();
-            if (duplicateCheck.is_duplicate) {
-                setValidationError('This tradeup already exists');
-                return;
-            }
-        } catch (error) {
-            console.error('Error checking for duplicate tradeup:', error);
-            setValidationError('Error checking for duplicate tradeup');
+        const duplicateCheck = response.body;
+        if (duplicateCheck.is_duplicate) {
+            setValidationError('This tradeup already exists');
             return;
         }
 
@@ -347,41 +329,26 @@ const TradeupCalculator = (userRole) => {
             }))
         };
 
-        console.log("payload:", payload);
-
         // get api route
         let route = '';
         if (tradeupType === 'public') {
-            route = '/api/tradeups/create_public';
+            route = '/tradeups/create_public';
         } else if (tradeupType === 'purchasable') {
-            route = '/api/tradeups/create_purchasable';
+            route = '/tradeups/create_purchasable';
         } else if (tradeupType === 'private') {
-            route = '/api/tradeups/create_private';
+            route = '/tradeups/create_private';
         }
 
         // make api call with payload
-        try {
-            const response = await fetch(route, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
-    
-            if (!response.ok) {
-                const errorMessage = await handleApiError(response);
-                setValidationError(errorMessage);
-                return;
-            }
+        const add_tradeup_response = await api.post(route, payload);
 
-            await response.json();
-            console.log('Tradeup added successfully!');
-            alert('Tradeup added successfully!');
-        } catch (error) {
-            console.log('Error happened while handling add tradeup:', error);
-            setValidationError('Failed to add tradeup. Please try again.');
+        if (!add_tradeup_response.ok) {
+            const errorMessage = await handleApiError(add_tradeup_response);
+            setValidationError(errorMessage);
+            return;
         }
+
+        alert('Tradeup added successfully!');
     }
 
     return (

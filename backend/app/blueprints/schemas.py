@@ -1,6 +1,10 @@
 # import marshmallow for schema validation and serialization of data in the request
 from marshmallow import Schema, fields, validate
-from backend.app.models import TradeupType
+from backend.app.models import TradeupType, User
+from backend.app import ma
+
+class EmptySchema(ma.Schema):
+    pass
 
 # Define Schemas for request validation
 class InputEntrySchema(Schema):
@@ -45,3 +49,20 @@ class SkinSearchSchema(Schema):
     rarity = fields.String(required=True, validate=validate.OneOf(["consumer_bg", "industrial_bg", "milspec_bg", "restricted_bg", "classified_bg", "covert_bg"]))
     stattrak = fields.Boolean(required=True)
     page = fields.Integer(required=False, load_default=1, validate=validate.Range(min=1))  # Default to page 1
+
+class UserSchema(ma.SQLAlchemySchema):
+    class Meta:
+        model = User
+        ordered = True
+        
+    id = ma.auto_field(dump_only=True)
+    email = ma.auto_field(required=True, validate=[validate.Length(max=120),
+                                                   validate.Email()])
+    password = ma.String(required=True, load_only=True)
+
+class TokenSchema(ma.Schema):
+    class Meta:
+        ordered = True
+
+    access_token = ma.String(required=True)
+    refresh_token = ma.String()

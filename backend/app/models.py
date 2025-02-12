@@ -4,6 +4,7 @@ import sqlalchemy.orm as so
 from werkzeug.security import generate_password_hash, check_password_hash
 import enum
 from sqlalchemy import Enum
+import sqlalchemy as sa
 
 db = SQLAlchemy()
 
@@ -171,6 +172,14 @@ class UserRole(enum.Enum):
     USER = "user"
     ADMIN = "admin"
 
+from datetime import datetime, timedelta, timezone
+# date helper functions for Token and User models
+def aware_utcnow():
+    return datetime.now(timezone.utc)
+
+def naive_utcnow():
+    return aware_utcnow().replace(tzinfo=None)
+
 # user class
 class User(UserMixin, db.Model):
     __tablename__ = "user"
@@ -182,6 +191,10 @@ class User(UserMixin, db.Model):
 
     tradeups_purchased = db.relationship('Tradeup', secondary=tradeup_purchase, back_populates='purchased_by')
     tracked_tradeups = db.relationship('Tradeup', secondary=private_tradeup_user, back_populates='tracked_by')
+
+    last_seen: so.Mapped[datetime] = so.mapped_column(default=naive_utcnow, server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False)
+    tokens: so.WriteOnlyMapped['Token'] = so.relationship(
+        back_populates='user')
 
     def __repr__(self):
         return '<User {}>'.format(self.username)
@@ -197,3 +210,76 @@ class User(UserMixin, db.Model):
     
     def is_user(self):
         return self.role == UserRole.USER
+
+    def ping(self):
+        self.last_seen = naive_utcnow()
+
+    def generate_auth_token(self):
+        token = Token(user=self)
+        token.generate()
+        return token
+
+    @staticmethod
+    def verify_access_token(access_token_jwt, refresh_token=None):
+        token = Token.from_jwt(access_token_jwt)
+        if token:
+            if token.access_expiration > naive_utcnow():
+                token.user.ping() # not implemented
+                db.session.commit()
+                return token.user
+
+import sqlalchemy as sa
+import jwt
+import secrets
+from flask import current_app
+
+class Token(db.Model):
+    __tablename__ = 'tokens'
+
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    access_token: so.Mapped[str] = so.mapped_column(sa.String(64), index=True)
+    access_expiration: so.Mapped[datetime]
+    refresh_token: so.Mapped[str] = so.mapped_column(sa.String(64), index=True)
+    refresh_expiration: so.Mapped[datetime]
+    user_id: so.Mapped[int] = so.mapped_column(
+        sa.ForeignKey('user.id'), index=True)
+
+    user: so.Mapped['User'] = so.relationship(back_populates='tokens')
+
+    @property
+    def access_token_jwt(self):
+        return jwt.encode({'token': self.access_token},
+                          current_app.config['SECRET_KEY'],
+                          algorithm='HS256')
+
+    def generate(self):
+        self.access_token = secrets.token_urlsafe()
+        self.access_expiration = naive_utcnow() + \
+            timedelta(minutes=current_app.config['ACCESS_TOKEN_MINUTES'])
+        self.refresh_token = secrets.token_urlsafe()
+        self.refresh_expiration = naive_utcnow() + \
+            timedelta(days=current_app.config['REFRESH_TOKEN_DAYS'])
+
+    def expire(self, delay=None):
+        if delay is None:  # pragma: no branch
+            # 5 second delay to allow simultaneous requests
+            delay = 5 if not current_app.testing else 0
+        self.access_expiration = naive_utcnow() + timedelta(seconds=delay)
+        self.refresh_expiration = naive_utcnow() + timedelta(seconds=delay)
+
+    @staticmethod
+    def clean():
+        """Remove any tokens that have been expired for more than a day."""
+        yesterday = naive_utcnow() - timedelta(days=1)
+        db.session.query(Token).filter(Token.refresh_expiration < yesterday).delete()
+
+    @staticmethod
+    def from_jwt(access_token_jwt):
+        access_token = None
+        try:
+            access_token = jwt.decode(access_token_jwt,
+                                      current_app.config['SECRET_KEY'],
+                                      algorithms=['HS256'])['token']
+            return db.session.query(Token).filter_by(access_token=access_token).first()
+        except jwt.PyJWTError:
+            pass

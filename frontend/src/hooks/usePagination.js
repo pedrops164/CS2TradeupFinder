@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useApi } from '../contexts/ApiProvider';
 
 // Custom Hook: usePagination
 const usePagination = (apiUrl) => {
@@ -9,13 +10,16 @@ const usePagination = (apiUrl) => {
   const [error, setError] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
+  const api = useApi();
 
   useEffect(() => {
     setIsLoading(true);
     setError(null);
-    fetch(`${apiUrl}?page=${currentPage}`)
-      .then(response => response.json())
-      .then(responseData => {
+    
+    // fetch(`${apiUrl}?page=${currentPage}`)
+    api.get(apiUrl, { page: currentPage })
+      .then(response => {
+        const responseData = response.body;
         setData(responseData.tradeups);
         setTotalPages(responseData.total_pages);
         setIsLoading(false);
