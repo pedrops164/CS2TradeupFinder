@@ -1,23 +1,15 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
 import { NavLink, useNavigate  } from 'react-router-dom';
-import { useApi } from '../contexts/ApiProvider';
 import { useUser } from '../contexts/UserProvider';
 
 const NavigationBar = () => {
   const navigate = useNavigate();
-  const api = useApi();
-  const { logout } = useUser();
-  const isAuthenticated = api.isAuthenticated();
+  const { user, logout } = useUser();
 
   const handleLogout = async () => {
-    const response = await api.post('/logout');
-    if (response.ok) {
-      await logout();
-      navigate('/login');
-    } else {
-      alert('Logout failed');
-    }
+    await logout();
+    navigate('/login');
   };
 
   return (
@@ -61,7 +53,7 @@ const NavigationBar = () => {
             Calculator
           </Button>
           {/* Conditionally render Login/Logout button */}
-          {isAuthenticated ? (
+          {user ? (
             <Button color="inherit" onClick={handleLogout}>
               Logout
             </Button>

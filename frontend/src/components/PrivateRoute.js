@@ -2,10 +2,12 @@
 
 import { useLocation, Navigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserProvider';
+import { useApi } from '../contexts/ApiProvider';
 
 export default function PrivateRoute({ children }) {
   const { user } = useUser();
   const location = useLocation();
+  const api = useApi();
 
   if (user === undefined) {
     console.log('user is null');
@@ -15,6 +17,7 @@ export default function PrivateRoute({ children }) {
     return children;
   }
   else {
+    console.log('isAuthenticated', api.isAuthenticated());
     console.log('PrivateRoute', user, location.pathname, location.search, location.hash);
     const url = location.pathname + location.search + location.hash;
     return <Navigate to="/login" state={{next: url}} />

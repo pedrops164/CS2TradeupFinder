@@ -159,7 +159,7 @@ def search_skins(search_string, rarity, stattrak, page):
 
     # Get unique Skin IDs that match the filters
     skin_query = db.session.query(Skin.id)\
-        .filter(Skin.quality == rarity)
+        .filter(Skin.quality == rarity, Skin.last_of_rarity == False, Skin.stattrak_available | not_(stattrak))
 
     # Apply the stattrak filter
     if stattrak:
@@ -189,7 +189,7 @@ def search_skins(search_string, rarity, stattrak, page):
         Collection.id.label('collection_id')
     ).join(SkinCondition, Skin.id == SkinCondition.skin_id)\
      .join(Collection, Collection.id == Skin.collection_id)\
-     .filter(Skin.stattrak_available | not_(stattrak), Skin.id.in_(skin_ids))
+     .filter(Skin.id.in_(skin_ids))\
 
     # Organize the results into the same structure as get_all_skins
     skins_dict = {}

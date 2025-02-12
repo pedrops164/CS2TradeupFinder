@@ -29,6 +29,7 @@ class Skin(db.Model):
     collection_id = db.Column(db.Integer, db.ForeignKey('collections.id'))
     quality = db.Column(db.String)
     image_name = db.Column(db.String(64), nullable=True, default=None)
+    last_of_rarity = db.Column(db.Boolean, nullable=False, default=False, server_default=sa.text("0"))
     
     @staticmethod
     def get_float_str(float_value: float):
