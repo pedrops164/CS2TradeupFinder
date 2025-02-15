@@ -5,7 +5,7 @@ import gc
 import statistics
 
 from backend.src.solvers.solver_manager import SearchSpace
-from backend.src.main import solve
+from backend.src.solvers.solver_manager import search_solve_tradeup, SearchSpace
 
 log_file_name = 'benchmarks_log.txt'
 script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in
@@ -41,19 +41,19 @@ def benchmark_time(log_file=output_file_path, num_runs=5, warmup_runs=1):
 def benchmark1():
     gc.collect()
     search_space = SearchSpace(range(1,37), [0.3], ["milspec_bg"], [False], 'single')
-    solve(search_space)
+    search_solve_tradeup(search_space)
 
 @benchmark_time()
 def benchmark2():
     gc.collect()
     search_space = SearchSpace(range(1,10), [0.5], ["milspec_bg"], [False], 'double')
-    solve(search_space)
+    search_solve_tradeup(search_space)
 
 @benchmark_time()
 def benchmark3():
     gc.collect()
     search_space = SearchSpace(range(1,10), [0.3], ["industrial_bg"], [False], 'all')
-    solve(search_space)
+    search_solve_tradeup(search_space)
 
 def run_benchmarks(name=None):
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')

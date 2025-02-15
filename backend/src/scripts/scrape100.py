@@ -5,10 +5,9 @@ import os
 import time
 import re
 from backend.app.database import update_weapon_paint_price
+from backend.src.logs import get_output_log_path
 
-log_file_name = 'logs/scrape100.log'
-script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in
-output_log_path = os.path.join(script_dir, log_file_name)
+output_log_path = get_output_log_path('scrape100.log')
 
 # configure logging
 logging.basicConfig(level=logging.INFO,
@@ -54,11 +53,12 @@ def fetch_json(start):
     """
     retries = 0
     max_retries = 8
-    wait_time = 2
+    wait_time = 5 # wait 5 seconds between requests - 10 requests per minute
     url = \
     f"https://steamcommunity.com/market/search/render/?search_descriptions=0&sort_column=name&sort_dir=desc&appid={cs2_app_id}&norender=1&count={page_size}&start={start}"
 
     while retries < max_retries:
+        time.sleep(wait_time)
         try:
             # do http request
             response = requests.get(url, timeout=40, verify=False)
@@ -77,8 +77,7 @@ def fetch_json(start):
             pass
 
         # execution only gets here if request fails
-        # we sleep and square the wait time
-        time.sleep(wait_time)
+        # we square the wait time
         wait_time = wait_time**2
         # increase retries
         retries += 1
@@ -120,7 +119,8 @@ def update_all_weapon_paints_prices():
     """
     Updates the price of all skins through the steam market which have more than 5 listings and are relevant from tradeups (we exclude knifes, stickers, etc)
     """
-    start=2750 # index where non knives skins start, sorted by name
+    #start=2750 # index where non knives skins start, sorted by name
+    start=2750
     while start < total_skin_count:
         skin_dict_array = fetch_json(start)
         if skin_dict_array:

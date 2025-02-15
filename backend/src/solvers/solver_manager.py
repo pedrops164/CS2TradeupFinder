@@ -16,6 +16,7 @@ from contextlib import nullcontext
 import json
 import os
 from typing import List
+from backend.app.database import get_tradeup_dataframe
 
 script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in
 
@@ -52,7 +53,7 @@ class SearchSpace:
         self.solve = solve
         self.write_output_file = write_output_file
 
-def search_solve_tradeup(df, search_space: SearchSpace):
+def search_solve_tradeup(search_space: SearchSpace):
     """
     Searches and solves tradeups for the specified collections and settings.
     
@@ -65,6 +66,7 @@ def search_solve_tradeup(df, search_space: SearchSpace):
             - stattrak (bool or List[bool]): Indicates whether the skins are stattrak or list of bools.
             - solve (str): Which tradeup solver to use ('single', 'double', or 'all'). Defaults to 'all'.
     """
+    df = get_tradeup_dataframe()
     # Unpack the config dictionary
     collection_names_subset = search_space.collection_names_subset
     ratios = search_space.ratio

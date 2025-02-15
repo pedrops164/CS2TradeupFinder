@@ -1,0 +1,1 @@
+# Scripts folder is used to store all the scripts that are used to perform some action on the backend server.
