@@ -102,6 +102,17 @@ export default class ApiClient {
     localStorage.setItem('accessToken', response.body.access_token);
     return 'ok';
   }
+
+  async steamLogin(steam_id) {
+    const response = await this.post('/tokens/steam', {
+      steam_id,
+    }, {});
+    if (!response.ok) {
+      return response.status === 401 ? 'fail' : 'error';
+    }
+    localStorage.setItem('accessToken', response.body.access_token);
+    return 'ok';
+  }
   
   async logout() {
     await this.delete('/tokens');

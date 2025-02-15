@@ -11,7 +11,7 @@ from flask_wtf.csrf import CSRFProtect
 from flask_marshmallow import Marshmallow
 from apifairy import APIFairy
 
-migrate = Migrate()
+migrate = Migrate(render_as_batch=True)
 login_manager = LoginManager()
 login_manager.login_view = 'bp_authentication.login'
 # need to define this better later

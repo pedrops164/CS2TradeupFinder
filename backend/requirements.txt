@@ -20,3 +20,4 @@ pyjwt
 flask-marshmallow
 marshmallow-sqlalchemy
 apifairy
+python3-openid

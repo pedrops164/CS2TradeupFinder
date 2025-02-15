@@ -26,7 +26,7 @@ bp_retrieve = Blueprint('bp_retrieve', __name__)
 # Define routes
 @bp_retrieve.route('/tradeups/tracked', methods=['GET'])
 @authenticate(token_auth)
-@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().id)
+@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().steam_id)
 def get_tradeups():
     """
     This route returns a list of tracked tradeups for the authenticated user. Each tradeup is represented by a dictionary
@@ -47,7 +47,7 @@ def get_tradeups():
         - profit_avg_pctg: Average percentage of profit.
         - profit_odds: Odds of making a profit.
     """
-    logger.info("Fetching tracked tradeups for user: %s", token_auth.current_user().id)
+    logger.info("Fetching tracked tradeups for user: %s", token_auth.current_user().steam_id)
 
     tracked_tradeups = []
 
@@ -98,7 +98,7 @@ def get_tradeups():
 
 @bp_retrieve.route('/tradeups/calculate_output', methods=['POST'])
 @authenticate(token_auth)
-@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().id)
+@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().steam_id)
 @use_kwargs(TradeupInputSchema())
 def get_tradeup_output(input_entries, stattrak, input_rarity, name):
     """
@@ -118,7 +118,7 @@ def get_tradeup_output(input_entries, stattrak, input_rarity, name):
         - profit_avg: Average percentage of profit.
         - profit_odds: Odds of making a profit.
     """
-    #logger.info("Calculating tradeup output for user: %s", token_auth.current_user().id)
+    #logger.info("Calculating tradeup output for user: %s", token_auth.current_user().steam_id)
 
     try:
         output_entries = calculate_output_entries(input_entries, stattrak, input_rarity)
@@ -239,7 +239,7 @@ def search_skins(search_string, rarity, stattrak, page):
 
 @bp_retrieve.route('/tradeups/purchasable', methods=['GET'])
 @authenticate(token_auth)
-@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().id)
+@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().steam_id)
 def get_purchasable_tradeups():
     """
     This route provides a list of tradeups available for purchase.
@@ -256,7 +256,7 @@ def get_purchasable_tradeups():
 
 @bp_retrieve.route('/tradeups/purchased', methods=['GET'])
 @authenticate(token_auth)
-@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().id)
+@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().steam_id)
 def get_purchased_tradeups():
     """
     This route provides a list of tradeups that were purchased by the user
@@ -303,7 +303,7 @@ def get_public_tradeups():
 
 @bp_retrieve.route('/tradeups/check_duplicate', methods=['POST'])
 @authenticate(token_auth)
-@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().id)
+@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().steam_id)
 @use_kwargs(DuplicateTradeupCheckSchema())
 def check_duplicate_tradeup(input_entries, stattrak, input_rarity, name, tradeup_price, tradeup_type):
     """
@@ -319,7 +319,7 @@ def check_duplicate_tradeup(input_entries, stattrak, input_rarity, name, tradeup
         JSON response with:
         - is_duplicate (bool): Indicates if the tradeup is a duplicate.
     """
-    logger.info("Checking for duplicate tradeup for user: %s", token_auth.current_user().id)
+    logger.info("Checking for duplicate tradeup for user: %s", token_auth.current_user().steam_id)
 
     try:
         # Query the database to check for duplicates

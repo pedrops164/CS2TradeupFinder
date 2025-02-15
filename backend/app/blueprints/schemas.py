@@ -55,12 +55,13 @@ class UserSchema(ma.SQLAlchemySchema):
         model = User
         ordered = True
         
-    id = ma.auto_field(dump_only=True)
-    email = ma.auto_field(required=True, validate=[validate.Length(max=120),
+    steam_id = ma.auto_field(dump_only=True)
+    avatar_url = ma.auto_field(required=False, dump_only=True)
+    personaname = ma.auto_field(required=False, dump_only=True)
+    signup_date = ma.auto_field(dump_only=True)
+    email = ma.auto_field(required=False, validate=[validate.Length(max=120),
                                                    validate.Email()])
-    password = ma.String(required=True, load_only=True)
     # Add the role field using a function to return the enum's value.
-    # role = ma.Function(lambda obj: obj.role.value if obj.role is not None else None)
     role = fields.Enum(UserRole, required=True, by_value=True)
 
 class TokenSchema(ma.Schema):
@@ -73,3 +74,6 @@ class TokenSchema(ma.Schema):
 class OAuth2Schema(ma.Schema):
     code = ma.String(required=True)
     state = ma.String(required=True)
+
+class SteamSchema(ma.Schema):
+    steam_id = ma.String(required=True)

@@ -3,10 +3,19 @@ from flask_login import UserMixin
 import sqlalchemy.orm as so
 from werkzeug.security import generate_password_hash, check_password_hash
 import enum
-from sqlalchemy import Enum
+from sqlalchemy import Enum, MetaData
 import sqlalchemy as sa
 
-db = SQLAlchemy()
+convention = {
+    "ix": 'ix_%(column_0_label)s',
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s"
+}
+metadata = MetaData(naming_convention=convention)
+
+db = SQLAlchemy(metadata=metadata)
 
 # Define the models (database tables)
 class Collection(db.Model):
@@ -63,12 +72,12 @@ class TradeupType(enum.Enum):
     PRIVATE = "private"
 
 tradeup_purchase = db.Table('tradeup_purchase',
-    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
+    db.Column('user_id', db.Integer, db.ForeignKey('user.steam_id'), primary_key=True),
     db.Column('tradeup_id', db.Integer, db.ForeignKey('tradeup.id'), primary_key=True)
 )
 
 private_tradeup_user = db.Table('private_tradeup_user',
-    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
+    db.Column('user_id', db.Integer, db.ForeignKey('user.steam_id'), primary_key=True),
     db.Column('tradeup_id', db.Integer, db.ForeignKey('tradeup.id'), primary_key=True)
 )
     
@@ -185,10 +194,12 @@ def naive_utcnow():
 class User(UserMixin, db.Model):
     __tablename__ = "user"
 
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), index=True, unique=True)
-    password_hash = db.Column(db.String(256))
+    steam_id = db.Column(db.String(32), primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=True)
     role = db.Column(db.Enum(UserRole), nullable=False, default=UserRole.USER)
+    avatar_url = db.Column(db.String(256), nullable=True)
+    personaname = db.Column(db.String(32), nullable=True)
+    signup_date: so.Mapped[datetime] = so.mapped_column(default=naive_utcnow, server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False)
 
     tradeups_purchased = db.relationship('Tradeup', secondary=tradeup_purchase, back_populates='purchased_by')
     tracked_tradeups = db.relationship('Tradeup', secondary=private_tradeup_user, back_populates='tracked_by')
@@ -255,7 +266,7 @@ class Token(db.Model):
     refresh_token: so.Mapped[str] = so.mapped_column(sa.String(64), index=True)
     refresh_expiration: so.Mapped[datetime]
     user_id: so.Mapped[int] = so.mapped_column(
-        sa.ForeignKey('user.id'), index=True)
+        sa.ForeignKey('user.steam_id'), index=True)
 
     user: so.Mapped['User'] = so.relationship(back_populates='tokens')
 

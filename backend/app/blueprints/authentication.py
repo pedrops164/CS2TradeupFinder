@@ -5,6 +5,11 @@ from backend.app.models import db, User, UserRole
 from backend.app.database import add_user
 import sqlalchemy as sa
 
+# Configure logging
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 bp_auth = Blueprint('bp_authentication', __name__)
 
 @bp_auth.route('/login', methods=['GET', 'POST'])

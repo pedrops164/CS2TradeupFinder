@@ -2,12 +2,13 @@
 from apifairy import authenticate, body, response, other_responses
 from backend.app.auth import token_auth, basic_auth
 from backend.app.models import Token, db, User, UserRole
-from .schemas import TokenSchema, EmptySchema, OAuth2Schema
-from flask import Blueprint, current_app, request, url_for, abort, session
+from .schemas import TokenSchema, EmptySchema, OAuth2Schema, SteamSchema
+from flask import Blueprint, current_app, request, url_for, abort, session, redirect
 from werkzeug.http import dump_cookie
 import secrets
 import requests
 from urllib.parse import urlencode
+import os
 
 # Configure logging
 import logging
@@ -162,6 +163,99 @@ def oauth2_new(args, provider):
     if user is None:
         #user = User(email=email, username=email.split('@')[0])
         user = User(email=email, role=UserRole.USER)
+        db.session.add(user)
+    token = user.generate_auth_token()
+    db.session.add(token)
+    Token.clean()  # keep token table clean of old tokens
+    db.session.commit()
+    return token_response(token)
+
+
+# https://github.com/fourcube/minimal-steam-openid/blob/master/server.py
+# Logging in steam with openid
+from urllib.parse import urlencode
+from json import dumps
+
+steam_openid_url = 'https://steamcommunity.com/openid/login'
+
+@bp_tokens.route('/tokens/steam', methods=['GET'])
+def openid_steam_authorize():
+    logger.info('openid_steam_authorize')
+    params = {
+        'openid.ns': "http://specs.openid.net/auth/2.0",
+        'openid.identity': "http://specs.openid.net/auth/2.0/identifier_select",
+        'openid.claimed_id': "http://specs.openid.net/auth/2.0/identifier_select",
+        'openid.mode': 'checkid_setup',
+        'openid.return_to': 'http://localhost:8080/steam/login',
+        'openid.realm': 'http://localhost:8080'
+    }
+
+    query_string = urlencode(params)
+    auth_url = steam_openid_url + "?" + query_string
+    return redirect(auth_url)
+
+@bp_tokens.route('/tokens/steam', methods=['POST'])
+@body(SteamSchema())
+@response(TokenSchema())
+@other_responses({404: 'Unknown Steam id',
+                 500: 'Internal server error'})
+def openid_steam_new(args):
+    logger.info('openid_steam_new')
+    steam_id = args['steam_id']
+    
+    # Get the API key from the environment variable.
+    api_key = os.environ.get("STEAM_API_KEY")
+    if not api_key:
+        logger.error("STEAM_API_KEY environment variable not set.")
+        abort(500)
+
+    # Prepare the Steam API URL.
+    api_url = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/"
+    params = {
+        'key': api_key,
+        'format': 'json',
+        'steamids': steam_id
+    }
+    
+    # Make the API request.
+    response = requests.get(api_url, params=params)
+    try:
+        data = response.json()
+    except Exception as e:
+        logger.error("Failed to parse JSON from Steam API: %s", e)
+        abort(500)
+
+    # Get player data (we expect one player)
+    players = data.get("response", {}).get("players", [])
+    if not players:
+        logger.error("No player data found in Steam API response.")
+        abort(404)
+    player = players[0]
+
+    # Extract the persona name and avatar URL.
+    personaname = player.get("personaname")
+    avatar_url = player.get("avatar")
+
+    result = {
+        "steam_id": steam_id,
+        "personaname": personaname,
+        "avatar_url": avatar_url
+    }
+    logger.info("Steam login successful: %s", result)
+
+    # 3. Check if a user with this steam_id already exists.
+    user = User.query.filter_by(steam_id=steam_id).first()
+    if user:
+        # User exists, update information if necessary.
+        user.personaname = personaname
+        user.avatar_url = avatar_url
+    else:
+        # Create a new user with the required steam_id.
+        user = User(
+            steam_id=steam_id,
+            personaname=personaname,
+            avatar_url=avatar_url
+        )
         db.session.add(user)
     token = user.generate_auth_token()
     db.session.add(token)

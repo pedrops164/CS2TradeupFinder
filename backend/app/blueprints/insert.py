@@ -19,7 +19,7 @@ bp_insert = Blueprint('bp_insert', __name__)
 
 @bp_insert.route('/tradeups/create_public', methods=['POST'])
 @authenticate(token_auth) # Ensure only authenticated users can access this route
-@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().id)
+@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().steam_id)
 @use_kwargs(TradeupInputSchema())
 def create_tradeup_public(input_entries, stattrak, input_rarity, name):
     """
@@ -63,7 +63,7 @@ def create_tradeup_public(input_entries, stattrak, input_rarity, name):
     
 @bp_insert.route('/tradeups/create_purchasable', methods=['POST'])
 @authenticate(token_auth) # Ensure only authenticated users can access this route
-@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().id)
+@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().steam_id)
 @use_kwargs(PurchasableTradeupInputSchema())
 def create_tradeup_purchasable(input_entries, stattrak, input_rarity, name, tradeup_price):
     """
@@ -108,7 +108,7 @@ def create_tradeup_purchasable(input_entries, stattrak, input_rarity, name, trad
     
 @bp_insert.route('/tradeups/create_private', methods=['POST'])
 @authenticate(token_auth) # Ensure only authenticated users can access this route
-@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().id)
+@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().steam_id)
 @use_kwargs(TradeupInputSchema())
 def create_tradeup_private(input_entries, stattrak, input_rarity, name):
     """
@@ -353,7 +353,7 @@ def _output_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, 
 
 @bp_insert.route('/tradeups/<int:tradeup_id>/purchase', methods=['POST'])
 @authenticate(token_auth)
-@limiter.limit("60 per minute", key_func = lambda : token_auth.current_user().id)
+@limiter.limit("60 per minute", key_func = lambda : token_auth.current_user().steam_id)
 def purchase_tradeup(tradeup_id):
     """
     This route allows an authenticated user to purchase a tradeup, adding it to their list of purchased tradeups.
@@ -384,12 +384,12 @@ def purchase_tradeup(tradeup_id):
     # persist changes in database
     db.session.commit()
 
-    return jsonify({"message": "Tradeup purchased successfully", "user_id": token_auth.current_user().id}), 200
+    return jsonify({"message": "Tradeup purchased successfully", "user_id": token_auth.current_user().steam_id}), 200
 
 
 @bp_insert.route('/tradeups/<int:tradeup_id>/track', methods=['POST'])
 @authenticate(token_auth)
-@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().id)
+@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().steam_id)
 def track_tradeup(tradeup_id):
     """
     This route allows an authenticated user to track a tradeup, adding it to their list of tracked tradeups.
@@ -417,4 +417,4 @@ def track_tradeup(tradeup_id):
     # persist changes in database
     db.session.commit()
 
-    return jsonify({"message": "Tradeup tracked successfully", "user_id": token_auth.current_user().id}), 200
+    return jsonify({"message": "Tradeup tracked successfully", "user_id": token_auth.current_user().steam_id}), 200

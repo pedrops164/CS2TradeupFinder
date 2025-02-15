@@ -37,13 +37,22 @@ export default function UserProvider({ children }) {
     return result;
   }, [api]);
 
+  const steamLogin = useCallback(async (steam_id) => {
+    const result = await api.steamLogin(steam_id);
+    if (result === 'ok') {
+      const response = await api.get('/me');
+      setUser(response.ok ? response.body : null);
+    }
+    return result;
+  }, [api]);
+
   const logout = async () => {
     await api.logout();
     setUser(null);
   };
 
   return (
-    <UserContext.Provider value={{ user, setUser, login, oauth2Login, logout }}>
+    <UserContext.Provider value={{ user, setUser, login, oauth2Login, steamLogin, logout }}>
       {children}
     </UserContext.Provider>
   );

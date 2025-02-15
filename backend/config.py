@@ -26,7 +26,17 @@ class Config:
             },
             'scopes': ['https://www.googleapis.com/auth/userinfo.email',
                     'https://www.googleapis.com/auth/userinfo.profile'],
-            }
+            },
+        'steam': {
+            'client_id': os.environ.get('STEAM_CLIENT_ID'),
+            'client_secret': os.environ.get('STEAM_CLIENT_SECRET'),
+            'authorize_url': 'https://steamcommunity.com/oauth/login?response_type=token&client_id={client_id}&state={state}',
+            'get_user': {
+                'url': 'https://api.steampowered.com/ISteamUserOAuth/GetTokenDetails/v1/?access_token={access_token}',
+                'email': lambda json: json['response']['players'][0]['personaname'],
+            },
+            'scopes': [],
+        }
     }
     OAUTH2_REDIRECT_URI = os.environ.get('OAUTH2_REDIRECT_URI')
     ACCESS_TOKEN_MINUTES = int(os.environ.get('ACCESS_TOKEN_MINUTES') or '15')

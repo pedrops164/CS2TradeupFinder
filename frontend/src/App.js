@@ -13,7 +13,6 @@ import UserProvider from './contexts/UserProvider';
 
 // pages imports
 import Home from './pages/Home';
-import Login from './pages/Login';
 import TradeupCalculator from './pages/calculator/TradeupCalculator';
 import Tradeups from './pages/Tradeups';
 import TradeupsPublic from './pages/TradeupsPublic';
@@ -24,6 +23,7 @@ import PublicRoute from './components/PublicRoute';
 import PrivateRoute from './components/PrivateRoute';
 import SocialLoginPage from './pages/SocialLoginPage';
 import SocialCallbackPage from './pages/SocialCallbackPage';
+import SteamCallbackPage from './pages/SteamCallbackPage';
 
 Logger.initialize({
   minLevel: process.env.NODE_ENV === 'production' ? 'INFO' : 'DEBUG',
@@ -75,9 +75,9 @@ const App = () => {
 						<NavigationBar />
 						<Routes>
 							<Route path="/" element={<Home />} />
-							<Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-							<Route path="/oauth2/:provider" element={<PublicRoute><SocialLoginPage /></PublicRoute>} />
-							<Route path="/oauth2/:provider/callback" element={<PublicRoute><SocialCallbackPage /></PublicRoute>} />
+							{/* <Route path="/oauth2/:provider" element={<PublicRoute><SocialLoginPage /></PublicRoute>} />
+							<Route path="/oauth2/:provider/callback" element={<PublicRoute><SocialCallbackPage /></PublicRoute>} /> */}
+							<Route path="/steam/login" element={<PublicRoute><SteamCallbackPage /></PublicRoute>} />
 
 							<Route path="/calculator" element={<PrivateRoute><TradeupCalculator /></PrivateRoute>} />
 
