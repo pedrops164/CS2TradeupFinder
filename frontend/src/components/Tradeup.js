@@ -25,7 +25,7 @@ const Tradeup = ({ tradeup }) => {
             Input Cost: {tradeup.input_skins_cost.toFixed(2)}€
           </Typography>
           <Typography variant="body2">
-            Profit: {tradeup.profit_avg_pctg.toFixed(2)}%
+            Average Return: {tradeup.profit_avg_pctg.toFixed(2)}%
           </Typography>
           <Typography variant="body2">
             Profit Odds: {tradeup.profit_odds.toFixed(2)}%

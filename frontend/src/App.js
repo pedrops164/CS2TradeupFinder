@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Logger from './utils/Logger';
 
 // mui imports
@@ -78,21 +78,9 @@ const App = () => {
 							{/* <Route path="/oauth2/:provider" element={<PublicRoute><SocialLoginPage /></PublicRoute>} />
 							<Route path="/oauth2/:provider/callback" element={<PublicRoute><SocialCallbackPage /></PublicRoute>} /> */}
 							<Route path="/steam/login" element={<PublicRoute><SteamCallbackPage /></PublicRoute>} />
-
 							<Route path="/calculator" element={<PrivateRoute><TradeupCalculator /></PrivateRoute>} />
-
-							<Route path="/tradeups" element={<Tradeups />}>
-								<Route path="public" element={<TradeupsPublic />} />
-								<Route path="*" element={
-									<PrivateRoute>
-										<Routes>
-											<Route path="purchasable" element={<TradeupsPurchasable />} />
-											<Route path="purchased" element={<TradeupsPurchased />} />
-											<Route path="tracked" element={<TradeupsPrivate />} />
-										</Routes>
-									</PrivateRoute>
-								}/>
-							</Route>
+							<Route path="/tradeups" element={<Tradeups />} />
+							<Route path="/tradeups/:option" element={<Tradeups />} />
 						</Routes>
 					</UserProvider>
 				</ApiProvider>

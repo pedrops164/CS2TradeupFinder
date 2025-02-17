@@ -49,52 +49,32 @@ def get_tradeups():
     """
     logger.info("Fetching tracked tradeups for user: %s", token_auth.current_user().steam_id)
 
-    tracked_tradeups = []
+    # Get the page number from the query parameters, defaulting to 1
+    page = request.args.get('page', 1, type=int)
+    # Get the sort_by parameter from the URL query parameters, defaulting to 'avg_profitability'
+    sort_by = request.args.get('sort_by', 'avg_profitability', type=str)
+    # Get the number of tradeups per page from the app config
+    tradeups_per_page = current_app.config.get('TRADEUPS_PER_PAGE', 10)  # Default to 10 if not set
 
     # Parsing each tradeup separately
-    for tradeup in token_auth.current_user().tracked_tradeups:
-        input_entries_dict: List[InputEntryDict] = []
-        output_entries_dict: List[OutputEntryDict] = []
-        collection_names: List[str] = []
-
-        tradeup_id = tradeup.id
-        tradeup_name = tradeup.name
-        tradeup_input_rarity = tradeup.input_rarity
-        tradeup_stattrak = tradeup.stattrak
-        
-        for input_entry in tradeup.input_entries:
-            # parse each input entry, create the dictionary, and add to the array of input entries
-            input_entry_dict = get_input_entry_dict(input_entry)
-            input_entries_dict.append(input_entry_dict)
+    tracked_tradeups = token_auth.current_user().tracked_tradeups
     
-        for output_entry in tradeup.output_entries:
-            # parse each output entry, create the dictionary, and add to the array of output entries
-            output_entry_dict = get_output_entry_dict(output_entry)
-            output_entries_dict.append(output_entry_dict)
+    # Apply sorting based on the sort_by parameter
+    if sort_by == 'avg_profitability':
+        tracked_tradeups = tracked_tradeups.order_by(Tradeup.avg_profitability.desc())
+    else:
+        # default to sort by date
+        tracked_tradeups = tracked_tradeups.order_by(Tradeup.created_at.desc())
 
-        # add all collection names involved    
-        for collection in tradeup.collections:
-            collection_names.append(collection.name)
+    tracked_tradeups_paginated = tracked_tradeups.paginate(page=page, per_page=tradeups_per_page)
+    tracked_tradeups_dicts = [get_long_tradeup_dict(tradeup) for tradeup in tracked_tradeups_paginated.items]
     
-        # get tradeup stats
-        avg_input_float, input_skins_cost, profit_avg, profit_odds = calculate_tradeup_stats(input_entries_dict, output_entries_dict, tradeup_stattrak)
-
-        # add tradeup to the array of tradeups
-        tracked_tradeups.append({
-            "tradeup_id": tradeup_id,
-            "tradeup_name": tradeup_name,
-            "input_entries": input_entries_dict,
-            "output_entries": output_entries_dict,
-            "collection_names": collection_names,
-            "tradeup_input_rarity": tradeup_input_rarity,
-            "tradeup_stattrak": tradeup_stattrak,
-            "avg_input_float": avg_input_float,
-            "input_skins_cost": input_skins_cost,
-            "profit_avg_pctg": profit_avg,
-            "profit_odds": profit_odds,
-        })
-    
-    return jsonify({"tradeups": tracked_tradeups}), 200
+    return jsonify({"tradeups": tracked_tradeups_dicts,
+        "page": tracked_tradeups_paginated.page,
+        "per_page": tracked_tradeups_paginated.per_page,
+        "total_pages": tracked_tradeups_paginated.pages,
+        "total_items": tracked_tradeups_paginated.total
+    }), 200
 
 @bp_retrieve.route('/tradeups/calculate_output', methods=['POST'])
 @authenticate(token_auth)
@@ -248,11 +228,34 @@ def get_purchasable_tradeups():
         JSON response with:
         - tradeups: List of dictionaries representing tradeups the user has not purchased.
     """
-    all_purchasable_tradeups = Tradeup.query.filter(Tradeup.tradeup_type == TradeupType.PURCHASABLE).all()
-    user_purchased_tradeups = token_auth.current_user().tradeups_purchased
-    purchasable_tradeups_dicts = [get_long_tradeup_dict(tradeup) for tradeup in all_purchasable_tradeups if tradeup not in user_purchased_tradeups]
+    # Get the page number from the query parameters, defaulting to 1
+    page = request.args.get('page', 1, type=int)
+    # Get the sort_by parameter from the URL query parameters, defaulting to 'avg_profitability'
+    sort_by = request.args.get('sort_by', 'avg_profitability', type=str)
+    # Get the number of tradeups per page from the app config
+    tradeups_per_page = current_app.config.get('TRADEUPS_PER_PAGE', 10)  # Default to 10 if not set
+    all_purchasable_tradeups = Tradeup.query.filter(Tradeup.tradeup_type == TradeupType.PURCHASABLE)
 
-    return {'tradeups': purchasable_tradeups_dicts}, 200
+    # Apply sorting based on the sort_by parameter
+    if sort_by == 'avg_profitability':
+        all_purchasable_tradeups = all_purchasable_tradeups.order_by(Tradeup.avg_profitability.desc())
+    else:
+        # default to sort by date
+        all_purchasable_tradeups = all_purchasable_tradeups.order_by(Tradeup.created_at.desc())
+
+    all_purchasable_tradeups_paginated = all_purchasable_tradeups.paginate(page=page, per_page=tradeups_per_page)
+    #user_purchased_tradeups = token_auth.current_user().tradeups_purchased
+    purchasable_tradeups_dicts = [get_long_tradeup_dict(tradeup) for tradeup in all_purchasable_tradeups_paginated.items]
+    #purchasable_tradeups_dicts = [get_long_tradeup_dict(tradeup) for tradeup in all_purchasable_tradeups if tradeup not in user_purchased_tradeups]
+
+    # Currently we also show the tradeups that the user has already purchased, we can change this later,
+    #   or show to the user that they have already purchased the tradeup
+    return {'tradeups': purchasable_tradeups_dicts,
+        "page": all_purchasable_tradeups_paginated.page,
+        "per_page": all_purchasable_tradeups_paginated.per_page,
+        "total_pages": all_purchasable_tradeups_paginated.pages,
+        "total_items": all_purchasable_tradeups_paginated.total
+    }, 200
 
 @bp_retrieve.route('/tradeups/purchased', methods=['GET'])
 @authenticate(token_auth)
@@ -265,10 +268,30 @@ def get_purchased_tradeups():
         JSON response with:
         - tradeups: List of dictionaries representing tradeups the user has purchased.
     """
+    # Get the page number from the query parameters, defaulting to 1
+    page = request.args.get('page', 1, type=int)
+    # Get the sort_by parameter from the URL query parameters, defaulting to 'avg_profitability'
+    sort_by = request.args.get('sort_by', 'avg_profitability', type=str)
+    tradeups_per_page = current_app.config.get('TRADEUPS_PER_PAGE', 10)  # Default to 10 if not set
     user_purchased_tradeups = token_auth.current_user().tradeups_purchased
-    purchased_tradeups_dicts = [get_long_tradeup_dict(tradeup) for tradeup in user_purchased_tradeups]
 
-    return {'tradeups': purchased_tradeups_dicts}, 200
+    # Apply sorting based on the sort_by parameter
+    if sort_by == 'avg_profitability':
+        user_purchased_tradeups = user_purchased_tradeups.order_by(Tradeup.avg_profitability.desc())
+    else:
+        # default to sort by date
+        user_purchased_tradeups = user_purchased_tradeups.order_by(Tradeup.created_at.desc())
+
+    # Get the number of tradeups per page from the app config
+    user_purchased_tradeups_paginated = user_purchased_tradeups.paginate(page=page, per_page=tradeups_per_page)
+    purchased_tradeups_dicts = [get_long_tradeup_dict(tradeup) for tradeup in user_purchased_tradeups_paginated.items]
+
+    return {'tradeups': purchased_tradeups_dicts,
+        "page": user_purchased_tradeups_paginated.page,
+        "per_page": user_purchased_tradeups_paginated.per_page,
+        "total_pages": user_purchased_tradeups_paginated.pages,
+        "total_items": user_purchased_tradeups_paginated.total
+    }, 200
 
 @bp_retrieve.route('/tradeups/public', methods=['GET'])
 @limiter.limit("60 per minute")
@@ -282,11 +305,20 @@ def get_public_tradeups():
     """
     # Get the page number from the query parameters, defaulting to 1
     page = request.args.get('page', 1, type=int)
+    # Get the sort_by parameter from the URL query parameters, defaulting to 'avg_profitability'
+    sort_by = request.args.get('sort_by', 'avg_profitability', type=str)
     # Get the number of tradeups per page from the app config
     tradeups_per_page = current_app.config.get('TRADEUPS_PER_PAGE', 10)  # Default to 10 if not set
-    public_tradeups_paginated = Tradeup.query.\
-        filter(Tradeup.tradeup_type == TradeupType.PUBLIC).\
-            paginate(page=page, per_page=tradeups_per_page)
+    public_tradeups = Tradeup.query.filter(Tradeup.tradeup_type == TradeupType.PUBLIC)
+
+    # Apply sorting based on the sort_by parameter
+    if sort_by == 'avg_profitability':
+        public_tradeups = public_tradeups.order_by(Tradeup.avg_profitability.desc())
+    else:
+        # default to sort by date
+        public_tradeups = public_tradeups.order_by(Tradeup.created_at.desc())
+
+    public_tradeups_paginated = public_tradeups.paginate(page=page, per_page=tradeups_per_page)
 
     # Convert the pagination object to a list of tradeup dictionaries
     public_tradeups_dicts = [

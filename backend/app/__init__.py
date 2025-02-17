@@ -5,6 +5,7 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 from backend.config import Config
 from .error_handlers import register_error_handlers
+from .event_handlers import register_event_handlers
 from .limiter import limiter
 from flask_cors import CORS
 from flask_wtf.csrf import CSRFProtect
@@ -44,6 +45,7 @@ def create_app(config_class=Config):
     register_commands(app)
     
     register_error_handlers(app)
+    register_event_handlers(app)
 
     return app
 

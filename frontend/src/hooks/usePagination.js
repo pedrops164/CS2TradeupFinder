@@ -3,33 +3,27 @@ import { useSearchParams } from 'react-router-dom';
 import { useApi } from '../contexts/ApiProvider';
 
 // Custom Hook: usePagination
-const usePagination = (apiUrl) => {
-  const [data, setData] = useState([]);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
+const usePagination = ({ apiUrl, query }) => {
+  const [data, setData] = useState();
+  const [totalPages, setTotalPages] = useState();
   const [searchParams, setSearchParams] = useSearchParams();
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
   const api = useApi();
 
   useEffect(() => {
-    setIsLoading(true);
-    setError(null);
-    
-    // fetch(`${apiUrl}?page=${currentPage}`)
-    api.get(apiUrl, { page: currentPage })
-      .then(response => {
+    (async () => {
+      const response = await api.get(apiUrl, { page: currentPage, ...query });
+      if (response.ok) {
         const responseData = response.body;
-        setData(responseData.tradeups);
+        setData(responseData);
         setTotalPages(responseData.total_pages);
-        setIsLoading(false);
-      })
-      .catch(error => {
-        console.error('Error fetching data:', error);
-        setError('Failed to fetch data. Please try again later.');
-        setIsLoading(false);
-      });
-  }, [currentPage, apiUrl]);
+      } else {
+        console.error('Error fetching data:', response);
+        setData(null);
+        setTotalPages(null);
+      }
+    })();
+  }, [api, currentPage, apiUrl, query ]);
 
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= totalPages) {
@@ -37,7 +31,7 @@ const usePagination = (apiUrl) => {
     }
   };
 
-  return { data, currentPage, totalPages, handlePageChange, isLoading, error };
+  return { data, currentPage, totalPages, handlePageChange };
 };
 
 export default usePagination;

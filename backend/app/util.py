@@ -82,7 +82,12 @@ def get_long_tradeup_dict(tradeup: Tradeup) -> LongTradeupDict:
         collection_names.append(collection.name)
 
     # get tradeup stats
-    avg_input_float, input_skins_cost, profit_avg, profit_odds = calculate_tradeup_stats(input_entries_dict, output_entries_dict, tradeup_stattrak)
+    avg_input_float = tradeup.avg_input_float
+    input_skins_cost = tradeup.input_skins_cost
+    profit_avg = tradeup.avg_profitability
+    profit_odds = tradeup.profit_odds
+
+    #avg_input_float, input_skins_cost, profit_avg, profit_odds = calculate_tradeup_stats(input_entries_dict, output_entries_dict, tradeup_stattrak)
     # add tradeup to the array of tradeups
     tradeup_dict: LongTradeupDict = {
         "tradeup_id": tradeup_id,
@@ -99,6 +104,23 @@ def get_long_tradeup_dict(tradeup: Tradeup) -> LongTradeupDict:
         "profit_odds": profit_odds,
     }
     return tradeup_dict
+
+def set_tradeup_stats(tradeup: Tradeup):
+    if not tradeup.input_entries or not tradeup.output_entries:
+        tradeup.avg_input_float = None
+        tradeup.input_skins_cost = None
+        tradeup.avg_profitability = None
+        tradeup.profit_odds = None
+        raise ValueError("Tradeup has no input or output entries")
+    
+    input_entries_dict = [get_input_entry_dict(input_entry) for input_entry in tradeup.input_entries]
+    output_entries_dict = [get_output_entry_dict(output_entry) for output_entry in tradeup.output_entries]
+    avg_input_float, input_skins_cost, profit_avg, profit_odds = calculate_tradeup_stats(input_entries_dict, output_entries_dict, tradeup.stattrak)
+    tradeup.avg_input_float = avg_input_float
+    tradeup.input_skins_cost = input_skins_cost
+    tradeup.avg_profitability = profit_avg
+    tradeup.profit_odds = profit_odds
+
 
 def get_purchasable_tradeup_dict(tradeup: Tradeup) -> PurchasableTradeupDict:
     """Receives a Tradeup object and returns a dictionary containing relevant information about the tradeup, but not

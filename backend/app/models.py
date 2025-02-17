@@ -3,9 +3,18 @@ from flask_login import UserMixin
 import sqlalchemy.orm as so
 from werkzeug.security import generate_password_hash, check_password_hash
 import enum
-from sqlalchemy import Enum, MetaData
+from sqlalchemy import MetaData
 import sqlalchemy as sa
+from datetime import datetime, timedelta, timezone
 
+# date helper functions for Token and User models
+def aware_utcnow():
+    return datetime.now(timezone.utc)
+
+def naive_utcnow():
+    return aware_utcnow().replace(tzinfo=None)
+
+# Set convention for naming constraints. Makes the migrations easier to perform?
 convention = {
     "ix": 'ix_%(column_0_label)s',
     "uq": "uq_%(table_name)s_%(column_0_name)s",
@@ -72,12 +81,12 @@ class TradeupType(enum.Enum):
     PRIVATE = "private"
 
 tradeup_purchase = db.Table('tradeup_purchase',
-    db.Column('user_id', db.Integer, db.ForeignKey('user.steam_id'), primary_key=True),
+    db.Column('user_id', db.String(32), db.ForeignKey('user.steam_id'), primary_key=True),
     db.Column('tradeup_id', db.Integer, db.ForeignKey('tradeup.id'), primary_key=True)
 )
 
 private_tradeup_user = db.Table('private_tradeup_user',
-    db.Column('user_id', db.Integer, db.ForeignKey('user.steam_id'), primary_key=True),
+    db.Column('user_id', db.String(32), db.ForeignKey('user.steam_id'), primary_key=True),
     db.Column('tradeup_id', db.Integer, db.ForeignKey('tradeup.id'), primary_key=True)
 )
     
@@ -90,6 +99,12 @@ class Tradeup(db.Model):
     input_rarity = db.Column(db.String, nullable=False) # rarity of the input skins of the tradeup
     tradeup_type = db.Column(db.Enum(TradeupType), nullable=False) # public, purchasable or private
     price = db.Column(db.Float, nullable=True) # price of the tradeup. Only applicable if type is purchasable
+    # Columns for tradeup stats
+    avg_input_float = db.Column(db.Float, nullable=False, server_default="0")
+    input_skins_cost = db.Column(db.Float, nullable=False, server_default="0")
+    avg_profitability = db.Column(db.Float, nullable=False, server_default="0")
+    profit_odds = db.Column(db.Float, nullable=False, server_default="0")
+    created_at = db.Column(db.DateTime, default=naive_utcnow, server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False)
 
     input_entries = db.relationship('InputTradeupEntry', backref='tradeup', lazy='joined')
     output_entries = db.relationship('OutputTradeupEntry', backref='tradeup', lazy='joined')
@@ -182,13 +197,6 @@ class UserRole(enum.Enum):
     USER = "user"
     ADMIN = "admin"
 
-from datetime import datetime, timedelta, timezone
-# date helper functions for Token and User models
-def aware_utcnow():
-    return datetime.now(timezone.utc)
-
-def naive_utcnow():
-    return aware_utcnow().replace(tzinfo=None)
 
 # user class
 class User(UserMixin, db.Model):
@@ -201,8 +209,8 @@ class User(UserMixin, db.Model):
     personaname = db.Column(db.String(32), nullable=True)
     signup_date: so.Mapped[datetime] = so.mapped_column(default=naive_utcnow, server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False)
 
-    tradeups_purchased = db.relationship('Tradeup', secondary=tradeup_purchase, back_populates='purchased_by')
-    tracked_tradeups = db.relationship('Tradeup', secondary=private_tradeup_user, back_populates='tracked_by')
+    tradeups_purchased = db.relationship('Tradeup', secondary=tradeup_purchase, back_populates='purchased_by', lazy='dynamic')
+    tracked_tradeups = db.relationship('Tradeup', secondary=private_tradeup_user, back_populates='tracked_by', lazy='dynamic')
 
     last_seen: so.Mapped[datetime] = so.mapped_column(default=naive_utcnow, server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False)
     tokens: so.WriteOnlyMapped['Token'] = so.relationship(

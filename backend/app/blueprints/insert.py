@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, flash
-from backend.app.database import add_tradeup, add_tradeup_entry, get_skin_condition_id, get_skins_by_name, add_tradeup_collection
-from backend.app.models import Tradeup, InputTradeupEntry, OutputTradeupEntry, TradeupCollections, TradeupType, db
+from backend.app.database import add_tradeup, add_tradeup_entry, get_skin_condition, get_skins_by_name, add_tradeup_collection
+from backend.app.models import Tradeup, InputTradeupEntry, OutputTradeupEntry, TradeupType, db, Collection
 import logging
 from .schemas import TradeupInputSchema, PurchasableTradeupInputSchema
 from marshmallow import ValidationError
@@ -193,9 +193,11 @@ def create_tradeup(tradeup_isstattrak, tradeup_input_rarity, input_entries_dict,
 
         tradeup_collection_ids.add(collection_id)
         
-        skin_condition_id, error = _input_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, condition, skin_float)
-        if skin_condition_id:
-            input_entries.append(InputTradeupEntry(skin_condition_id, skin_float, count, None))
+        skin_condition, error = _input_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, condition, skin_float)
+        if skin_condition:
+            input_tradeup_entry = InputTradeupEntry(skin_condition.id, skin_float, count, None)
+            input_tradeup_entry.skin_condition = skin_condition
+            input_entries.append(input_tradeup_entry)
         else:
             return None, error, 400
 
@@ -205,23 +207,34 @@ def create_tradeup(tradeup_isstattrak, tradeup_input_rarity, input_entries_dict,
         skin_float = tradeup_entry["skin_float"]
         prob = tradeup_entry["prob"]
         
-        skin_condition_id, error = _output_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, condition, skin_float)
-        if skin_condition_id:
-            output_entries.append(OutputTradeupEntry(skin_condition_id, skin_float, prob, None))
+        skin_condition, error = _output_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, condition, skin_float)
+        if skin_condition:
+            output_tradeup_entry = OutputTradeupEntry(skin_condition.id, skin_float, prob, None)
+            output_tradeup_entry.skin_condition = skin_condition
+            output_entries.append(output_tradeup_entry)
         else:
             return None, error, 400
+
+    # associate input and output entries with the tradeup
+    tradeup.input_entries = input_entries
+    tradeup.output_entries = output_entries
         
-    # every possible error has been checked, so we add the tradeup and its input and output entries to the db
-    add_tradeup(tradeup)
-    for entry in input_entries:
-        entry.set_tradeup_id(tradeup.id)
-        add_tradeup_entry(entry)
-    for entry in output_entries:
-        entry.set_tradeup_id(tradeup.id)
-        add_tradeup_entry(entry)
+    # For the many-to-many relationship, load each Collection object by its ID
+    # and assign them to tradeup.collections.
+    collections = []
     for coll_id in tradeup_collection_ids:
-        tradeup_collection = TradeupCollections(tradeup.id, coll_id)
-        add_tradeup_collection(tradeup_collection)
+        collection = db.session.get(Collection, coll_id)
+        if collection:
+            collections.append(collection)
+        else:
+            logger.error(f"Collection with ID {coll_id} not found")
+            return None, f"Collection with ID {coll_id} not found", 400
+    tradeup.collections = collections
+
+    # add the complete tradeup object to the session.
+    # All associated input/output entries and collection associations will be persisted.
+    db.session.add(tradeup)
+    db.session.commit()
         
     return tradeup, None, None
 
@@ -280,8 +293,8 @@ def _input_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, c
         skin_float (float): Float value of the skin (0 to 1).
 
     Returns:
-        tuple: (skin_condition_id, error_message)
-            - skin_condition_id: ID of the skin condition if valid.
+        tuple: (skin_condition, error_message)
+            - skin_condition: skin condition object if valid.
             - error_message: Error message if validation fails.
     """
 
@@ -303,12 +316,12 @@ def _input_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, c
     if tradeup_input_rarity != matching_skins[0][2]:
         return None, "Tradeup Input rarity doesn't match rarity of input entry"
     
-    skin_condition_id = get_skin_condition_id(weapon_paint, condition, tradeup_isstattrak)
+    skin_condition = get_skin_condition(weapon_paint, condition, tradeup_isstattrak)
     
-    if skin_condition_id is None:
+    if skin_condition is None:
         return None, f"Invalid weapon_paint or condition for {weapon_paint}, {condition}"
 
-    return skin_condition_id, None
+    return skin_condition, None
 
 def _output_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, condition, skin_float):
     """
@@ -324,8 +337,8 @@ def _output_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, 
         skin_float (float): Float value of the skin (0 to 1).
 
     Returns:
-        tuple: (skin_condition_id, error_message)
-            - skin_condition_id: ID of the skin condition if valid.
+        tuple: (skin_condition, error_message)
+            - skin_condition: skin condition object if valid.
             - error_message: Error message if validation fails.
     """
     matching_skins = get_skins_by_name(weapon_paint)
@@ -344,12 +357,12 @@ def _output_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, 
     if Tradeup.get_output_quality(tradeup_input_rarity) != matching_skins[0][2]:
         return None, "Tradeup Output rarity doesn't match rarity of output entry"
     
-    skin_condition_id = get_skin_condition_id(weapon_paint, condition, tradeup_isstattrak)
+    skin_condition = get_skin_condition(weapon_paint, condition, tradeup_isstattrak)
     
-    if skin_condition_id is None:
+    if skin_condition is None:
         return None, f"Invalid weapon_paint or condition for {weapon_paint}, {condition}"
 
-    return skin_condition_id, None
+    return skin_condition, None
 
 @bp_insert.route('/tradeups/<int:tradeup_id>/purchase', methods=['POST'])
 @authenticate(token_auth)

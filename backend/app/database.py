@@ -55,29 +55,26 @@ def add_tradeup_collection(tradeup_collection):
 
 """ Get entries from sql database """
 
-def get_skin_condition_id(weapon_paint: str, condition: str, tradeup_isstattrak: bool):
-    """Queries the database to return the ID of a skin condition.
+def get_skin_condition(weapon_paint: str, condition: str, tradeup_isstattrak: bool):
+    """Queries the database to return the SkinCondition object.
 
     Args:
         weapon_paint (str): name of the weapon paint. For example "AK-47 Redline"
-        condition (str): condition of the skin. For example "Factory New"
+        condition (str): condition of the skin. For example "Factory New"dline").
+        tradeup_isstattrak (bool): Whether the skin is StatTrak.
 
     Returns:
-        skin_condition_id (int or None): ID of the skin condition, or None if not found
+        SkinCondition or None: The SkinCondition object if found, or None.
     """
     # Perform the query using SQLAlchemy ORM
-    result = db.session.query(SkinCondition.id)\
+    result = db.session.query(SkinCondition)\
         .join(Skin, Skin.id == SkinCondition.skin_id)\
         .filter(Skin.name == weapon_paint)\
         .filter(SkinCondition.condition == condition)\
         .filter(SkinCondition.stattrak == tradeup_isstattrak)\
         .one_or_none()  # Get one result or return None if not found
 
-    # Return the ID if found
-    if result:
-        return result.id
-    else:
-        return None
+    return result
     
 def get_skins_by_name(weapon_paint: str):
     """Queries the database to return details of skins by name.

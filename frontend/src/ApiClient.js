@@ -31,6 +31,7 @@ export default class ApiClient {
     }
 
     let response;
+    let body;
     try {
       response = await fetch(this.base_url + options.url + query, {
         method: options.method,
@@ -55,10 +56,17 @@ export default class ApiClient {
       };
     }
 
+    // Try to parse the JSON. If it fails, assign an empty object.
+    try {
+      body = await response.json();
+    } catch (parseError) {
+      body = {};
+    }
+
     return {
       ok: response.ok,
       status: response.status,
-      body: response.status !== 204 ? await response.json() : null
+      body: response.status !== 204 ? body : null
     };
   }
 
