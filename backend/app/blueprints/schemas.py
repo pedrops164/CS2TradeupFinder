@@ -2,6 +2,7 @@
 from marshmallow import Schema, fields, validate
 from backend.app.models import TradeupType, User, UserRole
 from backend.app import ma
+from backend.app.date import aware_utcnow
 
 class EmptySchema(ma.Schema):
     pass
@@ -25,6 +26,7 @@ class TradeupInputSchema(Schema):
     stattrak = fields.Boolean(required=True)
     input_rarity = fields.String(required=True)
     name = fields.String(required=False, load_default=None)
+    release_date = fields.DateTime(required=False, load_default=aware_utcnow)
 
 class PurchasableTradeupInputSchema(TradeupInputSchema):
     tradeup_price = fields.Float(required=True)

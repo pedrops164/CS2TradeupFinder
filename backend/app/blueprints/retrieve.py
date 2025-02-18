@@ -1,17 +1,14 @@
 from flask import Blueprint, request, jsonify, current_app
 from backend.src.tradeups import calculate_output_entries, calculate_tradeup_stats
-from sqlalchemy.orm import joinedload
-from sqlalchemy import select, or_, not_
-from backend.app.models import db, Tradeup, InputTradeupEntry, SkinCondition, OutputTradeupEntry, Skin, Collection, TradeupType
+from sqlalchemy import not_
+from backend.app.models import db, Tradeup, SkinCondition, Skin, Collection, TradeupType
 from backend.app.limiter import limiter
-from backend.app.types import InputEntryDict, OutputEntryDict
-from backend.app.util import get_long_tradeup_dict, get_purchasable_tradeup_dict, get_input_entry_dict, get_output_entry_dict
-from typing import List
+from backend.app.util import get_long_tradeup_dict
 import logging
-from .schemas import InputEntrySchema, TradeupInputSchema, DuplicateTradeupCheckSchema, SkinSearchSchema
-from marshmallow import ValidationError
+from .schemas import TradeupInputSchema, DuplicateTradeupCheckSchema, SkinSearchSchema
 # import json for serialization and deserialization of data
 from webargs.flaskparser import use_kwargs
+from datetime import datetime, timezone
 
 from backend.app.auth import token_auth
 from apifairy import authenticate # restrict function access to authenticated users
@@ -80,7 +77,7 @@ def get_tradeups():
 @authenticate(token_auth)
 @limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().steam_id)
 @use_kwargs(TradeupInputSchema())
-def get_tradeup_output(input_entries, stattrak, input_rarity, name):
+def get_tradeup_output(input_entries, stattrak, input_rarity, name, release_date):
     """
     Processes the input entries to compute corresponding output entries and provides statistics related to the tradeup.
 
@@ -309,7 +306,9 @@ def get_public_tradeups():
     sort_by = request.args.get('sort_by', 'avg_profitability', type=str)
     # Get the number of tradeups per page from the app config
     tradeups_per_page = current_app.config.get('TRADEUPS_PER_PAGE', 10)  # Default to 10 if not set
-    public_tradeups = Tradeup.query.filter(Tradeup.tradeup_type == TradeupType.PUBLIC)
+    public_tradeups = Tradeup.query.filter(
+        Tradeup.tradeup_type == TradeupType.PUBLIC, # Only show public tradeups
+        Tradeup.release_date <= datetime.now(timezone.utc)) # Only show tradeups that have been released (release_date is in the past)
 
     # Apply sorting based on the sort_by parameter
     if sort_by == 'avg_profitability':
@@ -337,7 +336,7 @@ def get_public_tradeups():
 @authenticate(token_auth)
 @limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().steam_id)
 @use_kwargs(DuplicateTradeupCheckSchema())
-def check_duplicate_tradeup(input_entries, stattrak, input_rarity, name, tradeup_price, tradeup_type):
+def check_duplicate_tradeup(input_entries, stattrak, input_rarity, name, release_date, tradeup_price, tradeup_type):
     """
     Checks if a tradeup with the given input entries, stattrak status, and rarity already exists.
 

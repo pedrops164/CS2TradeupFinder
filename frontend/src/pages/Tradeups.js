@@ -15,7 +15,7 @@ const Tradeups = () => {
   const isAuthenticated = api.isAuthenticated();
   const [selectedOption, setSelectedOption] = React.useState(option);
   // Local state for sort selection, defaulting to "Highest return"
-  const [sortBy, setSortBy] = useState('avg_profitability');
+  const [sortBy, setSortBy] = useState('created_at');
 
   const handleCardClick = (option) => {
     // For restricted options, do nothing if not authenticated
@@ -38,8 +38,25 @@ const Tradeups = () => {
       {/* Page Title and sort by selector */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Typography variant="h4" sx={{ color: 'text.primary' }}>
-          Public Tradeups
+          Tradeups
         </Typography>
+        {/* Announcement Section */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography
+            variant="h5"
+            sx={{
+              color: 'primary.main',
+              fontWeight: 'bold',
+              backgroundColor: 'rgba(25, 118, 210, 0.1)', // light blue background for extra flair
+              p: 1,
+              b: 1,
+              borderColor: 'secondary.main',
+              borderRadius: 1,
+            }}
+          >
+            New tradeups released every Monday and Friday!
+          </Typography>
+        </Box>
         <FormControl sx={{ minWidth: 150, mr: 2 }}>
           <InputLabel id="sort-select-label">Sort By</InputLabel>
           <Select

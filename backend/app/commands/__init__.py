@@ -3,6 +3,7 @@ from backend.src.scripts.benchmark import run_benchmarks
 from backend.src.solvers.solver_manager import SearchSpace
 from backend.src.scripts.scrape100 import update_all_weapon_paints_prices
 from backend.src.scripts.download_images import download_skin_images
+from backend.app.date import naive_utcnow
 import click
 import os
 from backend.src.solvers.solver_manager import search_solve_tradeup, SearchSpace

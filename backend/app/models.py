@@ -5,14 +5,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import enum
 from sqlalchemy import MetaData
 import sqlalchemy as sa
-from datetime import datetime, timedelta, timezone
-
-# date helper functions for Token and User models
-def aware_utcnow():
-    return datetime.now(timezone.utc)
-
-def naive_utcnow():
-    return aware_utcnow().replace(tzinfo=None)
+from datetime import datetime, timedelta
+from .date import naive_utcnow
 
 # Set convention for naming constraints. Makes the migrations easier to perform?
 convention = {
@@ -105,6 +99,7 @@ class Tradeup(db.Model):
     avg_profitability = db.Column(db.Float, nullable=False, server_default="0")
     profit_odds = db.Column(db.Float, nullable=False, server_default="0")
     created_at = db.Column(db.DateTime, default=naive_utcnow, server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False)
+    release_date = db.Column(db.DateTime, default=naive_utcnow, server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False)
 
     input_entries = db.relationship('InputTradeupEntry', backref='tradeup', lazy='joined')
     output_entries = db.relationship('OutputTradeupEntry', backref='tradeup', lazy='joined')
@@ -112,12 +107,13 @@ class Tradeup(db.Model):
     purchased_by = db.relationship('User', secondary=tradeup_purchase, back_populates='tradeups_purchased')
     tracked_by = db.relationship('User', secondary=private_tradeup_user, back_populates='tracked_tradeups')
     
-    def __init__(self, stattrak, input_rarity, tradeup_type, price=None, name=None):
+    def __init__(self, stattrak, input_rarity, tradeup_type, release_date, price=None, name=None):
         self.name = name
         self.stattrak = stattrak
         self.input_rarity = input_rarity
         self.tradeup_type = tradeup_type
         self.price = price
+        self.release_date = release_date
         
         # Ensure price is only set for purchasable tradeups
         if self.tradeup_type == TradeupType.PURCHASABLE and price is None:

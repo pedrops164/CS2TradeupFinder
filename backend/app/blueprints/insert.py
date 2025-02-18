@@ -21,7 +21,7 @@ bp_insert = Blueprint('bp_insert', __name__)
 @authenticate(token_auth) # Ensure only authenticated users can access this route
 @limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().steam_id)
 @use_kwargs(TradeupInputSchema())
-def create_tradeup_public(input_entries, stattrak, input_rarity, name):
+def create_tradeup_public(input_entries, stattrak, input_rarity, name, release_date):
     """
     This route allows authenticated users to create a public tradeup. Public tradeups are visible to all users.
     
@@ -39,6 +39,7 @@ def create_tradeup_public(input_entries, stattrak, input_rarity, name):
             }
         ]
         "name": str                          # Optional name for the tradeup
+        release_date: datetime               # Optional release date for the tradeup
     }
     
     Returns:
@@ -54,7 +55,7 @@ def create_tradeup_public(input_entries, stattrak, input_rarity, name):
         logger.error(error_msg)
         return jsonify({'error': error_msg}), error_code
     
-    tradeup, error_msg, error_code = create_tradeup(stattrak, input_rarity, input_entries, output_entries_dict, name, tradeup_type)
+    tradeup, error_msg, error_code = create_tradeup(stattrak, input_rarity, input_entries, output_entries_dict, name, tradeup_type, release_date)
     if not tradeup:
         logger.error(error_msg)
         return jsonify({"error": error_msg}), error_code
@@ -65,7 +66,7 @@ def create_tradeup_public(input_entries, stattrak, input_rarity, name):
 @authenticate(token_auth) # Ensure only authenticated users can access this route
 @limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().steam_id)
 @use_kwargs(PurchasableTradeupInputSchema())
-def create_tradeup_purchasable(input_entries, stattrak, input_rarity, name, tradeup_price):
+def create_tradeup_purchasable(input_entries, stattrak, input_rarity, name, tradeup_price, release_date):
     """
     This route allows authenticated users to create a tradeup that can be purchased. Purchasable tradeups have a price.
 
@@ -99,7 +100,7 @@ def create_tradeup_purchasable(input_entries, stattrak, input_rarity, name, trad
         logger.error(error_msg)
         return jsonify({'error': error_msg}), error_code
     
-    tradeup, error_msg, error_code = create_tradeup(stattrak, input_rarity, input_entries, output_entries_dict, name, tradeup_type, tradeup_price)
+    tradeup, error_msg, error_code = create_tradeup(stattrak, input_rarity, input_entries, output_entries_dict, name, tradeup_type, release_date, tradeup_price)
     if not tradeup:
         logger.error(error_msg)
         return jsonify({"error": error_msg}), error_code
@@ -110,7 +111,7 @@ def create_tradeup_purchasable(input_entries, stattrak, input_rarity, name, trad
 @authenticate(token_auth) # Ensure only authenticated users can access this route
 @limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().steam_id)
 @use_kwargs(TradeupInputSchema())
-def create_tradeup_private(input_entries, stattrak, input_rarity, name):
+def create_tradeup_private(input_entries, stattrak, input_rarity, name, release_date):
     """
     This route allows authenticated users to create a private tradeup. Private tradeups are only visible to the user who created them.
 
@@ -143,7 +144,7 @@ def create_tradeup_private(input_entries, stattrak, input_rarity, name):
         logger.error(error_msg)
         return jsonify({'error': error_msg}), error_code
     
-    tradeup, error_msg, error_code = create_tradeup(stattrak, input_rarity, input_entries, output_entries_dict, name, tradeup_type)
+    tradeup, error_msg, error_code = create_tradeup(stattrak, input_rarity, input_entries, output_entries_dict, name, tradeup_type, release_date)
     if not tradeup:
         logger.error(error_msg)
         return jsonify({"error": error_msg}), error_code
@@ -152,7 +153,7 @@ def create_tradeup_private(input_entries, stattrak, input_rarity, name):
     return jsonify({"tradeup_id": tradeup.id, "name": tradeup.name}), 201
 
 
-def create_tradeup(tradeup_isstattrak, tradeup_input_rarity, input_entries_dict, output_entries_dict, tradeup_name, tradeup_type, tradeup_price=None):
+def create_tradeup(tradeup_isstattrak, tradeup_input_rarity, input_entries_dict, output_entries_dict, tradeup_name, tradeup_type, release_date, tradeup_price=None):
     """
     Creates a tradeup entry.
 
@@ -174,7 +175,7 @@ def create_tradeup(tradeup_isstattrak, tradeup_input_rarity, input_entries_dict,
             - error_code: HTTP error code if not successful.
     """
     
-    tradeup = Tradeup(tradeup_isstattrak, tradeup_input_rarity, tradeup_type, name=tradeup_name, price=tradeup_price)
+    tradeup = Tradeup(stattrak=tradeup_isstattrak, input_rarity=tradeup_input_rarity, tradeup_type=tradeup_type, name=tradeup_name, price=tradeup_price, release_date=release_date)
     input_entries, output_entries = [], []
     tradeup_collection_ids = set()
     

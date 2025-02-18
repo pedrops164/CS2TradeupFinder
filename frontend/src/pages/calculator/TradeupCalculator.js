@@ -19,14 +19,17 @@ import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
-import { FormControl, FormControlLabel, FormGroup } from '@mui/material';
+import { FormControl, FormControlLabel, FormGroup, TextField } from '@mui/material';
 import Switch from '@mui/material/Switch';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import dayjs from 'dayjs';
 
 const TradeupCalculator = () => {
     const { user } = useUser();
-    const userRole = 'admin'; // CHANGE LATER !!!!!!!!!!!!!!!!!!!!!
 
     // SET STATES
     // state to manage tradeup stattrak status
@@ -66,6 +69,9 @@ const TradeupCalculator = () => {
 
     // State to manage the disabled status of the Add Tradeup button
     const [isAddTradeupDisabled, setIsAddTradeupDisabled] = useState(true);
+
+    // New state for the release date (for admin only)
+    const [releaseDate, setReleaseDate] = useState(dayjs());
 
     const api = useApi();
 
@@ -329,6 +335,11 @@ const TradeupCalculator = () => {
             }))
         };
 
+        // If admin selected a release date, include it in the payload
+        if (user.role === 'admin' && releaseDate) {
+            payload.release_date = releaseDate.toISOString();
+        }
+
         // get api route
         let route = '';
         if (tradeupType === 'public') {
@@ -459,9 +470,19 @@ const TradeupCalculator = () => {
                         <CardHeader title="Output Entries" action={
                             <>
                                 {user.role === 'admin' && (
-                                    <Button onClick={() => handleAddTradeup(TradeupTypeEnum.PUBLIC)} disabled={isAddTradeupDisabled} variant="contained" bgcolor="text.primary">
-                                        Add Tradeup
-                                    </Button>
+                                    <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+                                        <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                            <DateTimePicker
+                                                label="Release Date & Time"
+                                                value={releaseDate}
+                                                onChange={(newDate) => setReleaseDate(newDate)}
+                                                sx={{mr: 2, ml: 1}}
+                                            />
+                                        </LocalizationProvider>
+                                        <Button onClick={() => handleAddTradeup(TradeupTypeEnum.PUBLIC)} disabled={isAddTradeupDisabled} variant="contained" bgcolor="text.primary" >
+                                            Add Tradeup
+                                        </Button>
+                                    </Box>
                                 )}
                                 {user.role === 'user' && (
                                     <Button onClick={() => handleAddTradeup(TradeupTypeEnum.PRIVATE)} disabled={isAddTradeupDisabled} variant="contained" bgcolor="text.primary">
