@@ -27,6 +27,7 @@ import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import dayjs from 'dayjs';
+import { rarityOptions } from '../../utils/helperFunctions';
 
 const TradeupCalculator = () => {
     const { user } = useUser();
@@ -34,16 +35,6 @@ const TradeupCalculator = () => {
     // SET STATES
     // state to manage tradeup stattrak status
     const [isStattrak, setIsStattrak] = useState(false);
-
-    // Pool of rarity strings for the dropdown
-    const rarityOptions = [
-        ["consumer_bg", "Consumer Grade"],
-        ["industrial_bg", "Industrial Grade"],
-        ["milspec_bg", "Mil-Spec"],
-        ["restricted_bg", "Restricted"],
-        ["classified_bg", "Classified"],
-        ["covert_bg", "Covert"]
-    ];
 
     // state to manage chosen rarity for the tradeup
     const [selectedRarity, setSelectedRarity] = useState(rarityOptions[0][0]);

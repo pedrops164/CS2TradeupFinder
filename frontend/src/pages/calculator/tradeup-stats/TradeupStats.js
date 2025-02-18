@@ -16,7 +16,7 @@ const TradeupStats = ({avgInputFloat, tradeupCost, profitability, profitOdds}) =
                 alignItems: 'center',
                 p: 1,  // optional padding
             }}>
-            <TradeupStat statValue={avgInputFloat} statName="Avg. Float" imageSrc={floatIcon} prefix="$" />
+            <TradeupStat statValue={avgInputFloat} statName="Avg. Float" imageSrc={floatIcon} suffix="f" />
             <TradeupStat statValue={tradeupCost} statName="Input Cost" imageSrc={costIcon} prefix="$"/>
             <TradeupStat statValue={profitability} statName="Profitability" imageSrc={profitabilityIcon} suffix="%" />
             <TradeupStat statValue={profitOdds} statName="Profit Odds" imageSrc={profitOddsIcon} suffix="%" />

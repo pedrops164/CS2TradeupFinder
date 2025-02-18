@@ -23,9 +23,6 @@ const TradeupsPublic = ({apiUrl, sortBy}) => {
     </Box>
   ) : (
     <Box sx={{ p: 2, backgroundColor: 'background.default', minHeight: '100vh' }}>
-      <Typography variant="h4" sx={{ color: 'text.primary' }}>
-        Public Tradeups
-      </Typography>
       {/* Each tradeup appears on its own line */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
         {data.tradeups.map((tradeup) => (

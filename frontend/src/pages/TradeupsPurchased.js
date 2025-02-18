@@ -24,9 +24,6 @@ const TradeupsPurchased = ({apiUrl, sortBy}) => {
           </Box>
         ) : (
     <Box sx={{ p: 2, backgroundColor: 'background.default', minHeight: '100vh' }}>
-      <Typography variant="h4" sx={{ mb: 3, color: 'text.primary' }}>
-        Purchased Tradeups
-      </Typography>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
         {data.tradeups.map((tradeup) => (
           <Tradeup key={tradeup.tradeup_id} tradeup={tradeup} />
