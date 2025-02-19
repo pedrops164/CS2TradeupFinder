@@ -3,9 +3,8 @@ from backend.src.tradeups import calculate_output_entries, calculate_tradeup_sta
 from sqlalchemy import not_
 from backend.app.models import db, Tradeup, SkinCondition, Skin, Collection, TradeupType
 from backend.app.limiter import limiter
-from backend.app.util import get_long_tradeup_dict
 import logging
-from .schemas import TradeupInputSchema, DuplicateTradeupCheckSchema, SkinSearchSchema
+from ..schemas import TradeupInputSchema, DuplicateTradeupCheckSchema, SkinSearchSchema, PaginatedUncensoredTradeupSchema, PaginatedCensoredTradeupSchema
 # import json for serialization and deserialization of data
 from webargs.flaskparser import use_kwargs
 from datetime import datetime, timezone
@@ -32,16 +31,16 @@ def get_tradeups():
     Returns:
         JSON response with a list of tracked tradeups.
         Each tradeup dictionary contains the following keys:
-        - tradeup_id: ID of the tradeup.
-        - tradeup_name: Name of the tradeup.
+        - id: ID of the tradeup.
+        - name: Name of the tradeup.
         - input_entries: List of dictionaries representing input entries.
         - output_entries: List of dictionaries representing output entries.
         - collection_names: List of collection names involved.
-        - tradeup_input_rarity: Rarity of the tradeup input.
-        - tradeup_stattrak: Boolean indicating if the tradeup is for StatTrak items.
+        - input_rarity: Rarity of the tradeup input.
+        - stattrak: Boolean indicating if the tradeup is for StatTrak items.
         - avg_input_float: Average float value of input skins.
         - input_skins_cost: Cost of the input skins.
-        - profit_avg_pctg: Average percentage of profit.
+        - avg_profitability: Average percentage of profit.
         - profit_odds: Odds of making a profit.
     """
     logger.info("Fetching tracked tradeups for user: %s", token_auth.current_user().steam_id)
@@ -64,14 +63,7 @@ def get_tradeups():
         tracked_tradeups = tracked_tradeups.order_by(Tradeup.created_at.desc())
 
     tracked_tradeups_paginated = tracked_tradeups.paginate(page=page, per_page=tradeups_per_page)
-    tracked_tradeups_dicts = [get_long_tradeup_dict(tradeup) for tradeup in tracked_tradeups_paginated.items]
-    
-    return jsonify({"tradeups": tracked_tradeups_dicts,
-        "page": tracked_tradeups_paginated.page,
-        "per_page": tracked_tradeups_paginated.per_page,
-        "total_pages": tracked_tradeups_paginated.pages,
-        "total_items": tracked_tradeups_paginated.total
-    }), 200
+    return PaginatedUncensoredTradeupSchema().dump(tracked_tradeups_paginated), 200
 
 @bp_retrieve.route('/tradeups/calculate_output', methods=['POST'])
 @authenticate(token_auth)
@@ -240,19 +232,11 @@ def get_purchasable_tradeups():
         # default to sort by date
         all_purchasable_tradeups = all_purchasable_tradeups.order_by(Tradeup.created_at.desc())
 
-    all_purchasable_tradeups_paginated = all_purchasable_tradeups.paginate(page=page, per_page=tradeups_per_page)
     #user_purchased_tradeups = token_auth.current_user().tradeups_purchased
-    purchasable_tradeups_dicts = [get_long_tradeup_dict(tradeup) for tradeup in all_purchasable_tradeups_paginated.items]
-    #purchasable_tradeups_dicts = [get_long_tradeup_dict(tradeup) for tradeup in all_purchasable_tradeups if tradeup not in user_purchased_tradeups]
-
-    # Currently we also show the tradeups that the user has already purchased, we can change this later,
+    # Currently we also show the tradeups that the user has already purchased. We can change this later,
     #   or show to the user that they have already purchased the tradeup
-    return {'tradeups': purchasable_tradeups_dicts,
-        "page": all_purchasable_tradeups_paginated.page,
-        "per_page": all_purchasable_tradeups_paginated.per_page,
-        "total_pages": all_purchasable_tradeups_paginated.pages,
-        "total_items": all_purchasable_tradeups_paginated.total
-    }, 200
+    all_purchasable_tradeups_paginated = all_purchasable_tradeups.paginate(page=page, per_page=tradeups_per_page)
+    return PaginatedCensoredTradeupSchema().dump(all_purchasable_tradeups_paginated), 200
 
 @bp_retrieve.route('/tradeups/purchased', methods=['GET'])
 @authenticate(token_auth)
@@ -281,14 +265,7 @@ def get_purchased_tradeups():
 
     # Get the number of tradeups per page from the app config
     user_purchased_tradeups_paginated = user_purchased_tradeups.paginate(page=page, per_page=tradeups_per_page)
-    purchased_tradeups_dicts = [get_long_tradeup_dict(tradeup) for tradeup in user_purchased_tradeups_paginated.items]
-
-    return {'tradeups': purchased_tradeups_dicts,
-        "page": user_purchased_tradeups_paginated.page,
-        "per_page": user_purchased_tradeups_paginated.per_page,
-        "total_pages": user_purchased_tradeups_paginated.pages,
-        "total_items": user_purchased_tradeups_paginated.total
-    }, 200
+    return PaginatedUncensoredTradeupSchema().dump(user_purchased_tradeups_paginated), 200
 
 @bp_retrieve.route('/tradeups/public', methods=['GET'])
 @limiter.limit("60 per minute")
@@ -319,24 +296,13 @@ def get_public_tradeups():
 
     public_tradeups_paginated = public_tradeups.paginate(page=page, per_page=tradeups_per_page)
 
-    # Convert the pagination object to a list of tradeup dictionaries
-    public_tradeups_dicts = [
-        get_long_tradeup_dict(tradeup) for tradeup in public_tradeups_paginated.items
-    ]
-    
-    return {
-        "tradeups": public_tradeups_dicts,
-        "page": public_tradeups_paginated.page,
-        "per_page": public_tradeups_paginated.per_page,
-        "total_pages": public_tradeups_paginated.pages,
-        "total_items": public_tradeups_paginated.total
-    }, 200
+    return PaginatedUncensoredTradeupSchema().dump(public_tradeups_paginated), 200
 
 @bp_retrieve.route('/tradeups/check_duplicate', methods=['POST'])
 @authenticate(token_auth)
 @limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().steam_id)
 @use_kwargs(DuplicateTradeupCheckSchema())
-def check_duplicate_tradeup(input_entries, stattrak, input_rarity, name, release_date, tradeup_price, tradeup_type):
+def check_duplicate_tradeup(input_entries, stattrak, input_rarity, name, release_date, price, tradeup_type):
     """
     Checks if a tradeup with the given input entries, stattrak status, and rarity already exists.
 

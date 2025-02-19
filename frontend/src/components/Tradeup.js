@@ -13,7 +13,7 @@ const Tradeup = ({ tradeup }) => {
     <Accordion>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-          {/* <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>{tradeup.tradeup_name}</Typography> */}
+          {/* <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>{tradeup.name}</Typography> */}
           <Box sx={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Stack direction="column" sx={{ width: '33%', textAlign: 'center' }}>
               {tradeup.collection_names.map((collection, index) => (
@@ -23,15 +23,15 @@ const Tradeup = ({ tradeup }) => {
               ))}
             </Stack>
             <Divider orientation="vertical" flexItem />
-            <Typography variant="h6" sx={{ fontWeight: 'bold', width: '33%', textAlign: 'center', color: getRarityColor(tradeup.tradeup_input_rarity) }}>
-              {getRarityDisplay(tradeup.tradeup_input_rarity)}
+            <Typography variant="h6" sx={{ fontWeight: 'bold', width: '33%', textAlign: 'center', color: getRarityColor(tradeup.input_rarity) }}>
+              {getRarityDisplay(tradeup.input_rarity)}
             </Typography>
             <Divider orientation="vertical" flexItem />
             <Typography variant="h6" sx={{ fontWeight: 'bold', width: '33%', textAlign: 'center', color: '#c55206' }}>
-              {tradeup.tradeup_stattrak ? 'StatTrak™' : 'Not StatTrak™'}
+              {tradeup.stattrak ? 'StatTrak™' : 'Not StatTrak™'}
             </Typography>
           </Box>
-          <TradeupStats avgInputFloat={tradeup.avg_input_float} tradeupCost={tradeup.input_skins_cost} profitability={tradeup.profit_avg_pctg} profitOdds={tradeup.profit_odds}/>
+          <TradeupStats avgInputFloat={tradeup.avg_input_float} tradeupCost={tradeup.input_skins_cost} profitability={tradeup.avg_profitability} profitOdds={tradeup.profit_odds}/>
         </Box>
       </AccordionSummary>
       <AccordionDetails>

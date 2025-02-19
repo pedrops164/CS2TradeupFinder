@@ -68,8 +68,8 @@ def test_get_tracked_tradeups(app, client, auth):
 
     # Verify the tracked tradeup details
     tracked_tradeup = data["result"][0]
-    assert tracked_tradeup["tradeup_name"] == "Test Tradeup"
-    assert tracked_tradeup["tradeup_input_rarity"] == existing_skin.quality
+    assert tracked_tradeup["name"] == "Test Tradeup"
+    assert tracked_tradeup["input_rarity"] == existing_skin.quality
 
 
 def test_calculate_tradeup_output(client, auth):

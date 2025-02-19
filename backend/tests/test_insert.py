@@ -64,7 +64,7 @@ def test_create_tradeup_purchasable(client, auth):
                 "collection_id": 76
             }
         ],
-        'tradeup_price': 2
+        'price': 2
     }
     duplicate_check_payload = mock_payload.copy()
     duplicate_check_payload['tradeup_type'] = TradeupType.PURCHASABLE.value
@@ -156,7 +156,7 @@ def test_purchase_tradeup(client, auth):
                 "collection_id": 76
             }
         ],
-        "tradeup_price": 2
+        "price": 2
     }
 
     # create purchasable tradeup

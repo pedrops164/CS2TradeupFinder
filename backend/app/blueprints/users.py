@@ -1,7 +1,7 @@
 from flask import Blueprint
 from apifairy import authenticate, body, response
 from backend.app.auth import token_auth
-from .schemas import UserSchema
+from ..schemas import UserSchema
 
 bp_users = Blueprint('bp_users', __name__)
 

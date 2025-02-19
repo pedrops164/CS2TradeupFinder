@@ -9,8 +9,8 @@ from .event_handlers import register_event_handlers
 from .limiter import limiter
 from flask_cors import CORS
 from flask_wtf.csrf import CSRFProtect
-from flask_marshmallow import Marshmallow
 from apifairy import APIFairy
+from backend.app.schemas import ma
 
 migrate = Migrate(render_as_batch=True)
 login_manager = LoginManager()
@@ -19,7 +19,6 @@ login_manager.login_view = 'bp_authentication.login'
 #cors = CORS(origins=["http://localhost:8080"], supports_credentials=True)
 cors = CORS()
 csrf = CSRFProtect()
-ma = Marshmallow()
 apifairy = APIFairy()
 
 def create_app(config_class=Config):

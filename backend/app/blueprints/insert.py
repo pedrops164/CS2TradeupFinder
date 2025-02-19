@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, flash
 from backend.app.database import add_tradeup, add_tradeup_entry, get_skin_condition, get_skins_by_name, add_tradeup_collection
 from backend.app.models import Tradeup, InputTradeupEntry, OutputTradeupEntry, TradeupType, db, Collection
 import logging
-from .schemas import TradeupInputSchema, PurchasableTradeupInputSchema
+from ..schemas import TradeupInputSchema, PurchasableTradeupInputSchema
 from marshmallow import ValidationError
 from backend.src.tradeups import calculate_output_entries
 from backend.app.limiter import limiter
@@ -66,7 +66,7 @@ def create_tradeup_public(input_entries, stattrak, input_rarity, name, release_d
 @authenticate(token_auth) # Ensure only authenticated users can access this route
 @limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().steam_id)
 @use_kwargs(PurchasableTradeupInputSchema())
-def create_tradeup_purchasable(input_entries, stattrak, input_rarity, name, tradeup_price, release_date):
+def create_tradeup_purchasable(input_entries, stattrak, input_rarity, name, price, release_date):
     """
     This route allows authenticated users to create a tradeup that can be purchased. Purchasable tradeups have a price.
 
@@ -95,12 +95,12 @@ def create_tradeup_purchasable(input_entries, stattrak, input_rarity, name, trad
     # get tradeup output entries
     output_entries_dict = calculate_output_entries(input_entries, stattrak, input_rarity, get_entries_price=False, get_entries_image=False)
 
-    error_msg, error_code = _tradeup_input_checks(stattrak, input_rarity, input_entries, output_entries_dict, tradeup_type, tradeup_price)
+    error_msg, error_code = _tradeup_input_checks(stattrak, input_rarity, input_entries, output_entries_dict, tradeup_type, price)
     if error_msg:
         logger.error(error_msg)
         return jsonify({'error': error_msg}), error_code
     
-    tradeup, error_msg, error_code = create_tradeup(stattrak, input_rarity, input_entries, output_entries_dict, name, tradeup_type, release_date, tradeup_price)
+    tradeup, error_msg, error_code = create_tradeup(stattrak, input_rarity, input_entries, output_entries_dict, name, tradeup_type, release_date, price)
     if not tradeup:
         logger.error(error_msg)
         return jsonify({"error": error_msg}), error_code

@@ -2,7 +2,7 @@
 from apifairy import authenticate, body, response, other_responses
 from backend.app.auth import token_auth, basic_auth
 from backend.app.models import Token, db, User, UserRole
-from .schemas import TokenSchema, EmptySchema, OAuth2Schema, SteamSchema
+from ..schemas import TokenSchema, EmptySchema, OAuth2Schema, SteamSchema
 from flask import Blueprint, current_app, request, url_for, abort, session, redirect
 from werkzeug.http import dump_cookie
 import secrets

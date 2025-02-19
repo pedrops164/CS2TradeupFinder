@@ -26,7 +26,7 @@ const TradeupsPublic = ({apiUrl, sortBy}) => {
       {/* Each tradeup appears on its own line */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
         {data.tradeups.map((tradeup) => (
-          <Tradeup key={tradeup.tradeup_id} tradeup={tradeup} />
+          <Tradeup key={tradeup.id} tradeup={tradeup} />
         ))}
       </Box>
       {/* MUI Pagination Component */}

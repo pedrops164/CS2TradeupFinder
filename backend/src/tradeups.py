@@ -2,10 +2,6 @@
 from backend.src import entities
 from backend.app.models import db, Collection, Skin, Tradeup, SkinCondition
 from backend.app.database import get_skin_price
-from sqlalchemy import func
-from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
-from backend.app.types import InputEntryDict, OutputEntryDict
-from typing import List
 
 def create_tradeup_from_dataframe(df, input_rarity, stattrak: bool):
     """
@@ -66,7 +62,7 @@ def create_tradeup_from_dataframe(df, input_rarity, stattrak: bool):
 
     return trade_up_pool
 
-def calculate_output_entries(input_entries: List[InputEntryDict], stattrak: bool, input_rarity: str, get_entries_price=True, get_entries_image=True) -> List[OutputEntryDict]:
+def calculate_output_entries(input_entries, stattrak: bool, input_rarity: str, get_entries_price=True, get_entries_image=True):
     """Receives the input entries of a tradeup, and calculates the output entries.
     We assume that the stattrak status and rarity received in the arguments are in accordance with the input entries.
     We assume the price of the input skins is correct
@@ -151,7 +147,7 @@ def calculate_output_entries(input_entries: List[InputEntryDict], stattrak: bool
             # calculate probability of getting this output skin
             output_probability = (coll_dict["input_count"] / total_ballots) * 100
             skin_price = get_skin_price(output_skin_name, output_condition, stattrak)
-            output_entry: OutputEntryDict = {
+            output_entry = {
                 "skin_float": output_float,
                 "prob": output_probability,
                 "skin_condition": output_condition,
@@ -165,7 +161,7 @@ def calculate_output_entries(input_entries: List[InputEntryDict], stattrak: bool
 
     return output_entries
 
-def calculate_tradeup_stats(input_entries: List[InputEntryDict], output_entries: List[OutputEntryDict], stattrak: bool):
+def calculate_tradeup_stats(input_entries, output_entries, stattrak: bool):
     
     # calculate average input float
     avg_input_float = sum([entry["count"]*entry["skin_float"] for entry in input_entries]) / 10
