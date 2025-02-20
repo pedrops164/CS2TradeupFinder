@@ -1,6 +1,6 @@
 # import marshmallow for schema validation and serialization of data in the request
-from marshmallow import Schema, fields, validate
-from backend.app.models import TradeupType, User, UserRole, InputTradeupEntry, Tradeup, OutputTradeupEntry
+from marshmallow import Schema, fields, validate, post_load
+from backend.app.models import TradeupType, User, UserRole, InputTradeupEntry, Tradeup, OutputTradeupEntry,SkinCondition
 from backend.app.date import aware_utcnow
 from flask_marshmallow import Marshmallow
 import logging
@@ -15,14 +15,19 @@ class EmptySchema(ma.Schema):
     pass
 
 # Define Schemas for request validation
-class InputEntrySchema(Schema):
-    skin_name = fields.Method("get_skin_name", deserialize="load_skin_name")
-    skin_condition = fields.Method("get_skin_condition", deserialize="load_skin_condition")
-    skin_float = fields.Float(required=True, validate=lambda x: x >= 0.0 and x <= 1.0)
-    count = fields.Integer(required=True, validate=lambda x: x > 0 and x <= 10)
-    collection_id = fields.Integer(required=True)
-    price = fields.Method("get_price")
-    image_url = fields.Method("get_image_url")
+class InputEntrySchema(ma.SQLAlchemySchema):
+    class Meta:
+        model = InputTradeupEntry
+        load_instance = True
+        
+    skin_name = fields.Method("get_skin_name", dump_only=True) # dump only
+    skin_condition = fields.Method("get_skin_condition", dump_only=True) # dump only
+    skin_condition_id = ma.auto_field(required=True) # load and dump (goes to frontend and back)
+    skin_float = fields.Float(required=True, validate=lambda x: x >= 0.0 and x <= 1.0) # load and dump (goes to frontend and back)
+    count = fields.Integer(required=True, validate=lambda x: x > 0 and x <= 10) # load and dump (goes to frontend and back)
+    collection_id = fields.Method("get_collection_id", dump_only=True) # dump only
+    price = fields.Method("get_price", dump_only=True) # dump only
+    image_url = fields.Method("get_image_url", dump_only=True) # dump only
 
     def get_skin_name(self, obj: InputTradeupEntry):
         return obj.skin_condition.skin.name
@@ -32,18 +37,28 @@ class InputEntrySchema(Schema):
         return obj.skin_condition.price
     def get_image_url(self, obj: InputTradeupEntry):
         return obj.skin_condition.skin.image_name
-    def load_skin_name(self, value):
-        return str(value).strip()
-    def load_skin_condition(self, value):
-        return str(value).strip()
+    def get_collection_id(self, obj: InputTradeupEntry):
+        return obj.skin_condition.skin.collection_id
+
+    @post_load
+    def load_skin_condition(self, entry, **kwargs):
+        entry['skin_condition'] = SkinCondition.query.get(entry['skin_condition_id'])
+        return entry
     
-class OutputEntrySchema(Schema):
-    skin_name = fields.Method("get_skin_name", deserialize="load_skin_name")
-    skin_condition = fields.Method("get_skin_condition", deserialize="load_skin_condition")
-    skin_float = fields.Float(required=True, validate=lambda x: x >= 0 and x <= 1)
-    prob = fields.Float(required=True, validate=lambda x: x >= 0 and x <= 100)
-    price = fields.Method("get_price")
-    image_url = fields.Method("get_image_url")
+class OutputEntrySchema(ma.SQLAlchemySchema):
+    class Meta:
+        model = OutputTradeupEntry
+        load_instance = True
+        
+    skin_name = fields.Method("get_skin_name", dump_only=True) # dump only
+    skin_condition = fields.Method("get_skin_condition", dump_only=True) # dump only
+    #skin_condition_id = ma.auto_field(dump_only=True) # load and dump (goes to frontend and back)
+    #skin_float = fields.Float(required=True, validate=lambda x: x >= 0 and x <= 1)
+    skin_float = fields.Float(dump_only=True)
+    #prob = fields.Float(required=True, validate=lambda x: x >= 0 and x <= 100)
+    prob = fields.Float(dump_only=True)
+    price = fields.Method("get_price", dump_only=True) # dump only
+    image_url = fields.Method("get_image_url", dump_only=True) # dump only
 
     def get_skin_name(self, obj: OutputTradeupEntry):
         return obj.skin_condition.skin.name
@@ -51,12 +66,8 @@ class OutputEntrySchema(Schema):
         return obj.skin_condition.condition
     def get_price(self, obj: OutputTradeupEntry):
         return obj.skin_condition.price
-    def get_image_url(self, obj: OutputTradeupEntry):
+    def get_image_url(self, obj: InputTradeupEntry):
         return obj.skin_condition.skin.image_name
-    def load_skin_name(self, value):
-        return str(value).strip()
-    def load_skin_condition(self, value):
-        return str(value).strip()
     
 class LongTradeupSchema(Schema):
     id = fields.Integer(required=True) # in tradeup
@@ -113,6 +124,13 @@ class TradeupInputSchema(Schema):
     name = fields.String(required=False, load_default=None)
     release_date = fields.DateTime(required=False, load_default=aware_utcnow)
 
+class TradeupOutputSchema(ma.SQLAlchemySchema):
+    output = fields.List(fields.Nested(OutputEntrySchema), attribute='output_entries', dump_only=True)
+    avg_input_float = fields.Float(dump_only=True)
+    tradeup_cost = fields.Float(dump_only=True, attribute='input_skins_cost')
+    profit_avg = fields.Float(dump_only=True, attribute='avg_profitability')
+    profit_odds = fields.Float(dump_only=True)
+    
 class PurchasableTradeupInputSchema(TradeupInputSchema):
     price = fields.Float(required=True)
 

@@ -19,9 +19,7 @@ def set_tradeup_stats(tradeup: Tradeup):
         tradeup.profit_odds = None
         raise ValueError("Tradeup has no input or output entries")
     
-    input_entries_dict = [input_entry_schema.dump(input_entry) for input_entry in tradeup.input_entries]
-    output_entries_dict = [output_entry_schema.dump(output_entry) for output_entry in tradeup.output_entries]
-    avg_input_float, input_skins_cost, profit_avg, profit_odds = calculate_tradeup_stats(input_entries_dict, output_entries_dict, tradeup.stattrak)
+    avg_input_float, input_skins_cost, profit_avg, profit_odds = calculate_tradeup_stats(tradeup.input_entries, tradeup.output_entries, tradeup.stattrak)
     tradeup.avg_input_float = avg_input_float
     tradeup.input_skins_cost = input_skins_cost
     tradeup.avg_profitability = profit_avg

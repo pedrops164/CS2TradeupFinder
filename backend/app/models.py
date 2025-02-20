@@ -106,20 +106,6 @@ class Tradeup(db.Model):
     collections = db.relationship('Collection', secondary='tradeup_collections', backref='tradeups', lazy='joined')
     purchased_by = db.relationship('User', secondary=tradeup_purchase, back_populates='tradeups_purchased')
     tracked_by = db.relationship('User', secondary=private_tradeup_user, back_populates='tracked_tradeups')
-    
-    def __init__(self, stattrak, input_rarity, tradeup_type, release_date, price=None, name=None):
-        self.name = name
-        self.stattrak = stattrak
-        self.input_rarity = input_rarity
-        self.tradeup_type = tradeup_type
-        self.price = price
-        self.release_date = release_date
-        
-        # Ensure price is only set for purchasable tradeups
-        if self.tradeup_type == TradeupType.PURCHASABLE and price is None:
-            raise ValueError("Price must be set for purchasable tradeups")
-        elif self.tradeup_type != TradeupType.PURCHASABLE and price is not None:
-            raise ValueError("Price can only be set for purchasable tradeups")
 
     class InvalidRarityException(Exception):
         def __init__(self, message):
@@ -158,15 +144,6 @@ class InputTradeupEntry(db.Model):
     tradeup_id = db.Column(db.Integer, db.ForeignKey('tradeup.id'), nullable=False)
     
     skin_condition = db.relationship('SkinCondition', backref='input_entries')
-    
-    def __init__(self, skin_condition_id, skin_float, count, tradeup_id):
-        self.skin_condition_id = skin_condition_id
-        self.skin_float = skin_float
-        self.count = count
-        self.tradeup_id = tradeup_id
-        
-    def set_tradeup_id(self, tradeup_id):
-        self.tradeup_id = tradeup_id
 
 class OutputTradeupEntry(db.Model):
     __tablename__ = "output_tradeup_entry"
@@ -178,15 +155,6 @@ class OutputTradeupEntry(db.Model):
     tradeup_id = db.Column(db.Integer, db.ForeignKey('tradeup.id'), nullable=False)
 
     skin_condition = db.relationship('SkinCondition', backref='output_entries')
-
-    def __init__(self, skin_condition_id, skin_float, prob, tradeup_id):
-        self.skin_condition_id = skin_condition_id
-        self.skin_float = skin_float
-        self.prob = prob
-        self.tradeup_id = tradeup_id
-        
-    def set_tradeup_id(self, tradeup_id):
-        self.tradeup_id = tradeup_id
 
 class UserRole(enum.Enum):
     # users can be of default type (user) or admin

@@ -4,7 +4,7 @@ from sqlalchemy import not_
 from backend.app.models import db, Tradeup, SkinCondition, Skin, Collection, TradeupType
 from backend.app.limiter import limiter
 import logging
-from ..schemas import TradeupInputSchema, DuplicateTradeupCheckSchema, SkinSearchSchema, PaginatedUncensoredTradeupSchema, PaginatedCensoredTradeupSchema
+from ..schemas import TradeupInputSchema, DuplicateTradeupCheckSchema, SkinSearchSchema, PaginatedUncensoredTradeupSchema, PaginatedCensoredTradeupSchema,TradeupOutputSchema
 # import json for serialization and deserialization of data
 from webargs.flaskparser import use_kwargs
 from datetime import datetime, timezone
@@ -94,12 +94,15 @@ def get_tradeup_output(input_entries, stattrak, input_rarity, name, release_date
 
         avg_input_float, tradeup_cost, profit_avg, profit_odds = calculate_tradeup_stats(input_entries, output_entries, stattrak)
 
-        return jsonify({
-            "output": output_entries,
-            "avg_input_float": avg_input_float,
-            "tradeup_cost": tradeup_cost,
-            "profit_avg": profit_avg,
-            "profit_odds": profit_odds}), 201
+        tradeup = Tradeup(
+            input_entries=input_entries,
+            output_entries=output_entries,
+            avg_input_float=avg_input_float,
+            input_skins_cost=tradeup_cost,
+            avg_profitability=profit_avg,
+            profit_odds=profit_odds,
+        )
+        return TradeupOutputSchema().dump(tradeup), 200
     except Tradeup.InvalidRarityException as e:
         logger.error(str(e), exc_info=True)
         return jsonify({"error": str(e)}), 400
@@ -152,6 +155,7 @@ def search_skins(search_string, rarity, stattrak, page):
         Skin.min_float,
         Skin.max_float,
         Skin.image_name,
+        SkinCondition.id.label('skin_condition_id'),
         SkinCondition.condition,
         SkinCondition.price,
         SkinCondition.stattrak,
@@ -190,9 +194,9 @@ def search_skins(search_string, rarity, stattrak, page):
             }
 
         if row.stattrak:
-            conditions[row.condition]["stattrak"] = row.price
+            conditions[row.condition]["stattrak"] = {'price': row.price, 'skin_condition_id': row.skin_condition_id}
         else:
-            conditions[row.condition]["non_stattrak"] = row.price
+            conditions[row.condition]["non_stattrak"] = {'price': row.price, 'skin_condition_id': row.skin_condition_id}
 
     # Convert the dictionary to a list for JSON response
     skins_list = list(skins_dict.values())
@@ -333,9 +337,9 @@ def check_duplicate_tradeup(input_entries, stattrak, input_rarity, name, release
 
             is_duplicate = all(
                 any(
-                    entry['skin_name'] == tradeup_entry.skin_condition.skin.name and
-                    entry['skin_float'] == tradeup_entry.skin_float and
-                    entry['count'] == tradeup_entry.count
+                    entry.skin_condition.skin.name == tradeup_entry.skin_condition.skin.name and
+                    entry.skin_float == tradeup_entry.skin_float and
+                    entry.count == tradeup_entry.count
                     for tradeup_entry in tradeup_input_entries
                 )
                 for entry in input_entries

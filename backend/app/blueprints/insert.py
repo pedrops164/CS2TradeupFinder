@@ -1,12 +1,12 @@
-from flask import Blueprint, request, jsonify, flash
-from backend.app.database import add_tradeup, add_tradeup_entry, get_skin_condition, get_skins_by_name, add_tradeup_collection
-from backend.app.models import Tradeup, InputTradeupEntry, OutputTradeupEntry, TradeupType, db, Collection
+from flask import Blueprint, jsonify
+from backend.app.database import get_skin_condition, get_skins_by_name
+from backend.app.models import Tradeup, InputTradeupEntry, OutputTradeupEntry, TradeupType, db
 import logging
 from ..schemas import TradeupInputSchema, PurchasableTradeupInputSchema
-from marshmallow import ValidationError
 from backend.src.tradeups import calculate_output_entries
 from backend.app.limiter import limiter
 from webargs.flaskparser import use_kwargs
+from typing import List
 
 from backend.app.auth import token_auth
 from apifairy import authenticate # restrict function access to authenticated users
@@ -48,14 +48,14 @@ def create_tradeup_public(input_entries, stattrak, input_rarity, name, release_d
     tradeup_type = TradeupType.PUBLIC
 
     # get tradeup output entries
-    output_entries_dict = calculate_output_entries(input_entries, stattrak, input_rarity, get_entries_price=False, get_entries_image=False)
+    output_entries = calculate_output_entries(input_entries, stattrak, input_rarity)
 
-    error_msg, error_code = _tradeup_input_checks(stattrak, input_rarity, input_entries, output_entries_dict, tradeup_type)
+    error_msg, error_code = _tradeup_input_checks(input_entries, tradeup_type)
     if error_msg:
         logger.error(error_msg)
         return jsonify({'error': error_msg}), error_code
     
-    tradeup, error_msg, error_code = create_tradeup(stattrak, input_rarity, input_entries, output_entries_dict, name, tradeup_type, release_date)
+    tradeup, error_msg, error_code = create_tradeup(stattrak, input_rarity, input_entries, output_entries, name, tradeup_type, release_date)
     if not tradeup:
         logger.error(error_msg)
         return jsonify({"error": error_msg}), error_code
@@ -93,14 +93,14 @@ def create_tradeup_purchasable(input_entries, stattrak, input_rarity, name, pric
     tradeup_type = TradeupType.PURCHASABLE
 
     # get tradeup output entries
-    output_entries_dict = calculate_output_entries(input_entries, stattrak, input_rarity, get_entries_price=False, get_entries_image=False)
+    output_entries = calculate_output_entries(input_entries, stattrak, input_rarity)
 
-    error_msg, error_code = _tradeup_input_checks(stattrak, input_rarity, input_entries, output_entries_dict, tradeup_type, price)
+    error_msg, error_code = _tradeup_input_checks(input_entries, tradeup_type, price)
     if error_msg:
         logger.error(error_msg)
         return jsonify({'error': error_msg}), error_code
     
-    tradeup, error_msg, error_code = create_tradeup(stattrak, input_rarity, input_entries, output_entries_dict, name, tradeup_type, release_date, price)
+    tradeup, error_msg, error_code = create_tradeup(stattrak, input_rarity, input_entries, output_entries, name, tradeup_type, release_date, price)
     if not tradeup:
         logger.error(error_msg)
         return jsonify({"error": error_msg}), error_code
@@ -137,9 +137,9 @@ def create_tradeup_private(input_entries, stattrak, input_rarity, name, release_
     tradeup_type = TradeupType.PRIVATE
 
     # get tradeup output entries
-    output_entries_dict = calculate_output_entries(input_entries, stattrak, input_rarity, get_entries_price=False, get_entries_image=False)
+    output_entries_dict = calculate_output_entries(input_entries, stattrak, input_rarity)
 
-    error_msg, error_code = _tradeup_input_checks(stattrak, input_rarity, input_entries, output_entries_dict, tradeup_type)
+    error_msg, error_code = _tradeup_input_checks(input_entries, tradeup_type)
     if error_msg:
         logger.error(error_msg)
         return jsonify({'error': error_msg}), error_code
@@ -153,7 +153,7 @@ def create_tradeup_private(input_entries, stattrak, input_rarity, name, release_
     return jsonify({"tradeup_id": tradeup.id, "name": tradeup.name}), 201
 
 
-def create_tradeup(tradeup_isstattrak, tradeup_input_rarity, input_entries_dict, output_entries_dict, tradeup_name, tradeup_type, release_date, tradeup_price=None):
+def create_tradeup(tradeup_isstattrak, tradeup_input_rarity, input_entries: List[InputTradeupEntry], output_entries: List[OutputTradeupEntry], tradeup_name, tradeup_type, release_date, tradeup_price=None):
     """
     Creates a tradeup entry.
 
@@ -162,8 +162,8 @@ def create_tradeup(tradeup_isstattrak, tradeup_input_rarity, input_entries_dict,
     Args:
         tradeup_isstattrak (bool): Whether the tradeup is for StatTrak items.
         tradeup_input_rarity (str): The rarity of the input items.
-        input_entries_dict (list[dict]): List of input entries with details.
-        output_entries_dict (list[dict]): List of output entries with details.
+        input_entries
+        output_entries
         tradeup_name (str, optional): Name of the tradeup.
         tradeup_price (float, optional): Price of the tradeup (applicable for purchasable tradeups).
         tradeup_type (TradeupType): Type of the tradeup (PUBLIC, PURCHASABLE, PRIVATE).
@@ -176,60 +176,16 @@ def create_tradeup(tradeup_isstattrak, tradeup_input_rarity, input_entries_dict,
     """
     
     tradeup = Tradeup(stattrak=tradeup_isstattrak, input_rarity=tradeup_input_rarity, tradeup_type=tradeup_type, name=tradeup_name, price=tradeup_price, release_date=release_date)
-    input_entries, output_entries = [], []
-    tradeup_collection_ids = set()
+    collections = []
     
-    # at this point we know len(tradeup_entries) > 0
-    for tradeup_entry in input_entries_dict:
-        weapon_paint = tradeup_entry.get("skin_name")
-        condition = tradeup_entry.get("skin_condition")
-        skin_float = tradeup_entry.get("skin_float")
-        count = tradeup_entry.get("count")
-        collection_id = tradeup_entry.get("collection_id")
-        
-        # check all required parameters were given
-        if None in [weapon_paint, condition, skin_float, count, collection_id]:
-            error = "Didn't receive all required parameters in tradeup input entry"
-            return None, error, 400
-
-        tradeup_collection_ids.add(collection_id)
-        
-        skin_condition, error = _input_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, condition, skin_float)
-        if skin_condition:
-            input_tradeup_entry = InputTradeupEntry(skin_condition.id, skin_float, count, None)
-            input_tradeup_entry.skin_condition = skin_condition
-            input_entries.append(input_tradeup_entry)
-        else:
-            return None, error, 400
-
-    for tradeup_entry in output_entries_dict:
-        weapon_paint = tradeup_entry["skin_name"]
-        condition = tradeup_entry["skin_condition"]
-        skin_float = tradeup_entry["skin_float"]
-        prob = tradeup_entry["prob"]
-        
-        skin_condition, error = _output_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, condition, skin_float)
-        if skin_condition:
-            output_tradeup_entry = OutputTradeupEntry(skin_condition.id, skin_float, prob, None)
-            output_tradeup_entry.skin_condition = skin_condition
-            output_entries.append(output_tradeup_entry)
-        else:
-            return None, error, 400
+    # gather all the collection IDs for the tradeup
+    for entry in input_entries:
+        collection = entry.skin_condition.skin.collection
+        collections.append(collection)
 
     # associate input and output entries with the tradeup
     tradeup.input_entries = input_entries
     tradeup.output_entries = output_entries
-        
-    # For the many-to-many relationship, load each Collection object by its ID
-    # and assign them to tradeup.collections.
-    collections = []
-    for coll_id in tradeup_collection_ids:
-        collection = db.session.get(Collection, coll_id)
-        if collection:
-            collections.append(collection)
-        else:
-            logger.error(f"Collection with ID {coll_id} not found")
-            return None, f"Collection with ID {coll_id} not found", 400
     tradeup.collections = collections
 
     # add the complete tradeup object to the session.
@@ -239,7 +195,7 @@ def create_tradeup(tradeup_isstattrak, tradeup_input_rarity, input_entries_dict,
         
     return tradeup, None, None
 
-def _tradeup_input_checks(is_stattrak, input_rarity, input_entries_dict, output_entries_dict, tradeup_type: TradeupType, tradeup_price=None):
+def _tradeup_input_checks(input_entries, tradeup_type: TradeupType, tradeup_price=None):
     """
     Validate input parameters for a tradeup.
 
@@ -248,8 +204,7 @@ def _tradeup_input_checks(is_stattrak, input_rarity, input_entries_dict, output_
     Args:
         is_stattrak (bool): Whether the tradeup is for StatTrak items.
         input_rarity (str): The rarity of the input items.
-        input_entries_dict (list[dict]): List of input entries with details.
-        output_entries_dict (list[dict]): List of output entries with details.
+        input_entries : List of input entries with details.
         tradeup_price (float, optional): Price of the tradeup.
         tradeup_type (TradeupType): Type of the tradeup (PUBLIC, PURCHASABLE, PRIVATE).
 
@@ -259,11 +214,9 @@ def _tradeup_input_checks(is_stattrak, input_rarity, input_entries_dict, output_
             - error_code: HTTP error code if validation fails.
             - None: If validation is successful.
     """
-    if None in [is_stattrak, input_rarity, input_entries_dict, output_entries_dict]:
-        return "Didn't receive all required parameters in tradeup", 400
     
     # Validate total count of all entries
-    total_count = sum(entry["count"] for entry in input_entries_dict)
+    total_count = sum(entry.count for entry in input_entries)
     if total_count != 10:
         return "The total count of all entries must be 10", 400
     
@@ -276,94 +229,10 @@ def _tradeup_input_checks(is_stattrak, input_rarity, input_entries_dict, output_
     if tradeup_type == TradeupType.PURCHASABLE and not tradeup_price:
         return "Purchasable tradeup must have price", 400
     
-    if len(input_entries_dict) == 0:
+    if len(input_entries) == 0:
         return f"Tradeup entries array is empty", 400
     
     return None, None
-
-def _input_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, condition, skin_float):
-    """
-    Validates an input entry for a tradeup.
-    This function checks if the provided input entry details are valid by matching them against the available skins in the database.
-
-    Args:
-        weapon_paint (str): Name of the skin (e.g., "AK-47 | Redline").
-        tradeup_isstattrak (bool): Indicates if the tradeup is for StatTrak™ items.
-        tradeup_input_rarity (str): The rarity of the input items (e.g., "milspec_bg").
-        condition (str): Condition of the skin (e.g., "Factory New").
-        skin_float (float): Float value of the skin (0 to 1).
-
-    Returns:
-        tuple: (skin_condition, error_message)
-            - skin_condition: skin condition object if valid.
-            - error_message: Error message if validation fails.
-    """
-
-    # returns array of tuples (min_float, max_float, quality, stattrak)
-    matching_skins = get_skins_by_name(weapon_paint)
-
-    if len(matching_skins) == 0:
-        # no results, so skin with weapon_paint as name doesnt exist
-        return None, f"Invalid weapon_paint for '{weapon_paint}'"
-    #if not any([res[3] == tradeup_isstattrak for res in matching_skins]):
-        # tradeup_isstattrak implies stattrak_available
-        # there isn't a result on this skin with the given stattrak status
-        # (a stattrak skin was requested for a skin which doesn't have stattrak)
-    #    return None, f"Weapon_paint {weapon_paint} doesn't have given stattrak status"
-    # float in bounds check
-    if matching_skins[0][0] > skin_float or matching_skins[0][1] < skin_float:
-        return None, f"Weapon_paint {weapon_paint} with float {skin_float} is not valid"
-    # [0] because we know len(results) > 0, and [2] because quality is at index 2
-    if tradeup_input_rarity != matching_skins[0][2]:
-        return None, "Tradeup Input rarity doesn't match rarity of input entry"
-    
-    skin_condition = get_skin_condition(weapon_paint, condition, tradeup_isstattrak)
-    
-    if skin_condition is None:
-        return None, f"Invalid weapon_paint or condition for {weapon_paint}, {condition}"
-
-    return skin_condition, None
-
-def _output_entry_check(weapon_paint, tradeup_isstattrak, tradeup_input_rarity, condition, skin_float):
-    """
-    Validates an output entry for a tradeup.
-
-    This function checks if the provided output entry details are valid by matching them against the available skins in the database.
-
-    Args:
-        weapon_paint (str): Name of the skin (e.g., "M4A4 | Howl").
-        tradeup_isstattrak (bool): Indicates if the tradeup is for StatTrak™ items.
-        tradeup_input_rarity (str): The rarity of the input items (e.g., "milspec_bg").
-        condition (str): Condition of the skin (e.g., "Minimal Wear").
-        skin_float (float): Float value of the skin (0 to 1).
-
-    Returns:
-        tuple: (skin_condition, error_message)
-            - skin_condition: skin condition object if valid.
-            - error_message: Error message if validation fails.
-    """
-    matching_skins = get_skins_by_name(weapon_paint)
-
-    if len(matching_skins) == 0:
-        # no results, so skin with weapon_paint as name doesnt exist
-        return None, f"Invalid weapon_paint for '{weapon_paint}'"
-    #if not any([res[3] == tradeup_isstattrak for res in matching_skins]):
-    #    # there isn't a result on this skin with the given stattrak status
-    #    # (a stattrak skin was requested for a skin which doesn't have stattrak)
-    #    return None, f"Weapon_paint {weapon_paint} doesn't have given stattrak status"
-    # float in bounds check
-    if matching_skins[0][0] > skin_float or matching_skins[0][1] < skin_float:
-        return None, f"Weapon_paint {weapon_paint} with float {skin_float} is not valid"
-    # [0] because we know len(results) > 0, and [2] because quality is at index 2
-    if Tradeup.get_output_quality(tradeup_input_rarity) != matching_skins[0][2]:
-        return None, "Tradeup Output rarity doesn't match rarity of output entry"
-    
-    skin_condition = get_skin_condition(weapon_paint, condition, tradeup_isstattrak)
-    
-    if skin_condition is None:
-        return None, f"Invalid weapon_paint or condition for {weapon_paint}, {condition}"
-
-    return skin_condition, None
 
 @bp_insert.route('/tradeups/<int:tradeup_id>/purchase', methods=['POST'])
 @authenticate(token_auth)

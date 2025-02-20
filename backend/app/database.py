@@ -75,6 +75,25 @@ def get_skin_condition(weapon_paint: str, condition: str, tradeup_isstattrak: bo
         .one_or_none()  # Get one result or return None if not found
 
     return result
+
+def get_skin_condition_from_skin(skin: Skin, condition: str, stattrak: bool) -> SkinCondition:
+    """Queries the database to return the SkinCondition object.
+
+    Args:
+        skin (Skin): The skin object.
+        condition (str): condition of the skin. For example "Factory New".
+
+    Returns:
+        SkinCondition or None: The SkinCondition object if found, or None.
+    """
+    # Perform the query using SQLAlchemy ORM
+    result = db.session.query(SkinCondition)\
+        .filter(SkinCondition.skin_id == skin.id)\
+        .filter(SkinCondition.condition == condition)\
+        .filter(SkinCondition.stattrak == stattrak)\
+        .scalar()  # Get one result or return None if not found
+
+    return result
     
 def get_skins_by_name(weapon_paint: str):
     """Queries the database to return details of skins by name.

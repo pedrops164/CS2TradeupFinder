@@ -149,6 +149,7 @@ const TradeupCalculator = () => {
             skin_name: selectedSkin.skin_name,
             skin_float: skin_float,
             count: count,
+            skin_condition_id: selectedSkin.skin_condition_id,
             image_url: selectedSkin.image_url,
             conditions: selectedSkin.conditions,
             collection_id: selectedSkin.collection_id,
@@ -178,18 +179,12 @@ const TradeupCalculator = () => {
         let input_entries = [];
         tradeupInputEntries.forEach(input_entry => {
 
-            // get skin condition string from the value of the float
-            let skin_condition = getSkinCondition(input_entry.skin_float);
-
-            // fetch skin price
-            //let stattrak_str = isStattrak ? "stattrak" : "non_stattrak";
-            //let skin_price = input_entry.conditions[skin_condition][stattrak_str];
+            let stattrak_str = isStattrak ? "stattrak" : "non_stattrak";
+            let skin_condition_id = input_entry.conditions[input_entry.skin_condition][stattrak_str]['skin_condition_id'];
             let new_entry = {
                 count: input_entry.count,
                 skin_float: input_entry.skin_float,
-                skin_condition: skin_condition,
-                skin_name: input_entry.skin_name,
-                collection_id: input_entry.collection_id
+                skin_condition_id: skin_condition_id,
             };
             input_entries.push(new_entry);
         });
@@ -286,19 +281,19 @@ const TradeupCalculator = () => {
             return;
         }
 
+        let stattrak_str = isStattrak ? "stattrak" : "non_stattrak";
+        // create payload
+        const payload = {
+            stattrak: isStattrak,
+            input_rarity: selectedRarity,
+            input_entries: inputEntries.map((entry, _) => ({
+                "skin_float": entry.skin_float,
+                "count": entry.count,
+                "skin_condition_id": entry.conditions[entry.skin_condition][stattrak_str]['skin_condition_id']
+            }))
+        };
         // Check for duplicate tradeup
-        const response = await api.post('/tradeups/check_duplicate', {
-                input_entries: inputEntries.map((entry, _) => ({
-                    "skin_name": entry.skin_name,
-                    "skin_float": entry.skin_float,
-                    "count": entry.count,
-                    "skin_condition": entry.skin_condition,
-                    "collection_id": entry.collection_id
-                })),
-                stattrak: isStattrak,
-                input_rarity: selectedRarity,
-                tradeup_type: tradeupType
-        });
+        const response = await api.post('/tradeups/check_duplicate', {...payload, tradeup_type: tradeupType});
 
         // Handle non-200 HTTP responses
         if (!response.ok) {
@@ -313,18 +308,6 @@ const TradeupCalculator = () => {
             return;
         }
 
-        // create payload
-        const payload = {
-            stattrak: isStattrak,
-            input_rarity: selectedRarity,
-            input_entries: inputEntries.map((entry, _) => ({
-                "skin_name": entry.skin_name,
-                "skin_float": entry.skin_float,
-                "count": entry.count,
-                "skin_condition": entry.skin_condition,
-                "collection_id": entry.collection_id
-            }))
-        };
 
         // If admin selected a release date, include it in the payload
         if (user.role === 'admin' && releaseDate) {
