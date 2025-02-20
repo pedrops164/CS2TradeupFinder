@@ -10,11 +10,6 @@ import requests
 from urllib.parse import urlencode
 import os
 
-# Configure logging
-import logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 bp_tokens = Blueprint('bp_tokens', __name__)
 
 @bp_tokens.route('/tokens', methods=['POST'])
@@ -97,15 +92,15 @@ def refresh(args):
 @other_responses({404: 'Unknown OAuth2 provider'})
 def oauth2_authorize(provider):
     """Initiate OAuth2 authentication with a third-party provider"""
-    logger.info('oauth2_authorize')
+    current_app.logger.info('oauth2_authorize')
     provider_data = current_app.config['OAUTH2_PROVIDERS'].get(provider)
     if provider_data is None:
         abort(404)
     session['oauth2_state'] = secrets.token_urlsafe(16)
     session.permanent = True
     session.modified = True
-    logger.info('session[oauth2_state]: ' + session.get('oauth2_state'))
-    logger.info('session data - ' + str(dict(session)))
+    current_app.logger.info('session[oauth2_state]: ' + session.get('oauth2_state'))
+    current_app.logger.info('session data - ' + str(dict(session)))
     qs = urlencode({
         'client_id': provider_data['client_id'],
         'redirect_uri': current_app.config['OAUTH2_REDIRECT_URI'].format(
@@ -129,15 +124,15 @@ def oauth2_new(args, provider):
     client is running in an insecure environment such as a web browser, and
     cannot adequately protect the refresh token against unauthorized access.
     """
-    logger.info('oauth2_new')
+    current_app.logger.info('oauth2_new')
     provider_data = current_app.config['OAUTH2_PROVIDERS'].get(provider)
     if provider_data is None:
         abort(404)
     if args['state'] != session.get('oauth2_state'):
-        logger.error('invalid state')
-        logger.info('session data - ' + str(dict(session)))
-        logger.info(f"args['state']: {args['state']}")
-        logger.info(f"session.get('oauth2_state'): {session.get('oauth2_state')}")
+        current_app.logger.error('invalid state')
+        current_app.logger.info('session data - ' + str(dict(session)))
+        current_app.logger.info(f"args['state']: {args['state']}")
+        current_app.logger.info(f"session.get('oauth2_state'): {session.get('oauth2_state')}")
         abort(401)
     response = requests.post(provider_data['access_token_url'], data={
         'client_id': provider_data['client_id'],
@@ -180,7 +175,7 @@ steam_openid_url = 'https://steamcommunity.com/openid/login'
 
 @bp_tokens.route('/tokens/steam', methods=['GET'])
 def openid_steam_authorize():
-    logger.info('openid_steam_authorize')
+    current_app.logger.info('openid_steam_authorize')
     params = {
         'openid.ns': "http://specs.openid.net/auth/2.0",
         'openid.identity': "http://specs.openid.net/auth/2.0/identifier_select",
@@ -200,13 +195,13 @@ def openid_steam_authorize():
 @other_responses({404: 'Unknown Steam id',
                  500: 'Internal server error'})
 def openid_steam_new(args):
-    logger.info('openid_steam_new')
+    current_app.logger.info('openid_steam_new')
     steam_id = args['steam_id']
     
     # Get the API key from the environment variable.
     api_key = os.environ.get("STEAM_API_KEY")
     if not api_key:
-        logger.error("STEAM_API_KEY environment variable not set.")
+        current_app.logger.error("STEAM_API_KEY environment variable not set.")
         abort(500)
 
     # Prepare the Steam API URL.
@@ -222,13 +217,13 @@ def openid_steam_new(args):
     try:
         data = response.json()
     except Exception as e:
-        logger.error("Failed to parse JSON from Steam API: %s", e)
+        current_app.logger.error("Failed to parse JSON from Steam API: %s", e)
         abort(500)
 
     # Get player data (we expect one player)
     players = data.get("response", {}).get("players", [])
     if not players:
-        logger.error("No player data found in Steam API response.")
+        current_app.logger.error("No player data found in Steam API response.")
         abort(404)
     player = players[0]
 
@@ -241,7 +236,7 @@ def openid_steam_new(args):
         "personaname": personaname,
         "avatar_url": avatar_url
     }
-    logger.info("Steam login successful: %s", result)
+    current_app.logger.info("Steam login successful: %s", result)
 
     # 3. Check if a user with this steam_id already exists.
     user = User.query.filter_by(steam_id=steam_id).first()

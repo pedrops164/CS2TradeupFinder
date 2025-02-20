@@ -1,7 +1,5 @@
-from flask import Blueprint, jsonify
-from backend.app.database import get_skin_condition, get_skins_by_name
+from flask import Blueprint, jsonify, current_app
 from backend.app.models import Tradeup, InputTradeupEntry, OutputTradeupEntry, TradeupType, db
-import logging
 from ..schemas import TradeupInputSchema, PurchasableTradeupInputSchema
 from backend.src.tradeups import calculate_output_entries
 from backend.app.limiter import limiter
@@ -11,10 +9,6 @@ from typing import List
 from backend.app.auth import token_auth
 from apifairy import authenticate # restrict function access to authenticated users
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 bp_insert = Blueprint('bp_insert', __name__)
 
 @bp_insert.route('/tradeups/create_public', methods=['POST'])
@@ -23,43 +17,31 @@ bp_insert = Blueprint('bp_insert', __name__)
 @use_kwargs(TradeupInputSchema())
 def create_tradeup_public(input_entries, stattrak, input_rarity, name, release_date):
     """
-    This route allows authenticated users to create a public tradeup. Public tradeups are visible to all users.
-    
-    Request JSON body:
-    {
-        "stattrak": bool,                    # Indicates if the tradeup is for stattrak skins
-        "input_rarity": str,                 # Rarity of the input skins (e.g., "milspec_bg")
-        "input_entries": [                  # List of input entries
-            {
-                "skin_name": str,            # Name of the skin (e.g., "AK-47 | Redline")
-                "skin_condition": str,       # Condition of the skin (e.g., "Factory New")
-                "float": float,              # Float value of the skin (0 to 1)
-                "count": int,                # Number of skins of this type
-                "collection_id": int         # Collection ID for the skin
-            }
-        ]
-        "name": str                          # Optional name for the tradeup
-        release_date: datetime               # Optional release date for the tradeup
-    }
-    
-    Returns:
-        JSON response with tradeup ID and name on success or an error message and code on failure.
+    Create a public tradeup. Public tradeups are visible to all users.
     """
+    user = token_auth.current_user()
+    current_app.logger.info("User %s initiated creation of a PUBLIC tradeup", user.steam_id)
     tradeup_type = TradeupType.PUBLIC
 
     # get tradeup output entries
-    output_entries = calculate_output_entries(input_entries, stattrak, input_rarity)
+    try:
+        output_entries = calculate_output_entries(input_entries, stattrak, input_rarity)
+        current_app.logger.info("Calculated output entries for PUBLIC tradeup for user %s", user.steam_id)
+    except Exception as e:
+        current_app.logger.error("Error calculating output entries for PUBLIC tradeup for user %s: %s", user.steam_id, str(e), exc_info=True)
+        return jsonify({'error': 'Failed to calculate output entries'}), 500
 
     error_msg, error_code = _tradeup_input_checks(input_entries, tradeup_type)
     if error_msg:
-        logger.error(error_msg)
+        current_app.logger.error("Input check failed for PUBLIC tradeup by user %s: %s", user.steam_id, error_msg)
         return jsonify({'error': error_msg}), error_code
     
     tradeup, error_msg, error_code = create_tradeup(stattrak, input_rarity, input_entries, output_entries, name, tradeup_type, release_date)
     if not tradeup:
-        logger.error(error_msg)
+        current_app.logger.error("Tradeup creation failed for PUBLIC tradeup by user %s: %s", user.steam_id, error_msg)
         return jsonify({"error": error_msg}), error_code
     else:
+        current_app.logger.info("PUBLIC tradeup created with id %s for user %s", tradeup.id, user.steam_id)
         return jsonify({"tradeup_id": tradeup.id, "name": tradeup.name}), 201
     
 @bp_insert.route('/tradeups/create_purchasable', methods=['POST'])
@@ -68,43 +50,31 @@ def create_tradeup_public(input_entries, stattrak, input_rarity, name, release_d
 @use_kwargs(PurchasableTradeupInputSchema())
 def create_tradeup_purchasable(input_entries, stattrak, input_rarity, name, price, release_date):
     """
-    This route allows authenticated users to create a tradeup that can be purchased. Purchasable tradeups have a price.
-
-    Request JSON body:
-    {
-        "stattrak": bool,                    # Indicates if the tradeup is for stattrak skins
-        "input_rarity": str,                 # Rarity of the input skins (e.g., "milspec_bg")
-        "input_entries": [                  # List of input entries
-            {
-                "skin_name": str,            # Name of the skin (e.g., "AK-47 | Redline")
-                "skin_condition": str,       # Condition of the skin (e.g., "Factory New")
-                "float": float,              # Float value of the skin (0 to 1)
-                "count": int,                # Number of skins of this type
-                "collection_id": int         # Collection ID for the skin
-            }
-        ]
-        "name": str,                        # Optional name for the tradeup
-        "price": float                      # Price of the tradeup (mandatory for purchasable tradeups)
-    }
-
-    Returns:
-        JSON response with tradeup ID and name on success or an error message and code on failure.
+    Create a purchasable tradeup. Purchasable tradeups have a price.
     """
+    user = token_auth.current_user()
+    current_app.logger.info("User %s initiated creation of a PURCHASABLE tradeup", user.steam_id)
     tradeup_type = TradeupType.PURCHASABLE
 
     # get tradeup output entries
-    output_entries = calculate_output_entries(input_entries, stattrak, input_rarity)
+    try:
+        output_entries = calculate_output_entries(input_entries, stattrak, input_rarity)
+        current_app.logger.info("Calculated output entries for PURCHASABLE tradeup for user %s", user.steam_id)
+    except Exception as e:
+        current_app.logger.error("Error calculating output entries for PURCHASABLE tradeup for user %s: %s", user.steam_id, str(e), exc_info=True)
+        return jsonify({'error': 'Failed to calculate output entries'}), 500
 
     error_msg, error_code = _tradeup_input_checks(input_entries, tradeup_type, price)
     if error_msg:
-        logger.error(error_msg)
+        current_app.logger.error("Input check failed for PURCHASABLE tradeup by user %s: %s", user.steam_id, error_msg)
         return jsonify({'error': error_msg}), error_code
     
     tradeup, error_msg, error_code = create_tradeup(stattrak, input_rarity, input_entries, output_entries, name, tradeup_type, release_date, price)
     if not tradeup:
-        logger.error(error_msg)
+        current_app.logger.error("Tradeup creation failed for PURCHASABLE tradeup by user %s: %s", user.steam_id, error_msg)
         return jsonify({"error": error_msg}), error_code
     else:
+        current_app.logger.info("PURCHASABLE tradeup created with id %s for user %s", tradeup.id, user.steam_id)
         return jsonify({"tradeup_id": tradeup.id, "name": tradeup.name}), 201
     
 @bp_insert.route('/tradeups/create_private', methods=['POST'])
@@ -113,67 +83,41 @@ def create_tradeup_purchasable(input_entries, stattrak, input_rarity, name, pric
 @use_kwargs(TradeupInputSchema())
 def create_tradeup_private(input_entries, stattrak, input_rarity, name, release_date):
     """
-    This route allows authenticated users to create a private tradeup. Private tradeups are only visible to the user who created them.
-
-    Request JSON body:
-    {
-        "stattrak": bool,                    # Indicates if the tradeup is for stattrak skins
-        "input_rarity": str,                 # Rarity of the input skins (e.g., "milspec_bg")
-        "input_entries": [                  # List of input entries
-            {
-                "skin_name": str,            # Name of the skin (e.g., "AK-47 | Redline")
-                "skin_condition": str,       # Condition of the skin (e.g., "Factory New")
-                "float": float,              # Float value of the skin (0 to 1)
-                "count": int,                # Number of skins of this type
-                "collection_id": int         # Collection ID for the skin
-            }
-        ]
-        "name": str,                        # Optional name for the tradeup
-    }
-
-    Returns:
-        JSON response with tradeup ID and name on success or an error message and code on failure.
+    Create a private tradeup. Private tradeups are only visible to the creator.
     """
+    user = token_auth.current_user()
+    current_app.logger.info("User %s initiated creation of a PRIVATE tradeup", user.steam_id)
     tradeup_type = TradeupType.PRIVATE
 
     # get tradeup output entries
-    output_entries_dict = calculate_output_entries(input_entries, stattrak, input_rarity)
+    try:
+        output_entries = calculate_output_entries(input_entries, stattrak, input_rarity)
+        current_app.logger.info("Calculated output entries for PRIVATE tradeup for user %s", user.steam_id)
+    except Exception as e:
+        current_app.logger.error("Error calculating output entries for PRIVATE tradeup for user %s: %s", user.steam_id, str(e), exc_info=True)
+        return jsonify({'error': 'Failed to calculate output entries'}), 500
 
     error_msg, error_code = _tradeup_input_checks(input_entries, tradeup_type)
     if error_msg:
-        logger.error(error_msg)
+        current_app.logger.error("Input check failed for PRIVATE tradeup by user %s: %s", user.steam_id, error_msg)
         return jsonify({'error': error_msg}), error_code
     
-    tradeup, error_msg, error_code = create_tradeup(stattrak, input_rarity, input_entries, output_entries_dict, name, tradeup_type, release_date)
+    tradeup, error_msg, error_code = create_tradeup(stattrak, input_rarity, input_entries, output_entries, name, tradeup_type, release_date)
     if not tradeup:
-        logger.error(error_msg)
+        current_app.logger.error("Tradeup creation failed for PRIVATE tradeup by user %s: %s", user.steam_id, error_msg)
         return jsonify({"error": error_msg}), error_code
     
+    current_app.logger.info("PRIVATE tradeup created with id %s for user %s", tradeup.id, user.steam_id)
     track_tradeup(tradeup.id)
     return jsonify({"tradeup_id": tradeup.id, "name": tradeup.name}), 201
 
 
 def create_tradeup(tradeup_isstattrak, tradeup_input_rarity, input_entries: List[InputTradeupEntry], output_entries: List[OutputTradeupEntry], tradeup_name, tradeup_type, release_date, tradeup_price=None):
     """
-    Creates a tradeup entry.
-
-    This function creates a tradeup, validates its input and output entries, and stores it in the database.
-
-    Args:
-        tradeup_isstattrak (bool): Whether the tradeup is for StatTrak items.
-        tradeup_input_rarity (str): The rarity of the input items.
-        input_entries
-        output_entries
-        tradeup_name (str, optional): Name of the tradeup.
-        tradeup_price (float, optional): Price of the tradeup (applicable for purchasable tradeups).
-        tradeup_type (TradeupType): Type of the tradeup (PUBLIC, PURCHASABLE, PRIVATE).
-
-    Returns:
-        tuple: (tradeup, error_msg, error_code)
-            - tradeup: The created Tradeup object if successful.
-            - error_msg: Error message if not successful.
-            - error_code: HTTP error code if not successful.
+    Create and persist a tradeup entry in the database.
     """
+    user = token_auth.current_user()
+    current_app.logger.info("Creating tradeup for user %s", user.steam_id)
     
     tradeup = Tradeup(stattrak=tradeup_isstattrak, input_rarity=tradeup_input_rarity, tradeup_type=tradeup_type, name=tradeup_name, price=tradeup_price, release_date=release_date)
     collections = []
@@ -190,29 +134,19 @@ def create_tradeup(tradeup_isstattrak, tradeup_input_rarity, input_entries: List
 
     # add the complete tradeup object to the session.
     # All associated input/output entries and collection associations will be persisted.
-    db.session.add(tradeup)
-    db.session.commit()
-        
-    return tradeup, None, None
+    try:
+        db.session.add(tradeup)
+        db.session.commit()
+        current_app.logger.info("Tradeup created with id %s for user %s", tradeup.id, user.steam_id)
+        return tradeup, None, None
+    except Exception as e:
+        current_app.logger.error("Database error while creating tradeup for user %s: %s", user.steam_id, str(e), exc_info=True)
+        db.session.rollback()
+        return None, "Failed to create tradeup", 500
 
 def _tradeup_input_checks(input_entries, tradeup_type: TradeupType, tradeup_price=None):
     """
     Validate input parameters for a tradeup.
-
-    This function checks if all required parameters are provided and if they meet the criteria for creating a tradeup.
-
-    Args:
-        is_stattrak (bool): Whether the tradeup is for StatTrak items.
-        input_rarity (str): The rarity of the input items.
-        input_entries : List of input entries with details.
-        tradeup_price (float, optional): Price of the tradeup.
-        tradeup_type (TradeupType): Type of the tradeup (PUBLIC, PURCHASABLE, PRIVATE).
-
-    Returns:
-        tuple: (json_error, error_code)
-            - json_error: JSON error message if validation fails.
-            - error_code: HTTP error code if validation fails.
-            - None: If validation is successful.
     """
     
     # Validate total count of all entries
@@ -239,65 +173,73 @@ def _tradeup_input_checks(input_entries, tradeup_type: TradeupType, tradeup_pric
 @limiter.limit("60 per minute", key_func = lambda : token_auth.current_user().steam_id)
 def purchase_tradeup(tradeup_id):
     """
-    This route allows an authenticated user to purchase a tradeup, adding it to their list of purchased tradeups.
-
-    Args:
-        tradeup_id (int): The ID of the tradeup to purchase.
-
-    Returns:
-        JSON response with a success message and user ID on success, or an error message and code on failure.
+    Allow an authenticated user to purchase a tradeup.
     """
+    user = token_auth.current_user()
+    current_app.logger.info("User %s attempting to purchase tradeup %s", user.steam_id, tradeup_id)
     if tradeup_id is None:
+        current_app.logger.error("Purchase request missing tradeup id for user %s", user.steam_id)
         return jsonify({"error": "Must receive tradeup id"}), 400
     
     # get tradeup with given id
     tradeup = Tradeup.query.filter(Tradeup.id == tradeup_id).first()
     if tradeup is None:
+        current_app.logger.error("No tradeup found with id %s for purchase by user %s", tradeup_id, user.steam_id)
         return jsonify({"error": "No tradeup with given id"}), 400
     
     if tradeup.tradeup_type != TradeupType.PURCHASABLE:
+        current_app.logger.error("Tradeup %s is not purchasable. User %s attempted to purchase", tradeup_id, user.steam_id)
         return jsonify({"error": "Tradeup with given ID is not purchasable"}), 400
     
     if tradeup in token_auth.current_user().tradeups_purchased:
+        current_app.logger.error("User %s already purchased tradeup %s", user.steam_id, tradeup_id)
         return jsonify({"error": "User already purchased tradeup"}), 400
     
     # add tradeup to current user
-    token_auth.current_user().tradeups_purchased.append(tradeup)
+    user.tradeups_purchased.append(tradeup)
 
     # persist changes in database
-    db.session.commit()
-
-    return jsonify({"message": "Tradeup purchased successfully", "user_id": token_auth.current_user().steam_id}), 200
-
+    try:
+        db.session.commit()
+        current_app.logger.info("User %s successfully purchased tradeup %s", user.steam_id, tradeup_id)
+        return jsonify({"message": "Tradeup purchased successfully", "user_id": user.steam_id}), 200
+    except Exception as e:
+        current_app.logger.error("Database error during tradeup purchase by user %s: %s", user.steam_id, str(e), exc_info=True)
+        db.session.rollback()
+        return jsonify({"error": "Failed to purchase tradeup"}), 500
 
 @bp_insert.route('/tradeups/<int:tradeup_id>/track', methods=['POST'])
 @authenticate(token_auth)
 @limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().steam_id)
 def track_tradeup(tradeup_id):
     """
-    This route allows an authenticated user to track a tradeup, adding it to their list of tracked tradeups.
-
-    Args:
-        tradeup_id (int): The ID of the tradeup to track.
-
-    Returns:
-        JSON response with a success message and user ID on success, or an error message and code on failure.
+    Allow an authenticated user to track a tradeup.
     """
+    user = token_auth.current_user()
+    current_app.logger.info("User %s attempting to track tradeup %s", user.steam_id, tradeup_id)
     if tradeup_id is None:
+        current_app.logger.error("Track request missing tradeup id for user %s", user.steam_id)
         return jsonify({"error": "Must receive tradeup id"}), 400
     
     # get tradeup with given id
     tradeup = Tradeup.query.filter(Tradeup.id == tradeup_id).first()
     if tradeup is None:
+        current_app.logger.error("No tradeup found with id %s for tracking by user %s", tradeup_id, user.steam_id)
         return jsonify({"error": "No tradeup with given id"}), 400
     
     if tradeup in token_auth.current_user().tracked_tradeups:
+        current_app.logger.error("User %s already tracking tradeup %s", user.steam_id, tradeup_id)
         return jsonify({"error": "User already tracked the given tradeup"}), 400
     
     # add tradeup to current user
-    token_auth.current_user().tracked_tradeups.append(tradeup)
+    user.tracked_tradeups.append(tradeup)
 
     # persist changes in database
-    db.session.commit()
-
-    return jsonify({"message": "Tradeup tracked successfully", "user_id": token_auth.current_user().steam_id}), 200
+    try:
+        db.session.commit()
+        current_app.logger.info("User %s successfully tracked tradeup %s", user.steam_id, tradeup_id)
+        return jsonify({"message": "Tradeup tracked successfully", "user_id": user.steam_id}), 200
+    except Exception as e:
+        current_app.logger.error("Database error during tradeup tracking by user %s: %s", user.steam_id, str(e), exc_info=True)
+        db.session.rollback()
+        return jsonify({"error": "Failed to track tradeup"}), 500

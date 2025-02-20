@@ -1,20 +1,14 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, jsonify, current_app, request
 from backend.src.tradeups import calculate_output_entries, calculate_tradeup_stats
 from sqlalchemy import not_
 from backend.app.models import db, Tradeup, SkinCondition, Skin, Collection, TradeupType
 from backend.app.limiter import limiter
-import logging
 from ..schemas import TradeupInputSchema, DuplicateTradeupCheckSchema, SkinSearchSchema, PaginatedUncensoredTradeupSchema, PaginatedCensoredTradeupSchema,TradeupOutputSchema
 # import json for serialization and deserialization of data
 from webargs.flaskparser import use_kwargs
 from datetime import datetime, timezone
-
 from backend.app.auth import token_auth
 from apifairy import authenticate # restrict function access to authenticated users
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # Define blueprint
 bp_retrieve = Blueprint('bp_retrieve', __name__)
@@ -43,7 +37,8 @@ def get_tradeups():
         - avg_profitability: Average percentage of profit.
         - profit_odds: Odds of making a profit.
     """
-    logger.info("Fetching tracked tradeups for user: %s", token_auth.current_user().steam_id)
+    user = token_auth.current_user()
+    current_app.logger.info("User %s requested tracked tradeups", user.steam_id)
 
     # Get the page number from the query parameters, defaulting to 1
     page = request.args.get('page', 1, type=int)
@@ -53,7 +48,7 @@ def get_tradeups():
     tradeups_per_page = current_app.config.get('TRADEUPS_PER_PAGE', 10)  # Default to 10 if not set
 
     # Parsing each tradeup separately
-    tracked_tradeups = token_auth.current_user().tracked_tradeups
+    tracked_tradeups = user.tracked_tradeups
     
     # Apply sorting based on the sort_by parameter
     if sort_by == 'avg_profitability':
@@ -63,6 +58,8 @@ def get_tradeups():
         tracked_tradeups = tracked_tradeups.order_by(Tradeup.created_at.desc())
 
     tracked_tradeups_paginated = tracked_tradeups.paginate(page=page, per_page=tradeups_per_page)
+    current_app.logger.info("Fetched %d tracked tradeups for user %s on page %d, sort_by=%s", 
+                              len(tracked_tradeups_paginated.items), user.steam_id, page, sort_by)
     return PaginatedUncensoredTradeupSchema().dump(tracked_tradeups_paginated), 200
 
 @bp_retrieve.route('/tradeups/calculate_output', methods=['POST'])
@@ -87,7 +84,8 @@ def get_tradeup_output(input_entries, stattrak, input_rarity, name, release_date
         - profit_avg: Average percentage of profit.
         - profit_odds: Odds of making a profit.
     """
-    #logger.info("Calculating tradeup output for user: %s", token_auth.current_user().steam_id)
+    user = token_auth.current_user()
+    current_app.logger.info("User %s initiated tradeup output calculation", user.steam_id)
 
     try:
         output_entries = calculate_output_entries(input_entries, stattrak, input_rarity)
@@ -102,12 +100,14 @@ def get_tradeup_output(input_entries, stattrak, input_rarity, name, release_date
             avg_profitability=profit_avg,
             profit_odds=profit_odds,
         )
+        current_app.logger.info("Tradeup calculation successful for user %s", user.steam_id)
         return TradeupOutputSchema().dump(tradeup), 200
     except Tradeup.InvalidRarityException as e:
-        logger.error(str(e), exc_info=True)
+        current_app.logger.error("Invalid rarity error for user %s: %s", user.steam_id, str(e), exc_info=True)
         return jsonify({"error": str(e)}), 400
     except Exception as e:
-        logger.error(str(e), exc_info=True)
+        current_app.logger.error("Unexpected error during tradeup calculation for user %s: %s", 
+                                   user.steam_id, str(e), exc_info=True)
         return jsonify({}), 500
 
 @bp_retrieve.route('/skins/search', methods=['GET'])
@@ -126,6 +126,8 @@ def search_skins(search_string, rarity, stattrak, page):
     Returns:
         JSON response with a paginated list of matching skins.
     """
+    current_app.logger.info("Skin search initiated with search_string='%s', rarity='%s', stattrak=%s, page=%d",
+                              search_string, rarity, stattrak, page)
     # Get the number of tradeups per page from the app config
     skins_per_page = current_app.config.get('SKINS_PER_PAGE', 10)  # Default to 10 if not set
 
@@ -200,6 +202,7 @@ def search_skins(search_string, rarity, stattrak, page):
 
     # Convert the dictionary to a list for JSON response
     skins_list = list(skins_dict.values())
+    current_app.logger.info("Skin search returned %d items on page %d", len(skins_list), page)
 
     # Return the response with pagination metadata
     return jsonify({
@@ -221,13 +224,16 @@ def get_purchasable_tradeups():
         JSON response with:
         - tradeups: List of dictionaries representing tradeups the user has not purchased.
     """
+    user = token_auth.current_user()
+    current_app.logger.info("User %s requested purchasable tradeups", user.steam_id)
+    # Get the number of tradeups per page from the app config
+    tradeups_per_page = current_app.config.get('TRADEUPS_PER_PAGE', 10)  # Default to 10 if not set
+    all_purchasable_tradeups = Tradeup.query.filter(Tradeup.tradeup_type == TradeupType.PURCHASABLE)
+
     # Get the page number from the query parameters, defaulting to 1
     page = request.args.get('page', 1, type=int)
     # Get the sort_by parameter from the URL query parameters, defaulting to 'avg_profitability'
     sort_by = request.args.get('sort_by', 'avg_profitability', type=str)
-    # Get the number of tradeups per page from the app config
-    tradeups_per_page = current_app.config.get('TRADEUPS_PER_PAGE', 10)  # Default to 10 if not set
-    all_purchasable_tradeups = Tradeup.query.filter(Tradeup.tradeup_type == TradeupType.PURCHASABLE)
 
     # Apply sorting based on the sort_by parameter
     if sort_by == 'avg_profitability':
@@ -240,6 +246,8 @@ def get_purchasable_tradeups():
     # Currently we also show the tradeups that the user has already purchased. We can change this later,
     #   or show to the user that they have already purchased the tradeup
     all_purchasable_tradeups_paginated = all_purchasable_tradeups.paginate(page=page, per_page=tradeups_per_page)
+    current_app.logger.info("Fetched %d purchasable tradeups on page %d for user %s", 
+                              len(all_purchasable_tradeups_paginated.items), page, user.steam_id)
     return PaginatedCensoredTradeupSchema().dump(all_purchasable_tradeups_paginated), 200
 
 @bp_retrieve.route('/tradeups/purchased', methods=['GET'])
@@ -253,12 +261,15 @@ def get_purchased_tradeups():
         JSON response with:
         - tradeups: List of dictionaries representing tradeups the user has purchased.
     """
+    user = token_auth.current_user()
+    current_app.logger.info("User %s requested purchased tradeups", user.steam_id)
+    tradeups_per_page = current_app.config.get('TRADEUPS_PER_PAGE', 10)  # Default to 10 if not set
+    user_purchased_tradeups = token_auth.current_user().tradeups_purchased
+
     # Get the page number from the query parameters, defaulting to 1
     page = request.args.get('page', 1, type=int)
     # Get the sort_by parameter from the URL query parameters, defaulting to 'avg_profitability'
     sort_by = request.args.get('sort_by', 'avg_profitability', type=str)
-    tradeups_per_page = current_app.config.get('TRADEUPS_PER_PAGE', 10)  # Default to 10 if not set
-    user_purchased_tradeups = token_auth.current_user().tradeups_purchased
 
     # Apply sorting based on the sort_by parameter
     if sort_by == 'avg_profitability':
@@ -269,6 +280,8 @@ def get_purchased_tradeups():
 
     # Get the number of tradeups per page from the app config
     user_purchased_tradeups_paginated = user_purchased_tradeups.paginate(page=page, per_page=tradeups_per_page)
+    current_app.logger.info("Fetched %d purchased tradeups on page %d for user %s", 
+                              len(user_purchased_tradeups_paginated.items), page, user.steam_id)
     return PaginatedUncensoredTradeupSchema().dump(user_purchased_tradeups_paginated), 200
 
 @bp_retrieve.route('/tradeups/public', methods=['GET'])
@@ -281,15 +294,16 @@ def get_public_tradeups():
     Returns:
         JSON response with a list of public tradeups.
     """
-    # Get the page number from the query parameters, defaulting to 1
-    page = request.args.get('page', 1, type=int)
-    # Get the sort_by parameter from the URL query parameters, defaulting to 'avg_profitability'
-    sort_by = request.args.get('sort_by', 'avg_profitability', type=str)
     # Get the number of tradeups per page from the app config
     tradeups_per_page = current_app.config.get('TRADEUPS_PER_PAGE', 10)  # Default to 10 if not set
     public_tradeups = Tradeup.query.filter(
         Tradeup.tradeup_type == TradeupType.PUBLIC, # Only show public tradeups
         Tradeup.release_date <= datetime.now(timezone.utc)) # Only show tradeups that have been released (release_date is in the past)
+
+    # Get the page number from the query parameters, defaulting to 1
+    page = request.args.get('page', 1, type=int)
+    # Get the sort_by parameter from the URL query parameters, defaulting to 'avg_profitability'
+    sort_by = request.args.get('sort_by', 'avg_profitability', type=str)
 
     # Apply sorting based on the sort_by parameter
     if sort_by == 'avg_profitability':
@@ -299,6 +313,8 @@ def get_public_tradeups():
         public_tradeups = public_tradeups.order_by(Tradeup.created_at.desc())
 
     public_tradeups_paginated = public_tradeups.paginate(page=page, per_page=tradeups_per_page)
+    current_app.logger.info("Fetched %d public tradeups on page %d", 
+                              len(public_tradeups_paginated.items), page)
 
     return PaginatedUncensoredTradeupSchema().dump(public_tradeups_paginated), 200
 
@@ -320,7 +336,8 @@ def check_duplicate_tradeup(input_entries, stattrak, input_rarity, name, release
         JSON response with:
         - is_duplicate (bool): Indicates if the tradeup is a duplicate.
     """
-    logger.info("Checking for duplicate tradeup for user: %s", token_auth.current_user().steam_id)
+    user = token_auth.current_user()
+    current_app.logger.info("User %s initiated duplicate check for tradeup", user.steam_id)
 
     try:
         # Query the database to check for duplicates
@@ -346,9 +363,10 @@ def check_duplicate_tradeup(input_entries, stattrak, input_rarity, name, release
             )
 
             if is_duplicate:
+                current_app.logger.info("Duplicate tradeup found for user %s", user.steam_id)
                 return jsonify({"is_duplicate": True}), 200
 
         return jsonify({"is_duplicate": False}), 200
     except Exception as e:
-        logger.error(f"Error occurred in check_duplicate_tradeup: {str(e)}", exc_info=True)
+        current_app.logger.error("Error in duplicate check for user %s: %s", user.steam_id, str(e), exc_info=True)
         return jsonify({}), 500
