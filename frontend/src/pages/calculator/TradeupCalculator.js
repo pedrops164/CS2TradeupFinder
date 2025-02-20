@@ -316,11 +316,15 @@ const TradeupCalculator = () => {
 
         // get api route
         let route = '';
+        let msg;
         if (tradeupType === 'public') {
             route = '/tradeups/create_public';
+            msg = 'Public Tradeup created successfully!';
         } else if (tradeupType === 'purchasable') {
+            msg = 'Purchasable Tradeup created successfully!';
             route = '/tradeups/create_purchasable';
         } else if (tradeupType === 'private') {
+            msg = 'Tradeup tracked successfully!';
             route = '/tradeups/create_private';
         }
 
@@ -333,7 +337,7 @@ const TradeupCalculator = () => {
             return;
         }
 
-        alert('Tradeup added successfully!');
+        alert(msg);
     }
 
     return (

@@ -3,6 +3,7 @@ from backend.app.models import Tradeup, InputTradeupEntry, OutputTradeupEntry, T
 from ..schemas import TradeupInputSchema, PurchasableTradeupInputSchema
 from backend.src.tradeups import calculate_output_entries
 from backend.app.limiter import limiter
+from backend.app.auth import admin_required
 from webargs.flaskparser import use_kwargs
 from typing import List
 
@@ -13,6 +14,7 @@ bp_insert = Blueprint('bp_insert', __name__)
 
 @bp_insert.route('/tradeups/create_public', methods=['POST'])
 @authenticate(token_auth) # Ensure only authenticated users can access this route
+@admin_required
 @limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().steam_id)
 @use_kwargs(TradeupInputSchema())
 def create_tradeup_public(input_entries, stattrak, input_rarity, name, release_date):
@@ -46,6 +48,7 @@ def create_tradeup_public(input_entries, stattrak, input_rarity, name, release_d
     
 @bp_insert.route('/tradeups/create_purchasable', methods=['POST'])
 @authenticate(token_auth) # Ensure only authenticated users can access this route
+@admin_required
 @limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().steam_id)
 @use_kwargs(PurchasableTradeupInputSchema())
 def create_tradeup_purchasable(input_entries, stattrak, input_rarity, name, price, release_date):

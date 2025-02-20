@@ -1,6 +1,6 @@
 # https://github.com/miguelgrinberg/microblog-api/blob/main/api/auth.py
 
-from flask import current_app
+from flask import current_app, jsonify
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth
 from werkzeug.exceptions import Unauthorized, Forbidden
 
@@ -47,3 +47,14 @@ def token_auth_error(status=401):
         'message': error.name,
         'description': error.description,
     }, error.code
+
+from functools import wraps
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user = token_auth.current_user()  # assumes authentication has already occurred
+        if not user.is_admin():
+            current_app.logger.error("User %s is not authorized to access this route", user.steam_id)
+            return jsonify({'error': 'Insufficient permissions'}), 403
+        return f(*args, **kwargs)
+    return decorated_function

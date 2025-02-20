@@ -95,53 +95,7 @@ const Tradeups = () => {
             </CardContent>
           </CardActionArea>
         </Card>
-
-        {/* Purchasable Tradeups Card */}
-        <Card
-          sx={{
-            flex: 1,
-            cursor: isAuthenticated ? 'pointer' : 'not-allowed',
-            opacity: isAuthenticated ? 1 : 0.5,
-            border: selectedOption === 'purchasable' ? '2px solid' : 'none',
-            borderColor: selectedOption === 'purchasable' ? 'primary.main' : 'transparent',
-          }}
-          onClick={() => handleCardClick('purchasable')}
-        >
-          <CardActionArea>
-            <CardContent>
-              <Typography variant="h6" color="text.primary">
-                Purchasable
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Browse tradeups available for purchase
-              </Typography>
-            </CardContent>
-          </CardActionArea>
-        </Card>
-
-        {/* Purchased Tradeups Card */}
-        <Card
-          sx={{
-            flex: 1,
-            cursor: isAuthenticated ? 'pointer' : 'not-allowed',
-            opacity: isAuthenticated ? 1 : 0.5,
-            border: selectedOption === 'purchased' ? '2px solid' : 'none',
-            borderColor: selectedOption === 'purchased' ? 'primary.main' : 'transparent',
-          }}
-          onClick={() => handleCardClick('purchased')}
-        >
-          <CardActionArea>
-            <CardContent>
-              <Typography variant="h6" color="text.primary">
-                Purchased
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Browse purchased tradeups
-              </Typography>
-            </CardContent>
-          </CardActionArea>
-        </Card>
-
+        
         {/* Tracked Tradeups Card */}
         <Card
           sx={{
@@ -164,6 +118,54 @@ const Tradeups = () => {
             </CardContent>
           </CardActionArea>
         </Card>
+
+        {/* Purchasable Tradeups Card */}
+        <Card
+          sx={{
+            flex: 1,
+            /* cursor: isAuthenticated ? 'pointer' : 'not-allowed', */
+            cursor: 'not-allowed',
+            /* opacity: isAuthenticated ? 1 : 0.5, */
+            opacity: 0.2,
+            border: selectedOption === 'purchasable' ? '2px solid' : 'none',
+            borderColor: selectedOption === 'purchasable' ? 'primary.main' : 'transparent',
+          }}
+          /* onClick={() => handleCardClick('purchasable')} */
+        >
+          <CardActionArea>
+            <CardContent>
+              <Typography variant="h6" color="text.primary">
+                Purchasable
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Browse tradeups available for purchase
+              </Typography>
+            </CardContent>
+          </CardActionArea>
+        </Card>
+
+        {/* Purchased Tradeups Card */}
+        {/* <Card
+          sx={{
+            flex: 1,
+            cursor: 'not-allowed',
+            opacity: 0.2,
+            border: selectedOption === 'purchased' ? '2px solid' : 'none',
+            borderColor: selectedOption === 'purchased' ? 'primary.main' : 'transparent',
+          }}
+        >
+          <CardActionArea>
+            <CardContent>
+              <Typography variant="h6" color="text.primary">
+                Purchased
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Browse purchased tradeups
+              </Typography>
+            </CardContent>
+          </CardActionArea>
+        </Card> */}
+
       </Box>
 
       {/* Subpage Content */}
