@@ -139,47 +139,17 @@ def calculate_tradeup_stats(input_entries, output_entries, stattrak: bool):
     # calculate average input float
     avg_input_float = sum([entry.count * entry.skin_float for entry in input_entries]) / 10
 
-    # set up dictionary from (skin_name, skin_cond) to price
-    skin_to_price_dict = {}
-
-    # set up set of (skin_name, skin_cond) tuples, to avoid repetition when fetching prices
-    skins_set = set()
-    # add all distinct (skin_name, skin_condition) pairs to skins_set
-    for entry in input_entries:
-        skins_set.add((entry.skin_condition.skin.name, entry.skin_condition.condition))
-    for entry in output_entries:
-        skins_set.add((entry.skin_condition.skin.name, entry.skin_condition.condition))
-    
-    # iterate over skins_set, and fetch the prices from the database
-    for (skin_name, skin_condition) in skins_set:
-        result = db.session.query(
-            SkinCondition.price.label("price")
-        )\
-        .filter(Skin.id == SkinCondition.skin_id,
-        Skin.name == skin_name,
-        SkinCondition.condition == skin_condition,
-        SkinCondition.stattrak == stattrak)\
-        .one() # extract one record
-        # might raise NoResultFound or MultipleResultsFound exceptions
-
-        skin_price = result.price
-        # correspond the skin to its price in the dictionary
-        skin_to_price_dict[(skin_name, skin_condition)] = skin_price
-
     # calculate input cost
     input_skins_cost = 0
     for entry in input_entries:
-        # fetch the skin price from the dictionary of skins to price
-        skin_price = skin_to_price_dict[(entry.skin_condition.skin.name, entry.skin_condition.condition)]
         # increase the total cost of the input skins
-        input_skins_cost += skin_price * entry.count
+        input_skins_cost += entry.skin_condition.price * entry.count
 
     # calculate output cost
     avg_output_skins_cost = 0
     profit_odds = 0
     for entry in output_entries:
-        # fetch the skin price from the dictionary of skins to price
-        skin_price = skin_to_price_dict[(entry.skin_condition.skin.name, entry.skin_condition.condition)]
+        skin_price = entry.skin_condition.price
         # increase the average return for this skin and add to total cost of the output skins
         avg_output_skins_cost += skin_price * entry.prob
         # if the price of this output skin is higher than the total input cost, then this skin gives profit
