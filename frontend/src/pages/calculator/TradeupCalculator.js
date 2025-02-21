@@ -179,8 +179,7 @@ const TradeupCalculator = () => {
         let input_entries = [];
         tradeupInputEntries.forEach(input_entry => {
 
-            let stattrak_str = isStattrak ? "stattrak" : "non_stattrak";
-            let skin_condition_id = input_entry.conditions[input_entry.skin_condition][stattrak_str]['skin_condition_id'];
+            let skin_condition_id = input_entry.conditions[input_entry.skin_condition]['skin_condition_id'];
             let new_entry = {
                 count: input_entry.count,
                 skin_float: input_entry.skin_float,
@@ -281,7 +280,6 @@ const TradeupCalculator = () => {
             return;
         }
 
-        let stattrak_str = isStattrak ? "stattrak" : "non_stattrak";
         // create payload
         const payload = {
             stattrak: isStattrak,
@@ -289,7 +287,7 @@ const TradeupCalculator = () => {
             input_entries: inputEntries.map((entry, _) => ({
                 "skin_float": entry.skin_float,
                 "count": entry.count,
-                "skin_condition_id": entry.conditions[entry.skin_condition][stattrak_str]['skin_condition_id']
+                "skin_condition_id": entry.conditions[entry.skin_condition]['skin_condition_id']
             }))
         };
         // Check for duplicate tradeup

@@ -164,6 +164,7 @@ def search_skins(search_string, rarity, stattrak, page):
         Collection.id.label('collection_id')
     ).join(SkinCondition, Skin.id == SkinCondition.skin_id)\
      .join(Collection, Collection.id == Skin.collection_id)\
+     .filter(SkinCondition.stattrak == stattrak)\
      .filter(Skin.id.in_(skin_ids))\
 
     # Organize the results into the same structure as get_all_skins
@@ -188,17 +189,8 @@ def search_skins(search_string, rarity, stattrak, page):
             }
             conditions = skins_dict[skin_key]['conditions']
 
-        # Add/update the condition in the dictionary
-        if row.condition not in conditions:
-            conditions[row.condition] = {
-                "stattrak": None,
-                "non_stattrak": None
-            }
-
-        if row.stattrak:
-            conditions[row.condition]["stattrak"] = {'price': row.price, 'skin_condition_id': row.skin_condition_id}
-        else:
-            conditions[row.condition]["non_stattrak"] = {'price': row.price, 'skin_condition_id': row.skin_condition_id}
+        # Add the condition price and id in the dictionary
+        conditions[row.condition] = {'price': row.price, 'skin_condition_id': row.skin_condition_id}
 
     # Convert the dictionary to a list for JSON response
     skins_list = list(skins_dict.values())

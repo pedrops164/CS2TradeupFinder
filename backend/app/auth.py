@@ -31,10 +31,6 @@ def basic_auth_error(status=401):
 
 @token_auth.verify_token
 def verify_token(access_token):
-    if current_app.config['DISABLE_AUTH']:
-        user = db.session.get(User, 1)
-        user.ping() # not implemented
-        return user
     if access_token:
         return User.verify_access_token(access_token)
 

@@ -1,7 +1,7 @@
 from flask import Flask
 from .models import db
 from flask_migrate import Migrate
-from backend.config import Config
+from backend.config import DevConfig
 from flask_cors import CORS
 from flask_wtf.csrf import CSRFProtect
 from apifairy import APIFairy
@@ -17,7 +17,7 @@ apifairy = APIFairy()
 from backend.app.logger import configure_logging
 configure_logging()
 
-def create_app(config_class=Config):
+def create_app(config_class=DevConfig):
     app = Flask(__name__)
     app.config.from_object(config_class)
     

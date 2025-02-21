@@ -43,7 +43,7 @@ const TradeupInputEntryForm = ({ addEntry, isStattrak, selectedRarity }) => {
     selectedSkin &&
     selectedSkin.conditions &&
     selectedSkin.conditions[skinCondition] &&
-    selectedSkin.conditions[skinCondition][isStattrak ? 'stattrak' : 'non_stattrak']['price'];
+    selectedSkin.conditions[skinCondition]['price'];
 
   const api = useApi();
 
@@ -251,7 +251,7 @@ const TradeupInputEntryForm = ({ addEntry, isStattrak, selectedRarity }) => {
                                 <Chip
                                   label={
                                     skin.conditions[condition]
-                                      ? `$${isStattrak ? skin.conditions[condition]['stattrak'] : skin.conditions[condition]['non_stattrak']['price']}`
+                                      ? skin.conditions[condition]['price']
                                       : 'N/A'
                                   }
                                   color={skin.conditions[condition] ? 'success' : 'default'}
