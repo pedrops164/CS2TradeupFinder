@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, current_app, request
+from flask import Blueprint, jsonify, current_app, request, abort
 from backend.src.tradeups import calculate_output_entries, calculate_tradeup_stats
 from sqlalchemy import not_
 from backend.app.models import db, Tradeup, SkinCondition, Skin, Collection, TradeupType
@@ -104,11 +104,11 @@ def get_tradeup_output(input_entries, stattrak, input_rarity, name, release_date
         return TradeupOutputSchema().dump(tradeup), 200
     except Tradeup.InvalidRarityException as e:
         current_app.logger.error("Invalid rarity error for user %s: %s", user.steam_id, str(e), exc_info=True)
-        return jsonify({"error": str(e)}), 400
+        abort(400, str(e))
     except Exception as e:
         current_app.logger.error("Unexpected error during tradeup calculation for user %s: %s", 
                                    user.steam_id, str(e), exc_info=True)
-        return jsonify({}), 500
+        abort(500)
 
 @bp_retrieve.route('/skins/search', methods=['GET'])
 @use_kwargs(SkinSearchSchema, location="query")
@@ -369,4 +369,4 @@ def check_duplicate_tradeup(input_entries, stattrak, input_rarity, name, release
         return jsonify({"is_duplicate": False}), 200
     except Exception as e:
         current_app.logger.error("Error in duplicate check for user %s: %s", user.steam_id, str(e), exc_info=True)
-        return jsonify({}), 500
+        abort(500)
