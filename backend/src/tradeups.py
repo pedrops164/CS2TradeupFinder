@@ -3,6 +3,7 @@ from backend.src import entities
 from backend.app.models import db, Collection, Skin, Tradeup, SkinCondition, InputTradeupEntry, OutputTradeupEntry
 from backend.app.database import get_skin_price, get_skin_condition_from_skin
 from typing import List
+from flask import abort, current_app
 
 def create_tradeup_from_dataframe(df, input_rarity, stattrak: bool):
     """
@@ -73,66 +74,70 @@ def calculate_output_entries(input_entries: List[InputTradeupEntry], stattrak: b
         stattrak (bool): whether the tradeup is stattrak
         input_rarity (str): possible rarities: ["consumer_bg", "industrial_bg", "milspec_bg", "restricted_bg", "classified_bg"]
     """
-    coll_to_dict = {}
+    try:
+        coll_to_dict = {}
 
-    # add up the input entries count and correspond with each collection id
-    for entry in input_entries:
-        col = coll_to_dict.setdefault(entry.skin_condition.skin.collection_id, {"input_count": 0})
-        col["input_count"] += entry.count
+        # add up the input entries count and correspond with each collection id
+        for entry in input_entries:
+            col = coll_to_dict.setdefault(entry.skin_condition.skin.collection_id, {"input_count": 0})
+            col["input_count"] += entry.count
 
-    # get the rarity of the output skins (the rarity after the input rarity)
-    output_rarity = Tradeup.get_output_quality(input_rarity)
+        # get the rarity of the output skins (the rarity after the input rarity)
+        output_rarity = Tradeup.get_output_quality(input_rarity)
 
-    # rarity filter for the sql query
-    output_rarity_filter = Skin.quality == output_rarity
+        # rarity filter for the sql query
+        output_rarity_filter = Skin.quality == output_rarity
 
-    # get the ids of the collections of the tradeup
-    tradeup_collections_ids = list(coll_to_dict.keys())
+        # get the ids of the collections of the tradeup
+        tradeup_collections_ids = list(coll_to_dict.keys())
 
-    # retrieve collection id, number of possible skin outputs, their names, min and max floats, and skin image for each collection in the tradeup
-    output_skins = db.session.query(Skin) \
-    .join(Collection, Collection.id == Skin.collection_id) \
-    .filter(output_rarity_filter, Collection.id.in_(tradeup_collections_ids)) \
-    .all()
+        # retrieve collection id, number of possible skin outputs, their names, min and max floats, and skin image for each collection in the tradeup
+        output_skins = db.session.query(Skin) \
+        .join(Collection, Collection.id == Skin.collection_id) \
+        .filter(output_rarity_filter, Collection.id.in_(tradeup_collections_ids)) \
+        .all()
 
-    total_ballots = 0
-    # calculate value of total ballots, which is the sum over all collections of the number of input entries multiplied by the number of possible output skins
-    for output_skin in output_skins:
-        col_dict = coll_to_dict[output_skin.collection_id]
-        col_dict["output_count"] = col_dict.get("output_count", 0) + 1 
-        col_skins_dict = col_dict.setdefault("skins", [])
-        col_skins_dict.append(output_skin)
+        total_ballots = 0
+        # calculate value of total ballots, which is the sum over all collections of the number of input entries multiplied by the number of possible output skins
+        for output_skin in output_skins:
+            col_dict = coll_to_dict[output_skin.collection_id]
+            col_dict["output_count"] = col_dict.get("output_count", 0) + 1 
+            col_skins_dict = col_dict.setdefault("skins", [])
+            col_skins_dict.append(output_skin)
 
-    # add up the total number of ballots (multiply the input by the output counts for each collection and sum)
-    for col_dict in coll_to_dict.values():
-        total_ballots += col_dict["output_count"] * col_dict["input_count"]
+        # add up the total number of ballots (multiply the input by the output counts for each collection and sum)
+        for col_dict in coll_to_dict.values():
+            total_ballots += col_dict["output_count"] * col_dict["input_count"]
 
-    # calculate the average float of the input skins
-    average_float = sum([entry.count * entry.skin_float for entry in input_entries]) / 10
+        # calculate the average float of the input skins
+        average_float = sum([entry.count * entry.skin_float for entry in input_entries]) / 10
 
-    # initialize list of output entries to return
-    output_entries = []
+        # initialize list of output entries to return
+        output_entries = []
 
-    # iterate over the collections of the tradeup
-    for (coll_id, coll_dict) in coll_to_dict.items():
-        # iterate over the possible output skins of the tradeup
-        for output_skin in coll_dict["skins"]:
-            min_float = output_skin.min_float
-            max_float = output_skin.max_float
-            # calculate float of resulting output skin
-            output_float = (max_float-min_float) * average_float + float(min_float)
-            # get the condition of the skin from the value of the float (for example 0.03 would give "Factory New")
-            output_condition = Skin.get_float_str(output_float)
-            # calculate probability of getting this output skin
-            output_probability = (coll_dict["input_count"] / total_ballots) * 100
+        # iterate over the collections of the tradeup
+        for (coll_id, coll_dict) in coll_to_dict.items():
+            # iterate over the possible output skins of the tradeup
+            for output_skin in coll_dict["skins"]:
+                min_float = output_skin.min_float
+                max_float = output_skin.max_float
+                # calculate float of resulting output skin
+                output_float = (max_float-min_float) * average_float + float(min_float)
+                # get the condition of the skin from the value of the float (for example 0.03 would give "Factory New")
+                output_condition = Skin.get_float_str(output_float)
+                # calculate probability of getting this output skin
+                output_probability = (coll_dict["input_count"] / total_ballots) * 100
 
-            skin_condition: SkinCondition = get_skin_condition_from_skin(output_skin, output_condition, stattrak)
-            output_entry = OutputTradeupEntry(skin_float=output_float, prob=output_probability)
-            output_entry.skin_condition = skin_condition
+                skin_condition: SkinCondition = get_skin_condition_from_skin(output_skin, output_condition, stattrak)
+                output_entry = OutputTradeupEntry(skin_float=output_float, prob=output_probability)
+                output_entry.skin_condition = skin_condition
 
-            output_entries.append(output_entry)
+                output_entries.append(output_entry)
 
-    return output_entries
+        return output_entries
+    except Exception as e:
+        current_app.logger.error("Error calculating output entries tradeup: %s", str(e), exc_info=True)
+        abort(500, "Failed to calculate output entries")
 
 def calculate_tradeup_stats(input_entries, output_entries, stattrak: bool):
     
