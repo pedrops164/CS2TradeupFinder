@@ -186,7 +186,7 @@ def purchase_tradeup(tradeup_id):
 
 @bp_insert.route('/tradeups/<int:tradeup_id>/track', methods=['POST'])
 @authenticate(token_auth)
-@limiter.limit("20 per minute", key_func = lambda : token_auth.current_user().steam_id)
+@limiter.limit("30 per minute", key_func = lambda : token_auth.current_user().steam_id)
 def track_tradeup(tradeup_id):
     """
     Allow an authenticated user to track a tradeup.

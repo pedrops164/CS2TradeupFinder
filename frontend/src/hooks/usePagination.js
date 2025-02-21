@@ -5,6 +5,7 @@ import { useApi } from '../contexts/ApiProvider';
 // Custom Hook: usePagination
 const usePagination = ({ apiUrl, query }) => {
   const [data, setData] = useState();
+  const [error, setError] = useState();
   const [totalPages, setTotalPages] = useState();
   const [searchParams, setSearchParams] = useSearchParams();
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
@@ -15,10 +16,11 @@ const usePagination = ({ apiUrl, query }) => {
       const response = await api.get(apiUrl, { page: currentPage, ...query });
       if (response.ok) {
         const responseData = response.body;
+        setError(null);
         setData(responseData);
         setTotalPages(responseData.total_pages);
       } else {
-        console.error('Error fetching data:', response);
+        setError(response.body.error);
         setData(null);
         setTotalPages(null);
       }
@@ -31,7 +33,7 @@ const usePagination = ({ apiUrl, query }) => {
     }
   };
 
-  return { data, currentPage, totalPages, handlePageChange };
+  return { data, error, currentPage, totalPages, handlePageChange };
 };
 
 export default usePagination;

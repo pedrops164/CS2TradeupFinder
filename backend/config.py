@@ -32,17 +32,19 @@ class BaseConfig:
     REFRESH_TOKEN_DAYS = int(os.environ.get('REFRESH_TOKEN_DAYS') or '7')
     REFRESH_TOKEN_IN_COOKIE = as_bool(os.environ.get('REFRESH_TOKEN_IN_COOKIE') or 'yes')
     REFRESH_TOKEN_IN_BODY = as_bool(os.environ.get('REFRESH_TOKEN_IN_BODY'))
-    USE_CORS = as_bool(os.environ.get('USE_CORS') or 'yes')
     CORS_SUPPORTS_CREDENTIALS = True
 
 class ProdConfig(BaseConfig):
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI')
     USE_CORS = True
+    USE_RATE_LIMITS = True
 
 class DevConfig(BaseConfig):
     DEBUG = True
     SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI') or 'sqlite:///' + os.path.join(basedir, 'app.db')
+    USE_CORS = True
+    USE_RATE_LIMITS = True
 
 class TestConfig(BaseConfig):
     TESTING = True # Enable testing mode

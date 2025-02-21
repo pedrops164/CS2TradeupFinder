@@ -7,7 +7,7 @@ const TradeupsPublic = ({apiUrl, sortBy}) => {
   // Memoize the query so its reference only changes when sortBy changes
   const query = useMemo(() => ({ sort_by: sortBy }), [sortBy]);
 
-  const { data, currentPage, totalPages, handlePageChange } = usePagination({ apiUrl, query });
+  const { data, error, currentPage, totalPages, handlePageChange } = usePagination({ apiUrl, query });
 
   return (data === undefined ? (
     <Box sx={{ p: 2, backgroundColor: 'background.default', minHeight: '100vh' }}>
@@ -18,7 +18,7 @@ const TradeupsPublic = ({apiUrl, sortBy}) => {
   ) : data === null ? (
     <Box sx={{ p: 2, backgroundColor: 'background.default', minHeight: '100vh' }}>
       <Typography variant="h6" color="error">
-        Error fetching data
+        Error: {error}
       </Typography>
     </Box>
   ) : (
