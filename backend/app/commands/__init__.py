@@ -4,6 +4,7 @@ from backend.src.solvers.solver_manager import SearchSpace
 from backend.src.scripts.scrape100 import update_all_weapon_paints_prices
 from backend.src.scripts.download_images import download_skin_images
 from backend.app.date import naive_utcnow
+from backend.app.util import update_all_tradeups_stats
 import click
 import os
 from backend.src.solvers.solver_manager import search_solve_tradeup, SearchSpace
@@ -127,8 +128,8 @@ def register_commands(app):
     import requests
     import re
     import csv
-    @app.cli.command("print-skin-prices-white-market")
-    def print_skin_prices_white_market():
+    @app.cli.command("update-skin-prices-white-market")
+    def update_skin_prices_white_market():
         url = "https://api.white.market/export/v1/prices/730.json"
 
         # Define a list of allowed weapon names. Only skins for these weapons will be processed.
@@ -216,6 +217,8 @@ def register_commands(app):
                         )
                     db.session.execute(stmt)
                 db.session.commit()
+
+            update_all_tradeups_stats()
 
         else:
             print(f"Error: {response.status_code}")

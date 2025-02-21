@@ -1,5 +1,5 @@
 """ Utilty functions module """
-from backend.app.models import Tradeup
+from backend.app.models import Tradeup, db
 from backend.src.tradeups import calculate_tradeup_stats
 from backend.app.schemas import InputEntrySchema, OutputEntrySchema
 import logging
@@ -44,3 +44,17 @@ def get_skin_conditions_array(min_float: float, max_float: float) -> list:
             result.append(name)
     
     return result
+
+def update_all_tradeups_stats():
+    """
+    Updates the stats for all tradeups in the database
+    """
+    # Get all tradeups
+    tradeups = db.session.query(Tradeup).all()
+
+    # Update the stats for each tradeup
+    for tradeup in tradeups:
+        set_tradeup_stats(tradeup)
+
+    # Commit the changes
+    db.session.commit()
