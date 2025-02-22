@@ -61,7 +61,7 @@ const Tradeup = ({ tradeup }) => {
             <Typography variant="h6" gutterBottom>
               Possible Outcomes
             </Typography>
-            <Grid2 container sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 2, p: 2, border: '1px solid', borderRadius: 2 }}>
+            <Grid2 container sx={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', gap: 2, p: 2, border: '1px solid', borderRadius: 2 }}>
               {tradeup.output_entries.map((entry, index) => (
                 <Grid2 key={index}>
                   <OutputTradeupEntry key={index} entry={entry} defaultImage={defaultImage} tradeup_cost={tradeup.input_skins_cost}/>

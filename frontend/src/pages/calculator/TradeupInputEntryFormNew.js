@@ -8,7 +8,6 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemButton from '@mui/material/ListItemButton';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
-import '../../styles/TradeupCalculator.css';
 import { useApi } from '../../contexts/ApiProvider';
 import { Autocomplete } from '@mui/material';
 

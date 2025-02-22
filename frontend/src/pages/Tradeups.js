@@ -35,7 +35,7 @@ const Tradeups = () => {
   };
 
   return (
-    <Box sx={{ p: 2, backgroundColor: 'background.default', minHeight: '100vh' }}>
+    <Box sx={{ p: 2, minHeight: '100vh' }}>
       {/* Page Title and sort by selector */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Typography variant="h4" sx={{ color: 'text.primary' }}>

@@ -12,8 +12,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import Divider from '@mui/material/Divider';
-import '../../styles/TradeupCalculator.css';
 import { useApi } from '../../contexts/ApiProvider';
+import { Tooltip } from '@mui/material';
 
 const TradeupInputEntryForm = ({ addEntry, isStattrak, selectedRarity }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -241,30 +241,42 @@ const TradeupInputEntryForm = ({ addEntry, isStattrak, selectedRarity }) => {
                 <List onScroll={listenSkinsScrollEvent} sx={{maxHeight: '200px', overflow: 'auto'}}>
                 {filteredSkins.map((skin, idx) => (
                     <ListItemButton divider key={idx} onClick={() => handleSkinSelect(skin)}>
-                        <img src={skin.image_url} alt={skin.skin_name} className="skin-image-small" />
+                        <Box
+                            component="img"
+                            sx={{
+                              width: 30,
+                              height: 30,
+                              mr: 1,
+                              ml: 1,
+                            }}
+                            alt={skin.skin_name}
+                            src={skin.image_url}
+                        />
                         <ListItemText primary={skin.skin_name} /> 
                         {/* Show prices for the 5 floats. In dark-grey the unavailable floats, and green the available ones.
                         Box for the outer container, Chips for each float, Divider dividing each chip. */}
                         <List sx={{ display: 'flex', flexDirection: 'row' }}>
                             {skin_conditions.map((condition, idx) => (
                               <React.Fragment key={idx}>
-                                <Chip
-                                  label={
-                                    skin.conditions[condition]
-                                      ? skin.conditions[condition]['price']
-                                      : 'N/A'
-                                  }
-                                  color={skin.conditions[condition] ? 'success' : 'default'}
-                                  size="small"
-                                  sx={{
-                                    m: 0, // Remove any default margin
-                                    borderRadius: 0, // Reset the border radius so we can control it on first/last
-                                    // For the first chip, restore the left border radii.
-                                    ...(idx === 0 && {borderTopLeftRadius: 12, borderBottomLeftRadius: 12}),
-                                    // For the last chip, restore the right border radii.
-                                    ...(idx === skin_conditions.length - 1 && {borderTopRightRadius: 12, borderBottomRightRadius: 12}),
-                                  }}
-                                />
+                                <Tooltip title={condition}>
+                                  <Chip
+                                    label={
+                                      skin.conditions[condition]
+                                        ? (skin.conditions[condition]['price'] ? skin.conditions[condition]['price'] + "$" : 'N/A')
+                                        : '-'
+                                    }
+                                    color={skin.conditions[condition] ? 'success' : 'default'}
+                                    size="small"
+                                    sx={{
+                                      m: 0, // Remove any default margin
+                                      borderRadius: 0, // Reset the border radius so we can control it on first/last
+                                      // For the first chip, restore the left border radii.
+                                      ...(idx === 0 && {borderTopLeftRadius: 12, borderBottomLeftRadius: 12}),
+                                      // For the last chip, restore the right border radii.
+                                      ...(idx === skin_conditions.length - 1 && {borderTopRightRadius: 12, borderBottomRightRadius: 12}),
+                                    }}
+                                  />
+                                </Tooltip>
                                 {idx !== skin_conditions.length - 1 && (
                                   <Divider orientation="vertical" flexItem />
                                 )}

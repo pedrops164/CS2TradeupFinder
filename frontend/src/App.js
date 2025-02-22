@@ -4,7 +4,7 @@ import Logger from './utils/Logger';
 
 // mui imports
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { Box, CircularProgress } from '@mui/material';
+import CssBaseline from "@mui/material/CssBaseline";
 
 // components, contexts imports
 import NavigationBar from './components/NavigationBar';
@@ -15,14 +15,8 @@ import UserProvider from './contexts/UserProvider';
 import Home from './pages/Home';
 import TradeupCalculator from './pages/calculator/TradeupCalculator';
 import Tradeups from './pages/Tradeups';
-import TradeupsPublic from './pages/TradeupsPublic';
-import TradeupsPurchasable from './pages/TradeupsPurchasable';
-import TradeupsPurchased from './pages/TradeupsPurchased';
-import TradeupsPrivate from './pages/TradeupsPrivate';
 import PublicRoute from './components/PublicRoute';
 import PrivateRoute from './components/PrivateRoute';
-import SocialLoginPage from './pages/SocialLoginPage';
-import SocialCallbackPage from './pages/SocialCallbackPage';
 import SteamCallbackPage from './pages/SteamCallbackPage';
 
 Logger.initialize({
@@ -70,6 +64,7 @@ const App = () => {
 
 	return (
 			<ThemeProvider theme={theme}>
+        <CssBaseline />
 				<ApiProvider>
 					<UserProvider>
 						<NavigationBar />
