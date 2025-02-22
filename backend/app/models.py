@@ -41,7 +41,7 @@ class Skin(db.Model):
     collection_id = db.Column(db.Integer, db.ForeignKey('collections.id'))
     quality = db.Column(db.String)
     image_name = db.Column(db.String(64), nullable=True, default=None)
-    last_of_rarity = db.Column(db.Boolean, nullable=False, default=False, server_default=sa.text("0"))
+    last_of_rarity = db.Column(db.Boolean, nullable=False, default=False, server_default="true")
     
     @staticmethod
     def get_float_str(float_value: float):
@@ -75,12 +75,12 @@ class TradeupType(enum.Enum):
     PRIVATE = "private"
 
 tradeup_purchase = db.Table('tradeup_purchase',
-    db.Column('user_id', db.String(32), db.ForeignKey('user.steam_id'), primary_key=True),
+    db.Column('user_id', db.String(32), db.ForeignKey('users.steam_id'), primary_key=True),
     db.Column('tradeup_id', db.Integer, db.ForeignKey('tradeup.id'), primary_key=True)
 )
 
 private_tradeup_user = db.Table('private_tradeup_user',
-    db.Column('user_id', db.String(32), db.ForeignKey('user.steam_id'), primary_key=True),
+    db.Column('user_id', db.String(32), db.ForeignKey('users.steam_id'), primary_key=True),
     db.Column('tradeup_id', db.Integer, db.ForeignKey('tradeup.id'), primary_key=True)
 )
     
@@ -164,7 +164,7 @@ class UserRole(enum.Enum):
 
 # user class
 class User(UserMixin, db.Model):
-    __tablename__ = "user"
+    __tablename__ = "users"
 
     steam_id = db.Column(db.String(32), primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=True)
@@ -238,7 +238,7 @@ class Token(db.Model):
     refresh_token: so.Mapped[str] = so.mapped_column(sa.String(64), index=True)
     refresh_expiration: so.Mapped[datetime]
     user_id: so.Mapped[int] = so.mapped_column(
-        sa.ForeignKey('user.steam_id'), index=True)
+        sa.ForeignKey('users.steam_id'), index=True)
 
     user: so.Mapped['User'] = so.relationship(back_populates='tokens')
 

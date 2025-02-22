@@ -1,12 +1,13 @@
 // Tradeups.js
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Typography, Card, CardActionArea, CardContent, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import { Box, Typography, Card, CardActionArea, CardContent, FormControl, InputLabel, Select, MenuItem, Tooltip } from '@mui/material';
 import { useApi } from '../contexts/ApiProvider';
 import TradeupsPublic from './TradeupsPublic';
 import TradeupsPurchasable from './TradeupsPurchasable';
 import TradeupsPurchased from './TradeupsPurchased';
 import TradeupsPrivate from './TradeupsPrivate';
+import PrivateRoute from '../components/PrivateRoute';
 
 const Tradeups = () => {
   const api = useApi();
@@ -97,52 +98,62 @@ const Tradeups = () => {
         </Card>
         
         {/* Tracked Tradeups Card */}
-        <Card
-          sx={{
-            flex: 1,
-            cursor: isAuthenticated ? 'pointer' : 'not-allowed',
-            opacity: isAuthenticated ? 1 : 0.5,
-            border: selectedOption === 'tracked' ? '2px solid' : 'none',
-            borderColor: selectedOption === 'tracked' ? 'primary.main' : 'transparent',
-          }}
-          onClick={() => handleCardClick('tracked')}
-        >
-          <CardActionArea>
-            <CardContent>
-              <Typography variant="h6" color="text.primary">
-                Tracked
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Access your tracked and private tradeups
-              </Typography>
-            </CardContent>
-          </CardActionArea>
-        </Card>
+        <Tooltip title={isAuthenticated ? "" : "Login to access tracked tradeups"} arrow>
+          {/* Wrap Card in flex so that the tooltip still appears even though pointer events are none when user isnt authenticated */}
+          <Box sx={{ flex: 1 }}>
+            <Card
+              sx={{
+                cursor: isAuthenticated ? 'pointer' : 'not-allowed',
+                opacity: isAuthenticated ? 1 : 0.5,
+                pointerEvents: isAuthenticated ? 'auto' : 'none',
+                border: selectedOption === 'tracked' ? '2px solid' : 'none',
+                borderColor: selectedOption === 'tracked' ? 'primary.main' : 'transparent',
+              }}
+              onClick={() => handleCardClick('tracked')}
+            >
+              <CardActionArea>
+                <CardContent>
+                  <Typography variant="h6" color="text.primary">
+                    Tracked
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Access your tracked and private tradeups
+                  </Typography>
+                </CardContent>
+              </CardActionArea>
+            </Card>
+          </Box>
+        </Tooltip>
 
         {/* Purchasable Tradeups Card */}
-        <Card
-          sx={{
-            flex: 1,
-            /* cursor: isAuthenticated ? 'pointer' : 'not-allowed', */
-            cursor: 'not-allowed',
-            /* opacity: isAuthenticated ? 1 : 0.5, */
-            opacity: 0.2,
-            border: selectedOption === 'purchasable' ? '2px solid' : 'none',
-            borderColor: selectedOption === 'purchasable' ? 'primary.main' : 'transparent',
-          }}
-          /* onClick={() => handleCardClick('purchasable')} */
-        >
-          <CardActionArea>
-            <CardContent>
-              <Typography variant="h6" color="text.primary">
-                Purchasable
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Browse tradeups available for purchase
-              </Typography>
-            </CardContent>
-          </CardActionArea>
-        </Card>
+        <Tooltip title="Coming soon!" arrow>
+            {/* Wrap Card in flex so that the tooltip still appears even though pointer events are none when user isnt authenticated */}
+            <Box sx={{ flex: 1 }}>
+            <Card
+              sx={{
+                /* cursor: isAuthenticated ? 'pointer' : 'not-allowed', */
+                cursor: 'not-allowed',
+                /* opacity: isAuthenticated ? 1 : 0.5, */
+                opacity: 0.5,
+                pointerEvents: 'none', // none for now because this feature is not properly implemented yet
+                border: selectedOption === 'purchasable' ? '2px solid' : 'none',
+                borderColor: selectedOption === 'purchasable' ? 'primary.main' : 'transparent',
+              }}
+              /* onClick={() => handleCardClick('purchasable')} */
+            >
+              <CardActionArea>
+                <CardContent>
+                  <Typography variant="h6" color="text.primary">
+                    Purchasable
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Browse tradeups available for purchase
+                  </Typography>
+                </CardContent>
+              </CardActionArea>
+            </Card>
+          </Box>
+        </Tooltip>
 
         {/* Purchased Tradeups Card */}
         {/* <Card
@@ -171,9 +182,9 @@ const Tradeups = () => {
       {/* Subpage Content */}
       <Box sx={{ p: 2, backgroundColor: 'background.paper', borderRadius: 1 }}>
         {selectedOption === 'public' && <TradeupsPublic apiUrl="/tradeups/public" sortBy={sortBy} />}
-        {selectedOption === 'purchasable' && <TradeupsPurchasable apiUrl="/tradeups/purchasable" sortBy={sortBy} />}
-        {selectedOption === 'purchased' && <TradeupsPurchased apiUrl="/tradeups/purchased" sortBy={sortBy} />}
-        {selectedOption === 'tracked' && <TradeupsPrivate apiUrl="/tradeups/tracked" sortBy={sortBy}/>}
+        {selectedOption === 'purchasable' && <PrivateRoute><TradeupsPurchasable apiUrl="/tradeups/purchasable" sortBy={sortBy} /></PrivateRoute>}
+        {selectedOption === 'purchased' && <PrivateRoute><TradeupsPurchased apiUrl="/tradeups/purchased" sortBy={sortBy} /></PrivateRoute>}
+        {selectedOption === 'tracked' && <PrivateRoute><TradeupsPrivate apiUrl="/tradeups/tracked" sortBy={sortBy}/></PrivateRoute>}
       </Box>
     </Box>
   );
