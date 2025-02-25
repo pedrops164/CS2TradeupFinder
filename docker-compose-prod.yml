@@ -5,8 +5,6 @@ services:
       dockerfile: Dockerfile
     ports:
       - 5000:5000
-    environment:
-      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:password@db:5432/database
     env_file:
       - backend/.env
       - backend/.env.production

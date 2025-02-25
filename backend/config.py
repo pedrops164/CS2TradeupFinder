@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+import sqlalchemy
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, '.env'))
@@ -33,6 +34,21 @@ class BaseConfig:
     REFRESH_TOKEN_IN_COOKIE = as_bool(os.environ.get('REFRESH_TOKEN_IN_COOKIE') or 'yes')
     REFRESH_TOKEN_IN_BODY = as_bool(os.environ.get('REFRESH_TOKEN_IN_BODY'))
     CORS_SUPPORTS_CREDENTIALS = True
+    DB_DRIVERNAME = os.environ.get('DB_DRIVERNAME')
+    DB_USER = os.environ.get('DB_USER')
+    DB_PASS = os.environ.get('DB_PASS')
+    DB_HOST = os.environ.get('DB_HOST')
+    DB_PORT = os.environ.get('DB_PORT')
+    DB_NAME = os.environ.get('DB_NAME')
+    # same as SQLALCHEMY_DATABASE_URI=f"{DB_DRIVERNAME}://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    SQLALCHEMY_DATABASE_URI=sqlalchemy.engine.url.URL.create(
+        drivername=DB_DRIVERNAME,
+        username=DB_USER,
+        password=DB_PASS,
+        host=DB_HOST,
+        port=DB_PORT,
+        database=DB_NAME,
+    )
 
 class ProdConfig(BaseConfig):
     DEBUG = False
