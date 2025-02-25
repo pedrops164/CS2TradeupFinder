@@ -1,7 +1,7 @@
 import pytest
-from backend.app import create_app, db
-from backend.config import TestConfig
-from backend.app.models import User, UserRole
+from app import create_app, db
+from config import TestConfig
+from app.models import User, UserRole
 
 from sqlalchemy import text
 

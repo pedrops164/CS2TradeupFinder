@@ -4,8 +4,7 @@ import os
 import gc
 import statistics
 
-from backend.src.solvers.solver_manager import SearchSpace
-from backend.src.solvers.solver_manager import search_solve_tradeup, SearchSpace
+from src.solvers.solver_manager import SearchSpace, search_solve_tradeup, SearchSpace
 
 log_file_name = 'benchmarks_log.txt'
 script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in

@@ -1,13 +1,13 @@
 from flask import Blueprint, jsonify, current_app, request, abort
-from backend.src.tradeups import calculate_output_entries, calculate_tradeup_stats
+from src.tradeups import calculate_output_entries, calculate_tradeup_stats
 from sqlalchemy import not_
-from backend.app.models import db, Tradeup, SkinCondition, Skin, Collection, TradeupType
-from backend.app.limiter import limiter
+from app.models import db, Tradeup, SkinCondition, Skin, Collection, TradeupType
+from app.limiter import limiter
 from ..schemas import TradeupInputSchema, DuplicateTradeupCheckSchema, SkinSearchSchema, PaginatedUncensoredTradeupSchema, PaginatedCensoredTradeupSchema,TradeupOutputSchema
 # import json for serialization and deserialization of data
 from webargs.flaskparser import use_kwargs
 from datetime import datetime, timezone
-from backend.app.auth import token_auth
+from app.auth import token_auth
 from apifairy import authenticate # restrict function access to authenticated users
 
 # Define blueprint

@@ -1,7 +1,7 @@
 """ Utilty functions module """
-from backend.app.models import Tradeup, db
-from backend.src.tradeups import calculate_tradeup_stats
-from backend.app.schemas import InputEntrySchema, OutputEntrySchema
+from app.models import Tradeup, db
+from src.tradeups import calculate_tradeup_stats
+from app.schemas import InputEntrySchema, OutputEntrySchema
 import logging
 
 # Configure logging

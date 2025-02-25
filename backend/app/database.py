@@ -1,4 +1,4 @@
-from backend.app.models import Collection, Skin, SkinCondition, Tradeup, db
+from app.models import Collection, Skin, SkinCondition, Tradeup, db
 
 from sqlalchemy.sql import text
 from sqlalchemy import and_

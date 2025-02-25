@@ -1,20 +1,19 @@
 # Base Image
-FROM python:3.8.19-slim
+FROM python:3.10-slim
 
-# Install netcat
-RUN apt-get update && \
-    apt-get -y install curl && \
-    apt-get clean
-
-# set working directory
-WORKDIR /usr/src/backend
+WORKDIR /backend
 
 # add and install requirements
-COPY ./requirements.txt /usr/src/backend/requirements.txt
+COPY ./requirements.txt ./
 RUN pip install -r requirements.txt
 
 # add source code
-COPY . /usr/src/backend
+COPY app app
+COPY migrations migrations
+COPY src src
+COPY config.py project.py ./
+
+#EXPOSE 5000
 
 # run server
-CMD ["flask", "run", "--host=0.0.0.0"]
+CMD ["waitress-serve", "--port=5000", "--url-scheme=https", "project:app"]

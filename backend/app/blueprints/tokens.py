@@ -1,7 +1,7 @@
 # https://github.com/miguelgrinberg/microblog-api/blob/main/api/tokens.py
 from apifairy import authenticate, body, response, other_responses
-from backend.app.auth import token_auth, basic_auth
-from backend.app.models import Token, db, User, UserRole
+from app.auth import token_auth, basic_auth
+from app.models import Token, db, User, UserRole
 from ..schemas import TokenSchema, EmptySchema, OAuth2Schema, SteamSchema
 from flask import Blueprint, current_app, request, url_for, abort, session, redirect
 from werkzeug.http import dump_cookie
@@ -176,13 +176,18 @@ steam_openid_url = 'https://steamcommunity.com/openid/login'
 @bp_tokens.route('/tokens/steam', methods=['GET'])
 def openid_steam_authorize():
     current_app.logger.info('openid_steam_authorize')
+    realm_url = os.environ.get('FRONTEND_URL')
     params = {
         'openid.ns': "http://specs.openid.net/auth/2.0",
         'openid.identity': "http://specs.openid.net/auth/2.0/identifier_select",
         'openid.claimed_id': "http://specs.openid.net/auth/2.0/identifier_select",
         'openid.mode': 'checkid_setup',
-        'openid.return_to': 'http://localhost:8080/steam/login',
-        'openid.realm': 'http://localhost:8080'
+        'openid.return_to': f'{realm_url}/steam/login',
+        #'openid.return_to': 'https://localhost/steam/login',
+        #'openid.return_to': 'http://localhost:8080/steam/login',
+        'openid.realm': realm_url,
+        #'openid.realm': 'https://localhost'
+        #'openid.realm': 'http://localhost:8080'
     }
 
     query_string = urlencode(params)

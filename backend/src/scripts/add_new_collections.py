@@ -1,6 +1,6 @@
-from backend.app.models import db, Skin, SkinCondition, Collection
+from app.models import db, Skin, SkinCondition, Collection
 import json
-from backend.app.util import get_skin_conditions_array
+from app.util import get_skin_conditions_array
 
 def add_collection_from_json(file_path):
     try:

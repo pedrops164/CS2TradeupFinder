@@ -1,7 +1,7 @@
 # import marshmallow for schema validation and serialization of data in the request
 from marshmallow import Schema, fields, validate, post_load
-from backend.app.models import TradeupType, User, UserRole, InputTradeupEntry, Tradeup, OutputTradeupEntry,SkinCondition
-from backend.app.date import aware_utcnow
+from app.models import TradeupType, User, UserRole, InputTradeupEntry, Tradeup, OutputTradeupEntry,SkinCondition
+from app.date import aware_utcnow
 from flask_marshmallow import Marshmallow
 import logging
 

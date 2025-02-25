@@ -3,44 +3,32 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    volumes:
-      - './backend:/usr/src/backend'
     ports:
-      - 5002:5000
+      - 5000:5000
     environment:
-      - FLASK_CONFIG=development
-      - FLASK_ENV=development
       - SQLALCHEMY_DATABASE_URI=postgresql://postgres:password@db:5432/database
-
+    env_file:
+      - backend/.env
+      - backend/.env.development
     depends_on:
       db:
         condition: service_healthy
 
-  nginx:
-    build:
-      context: ./nginx
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    ports:
-      - 8080:8080
-    depends_on:
-      - backend
-      - frontend
-
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     volumes:
-      - './frontend:/usr/src/frontend'
-      - '/usr/src/frontend/node_modules'
+      - './frontend:/frontend'
+      - '/frontend/node_modules'
     ports:
-      - 8081:3000
+      - 3000:3000
     environment:
       - NODE_ENV=development
-      - REACT_APP_SERVICE_URL=http://localhost:8080
       - WATCHPACK_POLLING=true
       - CHOKIDAR_USEPOLLING=true
+    env_file:
+      - frontend/.env.development
     depends_on:
       - backend
 

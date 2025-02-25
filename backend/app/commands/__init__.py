@@ -1,13 +1,12 @@
-from backend.app.models import db, Skin, SkinCondition, naive_utcnow, Collection
-from backend.src.scripts.benchmark import run_benchmarks
-from backend.src.solvers.solver_manager import SearchSpace
-from backend.src.scripts.scrape100 import update_all_weapon_paints_prices
-from backend.src.scripts.download_images import download_skin_images
-from backend.app.date import naive_utcnow
-from backend.app.util import update_all_tradeups_stats
+from app.models import db, Skin, SkinCondition, naive_utcnow, Collection
+from src.scripts.benchmark import run_benchmarks
+from src.solvers.solver_manager import SearchSpace, search_solve_tradeup, SearchSpace
+from src.scripts.scrape100 import update_all_weapon_paints_prices
+from src.scripts.download_images import download_skin_images
+from app.date import naive_utcnow
+from app.util import update_all_tradeups_stats
 import click
 import os
-from backend.src.solvers.solver_manager import search_solve_tradeup, SearchSpace
 
 def register_commands(app):
     @app.cli.command("populate-postgres-db")
@@ -119,7 +118,7 @@ def register_commands(app):
             db.session.rollback()
             raise e
         
-    from backend.src.scripts.add_new_collections import add_collection_from_json
+    from src.scripts.add_new_collections import add_collection_from_json
     @app.cli.command("add-collection-from-json")
     @click.argument("file_path")
     def add_collection_from_json_command(file_path):

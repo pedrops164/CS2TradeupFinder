@@ -1,4 +1,4 @@
-from backend.src.tradeups import create_tradeup_from_dataframe
+from src.tradeups import create_tradeup_from_dataframe
 
 # temporary fix for the import error on the linear solver. Problem with python version and docplex
 #import numpy as np
@@ -6,9 +6,8 @@ from backend.src.tradeups import create_tradeup_from_dataframe
 #np.complex_ = np.complex128
 
 
-from backend.src.solvers.pyomo import solver as solver_pyomo_nonlinear
-from backend.src.solvers.pyomo import solver_linear
-from backend.src.solvers.pyscipopt import solver_pyscipopt
+from src.solvers.pyomo import solver as solver_pyomo_nonlinear, solver_linear
+from src.solvers.pyscipopt import solver_pyscipopt
 from itertools import product
 import time
 import traceback
@@ -16,7 +15,7 @@ from contextlib import nullcontext
 import json
 import os
 from typing import List
-from backend.app.database import get_tradeup_dataframe
+from app.database import get_tradeup_dataframe
 
 script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in
 

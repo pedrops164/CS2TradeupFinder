@@ -21,3 +21,4 @@ flask-marshmallow
 marshmallow-sqlalchemy
 apifairy
 python3-openid
+waitress

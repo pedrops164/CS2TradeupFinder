@@ -1,18 +1,18 @@
 from flask import Flask
 from .models import db
 from flask_migrate import Migrate
-from backend.config import DevConfig
+#from backend.config import DevConfig
+from config import DevConfig
 from flask_cors import CORS
 from apifairy import APIFairy
-from backend.app.schemas import ma
+from app.schemas import ma
 
 migrate = Migrate(render_as_batch=True)
 # need to define this better later
-#cors = CORS(origins=["http://localhost:8080"], supports_credentials=True)
 cors = CORS() # define later
 apifairy = APIFairy()
 
-from backend.app.logger import configure_logging
+from app.logger import configure_logging
 configure_logging()
 
 def create_app(config_class=DevConfig):

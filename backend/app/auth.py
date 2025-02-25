@@ -4,7 +4,7 @@ from flask import current_app, jsonify
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth
 from werkzeug.exceptions import Unauthorized, Forbidden
 
-from backend.app.models import User, db
+from app.models import User, db
 
 basic_auth = HTTPBasicAuth()
 token_auth = HTTPTokenAuth()

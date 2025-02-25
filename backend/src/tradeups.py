@@ -1,7 +1,7 @@
 #from .entities import TradeUpPool, Collection, Skin, 
-from backend.src import entities
-from backend.app.models import db, Collection, Skin, Tradeup, SkinCondition, InputTradeupEntry, OutputTradeupEntry
-from backend.app.database import get_skin_price, get_skin_condition_from_skin
+from src import entities
+from app.models import db, Collection, Skin, Tradeup, SkinCondition, InputTradeupEntry, OutputTradeupEntry
+from app.database import get_skin_price, get_skin_condition_from_skin
 from typing import List
 from flask import abort, current_app
 

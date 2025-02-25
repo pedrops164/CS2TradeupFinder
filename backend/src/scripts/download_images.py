@@ -6,7 +6,7 @@ import time
 
 from PIL import Image
 from io import BytesIO
-from backend.app.models import db, Skin
+from app.models import db, Skin
 
 import unicodedata
 from urllib.parse import quote

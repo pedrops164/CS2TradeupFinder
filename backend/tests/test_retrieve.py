@@ -1,5 +1,5 @@
-from backend.app.models import db, User, Tradeup, TradeupType, Skin, InputTradeupEntry, OutputTradeupEntry, SkinCondition
-from backend.src.tradeups import calculate_output_entries
+from app.models import db, User, Tradeup, TradeupType, Skin, InputTradeupEntry, OutputTradeupEntry, SkinCondition
+from src.tradeups import calculate_output_entries
 
 def test_get_tracked_tradeups(app, client, auth):
     # Log in the client as the test user

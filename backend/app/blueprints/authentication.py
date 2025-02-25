@@ -1,8 +1,8 @@
 from flask import Blueprint, redirect, url_for, flash, request, jsonify, session
 from urllib.parse import urlsplit
 from flask_login import current_user, login_user, logout_user
-from backend.app.models import db, User, UserRole
-from backend.app.database import add_user
+from app.models import db, User, UserRole
+from app.database import add_user
 import sqlalchemy as sa
 
 # Configure logging

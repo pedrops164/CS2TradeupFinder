@@ -1,4 +1,4 @@
-from backend.app.models import TradeupType, Tradeup, User
+from app.models import TradeupType, Tradeup, User
 
 def test_create_tradeup_public(client, auth):
     auth.login_user()

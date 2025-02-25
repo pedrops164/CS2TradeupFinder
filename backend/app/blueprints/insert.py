@@ -1,14 +1,14 @@
 from flask import Blueprint, jsonify, current_app, abort
-from backend.app.models import Tradeup, InputTradeupEntry, OutputTradeupEntry, TradeupType, db
+from app.models import Tradeup, InputTradeupEntry, OutputTradeupEntry, TradeupType, db
 from ..schemas import TradeupInputSchema, PurchasableTradeupInputSchema
-from backend.src.tradeups import calculate_output_entries
-from backend.app.limiter import limiter
-from backend.app.auth import admin_required
+from src.tradeups import calculate_output_entries
+from app.limiter import limiter
+from app.auth import admin_required
 from webargs.flaskparser import use_kwargs
 from typing import List
-from backend.app.error_handlers import NoPermissionError
+from app.error_handlers import NoPermissionError
 
-from backend.app.auth import token_auth
+from app.auth import token_auth
 from apifairy import authenticate # restrict function access to authenticated users
 
 bp_insert = Blueprint('bp_insert', __name__)

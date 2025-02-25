@@ -4,8 +4,8 @@ import json
 import os
 import time
 import re
-from backend.app.database import update_weapon_paint_price
-from backend.src.logs import get_output_log_path
+from app.database import update_weapon_paint_price
+from src.logs import get_output_log_path
 
 output_log_path = get_output_log_path('scrape100.log')
 
