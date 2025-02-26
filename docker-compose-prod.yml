@@ -19,6 +19,8 @@ services:
       target: production
     ports:
       - 443:443
+    env_file:
+      - frontend/.env.production
     depends_on:
       - backend
 

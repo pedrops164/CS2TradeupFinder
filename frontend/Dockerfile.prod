@@ -13,7 +13,6 @@ RUN npm ci
 
 # Copy the rest of the application code and build for production
 # Copy the production environment file
-COPY .env.production ./
 COPY public public
 COPY src src
 RUN npm run build
@@ -25,8 +24,8 @@ FROM nginx:alpine AS production
 COPY --from=build /frontend/build /usr/share/nginx/html
 
 RUN rm /etc/nginx/conf.d/default.conf
-COPY nginx/cert.pem /var/certs/cert/
-COPY nginx/key.pem /var/certs/key/
+#COPY nginx/cert.pem /var/certs/cert/
+#COPY nginx/key.pem /var/certs/key/
 COPY nginx/dev.conf /etc/nginx/conf.d
 
 EXPOSE 433
