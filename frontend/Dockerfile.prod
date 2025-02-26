@@ -28,5 +28,5 @@ RUN rm /etc/nginx/conf.d/default.conf
 #COPY nginx/key.pem /var/certs/key/
 COPY nginx/dev.conf /etc/nginx/conf.d
 
-EXPOSE 433
+EXPOSE 443
 ENTRYPOINT ["nginx", "-g", "daemon off;"]
