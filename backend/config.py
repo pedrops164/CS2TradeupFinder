@@ -49,18 +49,19 @@ class BaseConfig:
         port=DB_PORT,
         database=DB_NAME,
     )
+    USE_CORS = True
+    CORS_HEADERS = 'Content-Type'
+    FRONTEND_URL = os.environ.get('FRONTEND_URL')
 
 class ProdConfig(BaseConfig):
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI')
-    USE_CORS = True
     USE_RATE_LIMITS = True
 
 class DevConfig(BaseConfig):
     DEBUG = True
     SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI') or 'sqlite:///' + os.path.join(basedir, 'app.db')
-    USE_CORS = True
-    USE_RATE_LIMITS = True
+    USE_RATE_LIMITS = False
 
 class TestConfig(BaseConfig):
     TESTING = True # Enable testing mode

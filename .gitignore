@@ -6,4 +6,4 @@ venv
 db/
 *.pem
 .env*
-nginx.conf
+frontend/nginx

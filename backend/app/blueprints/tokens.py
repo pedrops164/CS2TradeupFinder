@@ -176,7 +176,7 @@ steam_openid_url = 'https://steamcommunity.com/openid/login'
 @bp_tokens.route('/tokens/steam', methods=['GET'])
 def openid_steam_authorize():
     current_app.logger.info('openid_steam_authorize')
-    realm_url = os.environ.get('FRONTEND_URL')
+    realm_url = current_app.config['FRONTEND_URL']
     params = {
         'openid.ns': "http://specs.openid.net/auth/2.0",
         'openid.identity': "http://specs.openid.net/auth/2.0/identifier_select",
