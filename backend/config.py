@@ -35,6 +35,7 @@ class BaseConfig:
     REFRESH_TOKEN_IN_BODY = as_bool(os.environ.get('REFRESH_TOKEN_IN_BODY'))
     FRONTEND_URL = os.environ.get('FRONTEND_URL')
 
+from app.connect_connector import getconn
 class ProdConfig(BaseConfig):
     DEBUG = False
     DB_DRIVERNAME = os.environ.get('DB_DRIVERNAME')
@@ -52,6 +53,7 @@ class ProdConfig(BaseConfig):
         port=DB_PORT,
         database=DB_NAME,
     )
+    SQLALCHEMY_ENGINE_OPTIONS = {"creator": getconn}
     USE_CORS = True
     CORS_SUPPORTS_CREDENTIALS = True
     CORS_HEADERS = 'Content-Type'
