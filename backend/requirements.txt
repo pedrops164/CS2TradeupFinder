@@ -22,3 +22,5 @@ marshmallow-sqlalchemy
 apifairy
 python3-openid
 waitress
+cloud-sql-python-connector
+pg8000
