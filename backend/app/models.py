@@ -40,7 +40,7 @@ class Skin(db.Model):
     stattrak_available = db.Column(db.Boolean, default=False)  # New field
     collection_id = db.Column(db.Integer, db.ForeignKey('collections.id'))
     quality = db.Column(db.String)
-    image_name = db.Column(db.String(64), nullable=True, default=None)
+    image_name = db.Column(db.String, nullable=True, default=None)
     last_of_rarity = db.Column(db.Boolean, nullable=False, default=False, server_default="true")
     
     @staticmethod
