@@ -8,3 +8,4 @@ db/
 .env*
 frontend/nginx
 backend/certs
+init_data/
