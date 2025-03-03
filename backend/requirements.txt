@@ -24,3 +24,4 @@ python3-openid
 waitress
 cloud-sql-python-connector
 pg8000
+flask_apscheduler

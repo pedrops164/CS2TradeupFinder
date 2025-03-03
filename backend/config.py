@@ -34,10 +34,6 @@ class BaseConfig:
     REFRESH_TOKEN_IN_COOKIE = as_bool(os.environ.get('REFRESH_TOKEN_IN_COOKIE') or 'yes')
     REFRESH_TOKEN_IN_BODY = as_bool(os.environ.get('REFRESH_TOKEN_IN_BODY'))
     FRONTEND_URL = os.environ.get('FRONTEND_URL')
-
-from app.connect_connector import getconn
-class ProdConfig(BaseConfig):
-    DEBUG = False
     DB_DRIVERNAME = os.environ.get('DB_DRIVERNAME')
     DB_USER = os.environ.get('DB_USER')
     DB_PASS = os.environ.get('DB_PASS')
@@ -53,6 +49,12 @@ class ProdConfig(BaseConfig):
         port=DB_PORT,
         database=DB_NAME,
     )
+    UPDATE_PRICES_HOURS_INTERVAL = int(os.environ.get('UPDATE_PRICES_HOURS_INTERVAL'))
+    UPDATE_PRICES_MINUTES_INTERVAL = int(os.environ.get('UPDATE_PRICES_MINUTES_INTERVAL'))
+
+from app.connect_connector import getconn
+class ProdConfig(BaseConfig):
+    DEBUG = False
     SQLALCHEMY_ENGINE_OPTIONS = {"creator": getconn}
     USE_CORS = True
     CORS_SUPPORTS_CREDENTIALS = True
@@ -61,8 +63,8 @@ class ProdConfig(BaseConfig):
 
 class DevConfig(BaseConfig):
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI') or 'sqlite:///' + os.path.join(basedir, 'app.db')
-    USE_CORS = False
+    #SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI') or 'sqlite:///' + os.path.join(basedir, 'app.db')
+    USE_CORS = True
     USE_RATE_LIMITS = False
 
 class TestConfig(BaseConfig):

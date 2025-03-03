@@ -3,6 +3,7 @@ from app.models import Tradeup, db
 from src.tradeups import calculate_tradeup_stats
 from app.schemas import InputEntrySchema, OutputEntrySchema
 import logging
+from flask import current_app
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -49,12 +50,15 @@ def update_all_tradeups_stats():
     """
     Updates the stats for all tradeups in the database
     """
-    # Get all tradeups
-    tradeups = db.session.query(Tradeup).all()
+    with db.session.begin():
+        current_app.logger.info("Updating all tradeup stats")
+        # Get all tradeups
+        tradeups = db.session.query(Tradeup).all()
 
-    # Update the stats for each tradeup
-    for tradeup in tradeups:
-        set_tradeup_stats(tradeup)
+        # Update the stats for each tradeup
+        for tradeup in tradeups:
+            set_tradeup_stats(tradeup)
 
-    # Commit the changes
-    db.session.commit()
+        # Commit the changes
+        db.session.commit()
+        current_app.logger.info("Tradeup stats update completed successfully")
