@@ -32,6 +32,15 @@ def register_error_handlers(app):
         logger.warning(f"Bad request: {str(e.description)}")
         return jsonify({"error": "Bad request: {}".format(str(e.description))}), 400
     
+    @app.errorhandler(403)
+    def forbidden_handler(e):
+        """
+        Custom error handler for forbidden request (403 Bad Request) responses.
+        Formats the error response to match existing error handling patterns.
+        """
+        logger.warning(f"Forbidden request: {str(e.description)}")
+        return jsonify({"error": str(e.description)}), 403
+    
     @app.errorhandler(NoPermissionError)
     def no_permission_handler(e):
         """

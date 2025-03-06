@@ -68,6 +68,7 @@ def create_tradeup_private(input_entries, stattrak, input_rarity, name, release_
     Create a private tradeup. Private tradeups are only visible to the creator.
     """
     user = token_auth.current_user()
+    _check_max_tracked_tradeups(user)
     current_app.logger.info("User %s initiated creation of a PRIVATE tradeup", user.steam_id)
     tradeup_type = TradeupType.PRIVATE
 
@@ -193,6 +194,7 @@ def track_tradeup(tradeup_id):
     """
     user = token_auth.current_user()
     current_app.logger.info("User %s attempting to track tradeup %s", user.steam_id, tradeup_id)
+    _check_max_tracked_tradeups(user)
     if tradeup_id is None:
         current_app.logger.error("Track request missing tradeup id for user %s", user.steam_id)
         abort(400, "Must receive tradeup id")
@@ -219,3 +221,9 @@ def track_tradeup(tradeup_id):
         current_app.logger.error("Database error during tradeup tracking by user %s: %s", user.steam_id, str(e), exc_info=True)
         db.session.rollback()
         abort(500, "Failed to track tradeup")
+
+def _check_max_tracked_tradeups(user):
+    max_user_tracked_tradeups = current_app.config.get('MAX_USER_TRACKED_TRADEUPS')
+    if user.tracked_tradeups.count() >= max_user_tracked_tradeups:
+        current_app.logger.error("User %s has reached the maximum number of tracked tradeups", user.steam_id)
+        abort(403, f"You can only track up to {max_user_tracked_tradeups} tradeups.")

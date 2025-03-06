@@ -330,6 +330,7 @@ const TradeupCalculator = () => {
         const add_tradeup_response = await api.post(route, payload);
 
         if (!add_tradeup_response.ok) {
+            console.log(add_tradeup_response);
             const errorMessage = await handleApiError(add_tradeup_response);
             setValidationError(errorMessage);
             return;

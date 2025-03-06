@@ -12,7 +12,8 @@ def as_bool(value):
 
 class BaseConfig:
     SECRET_KEY = os.environ.get('SECRET_KEY')
-    TRADEUPS_PER_PAGE = 5
+    TRADEUPS_PER_PAGE = int(os.environ.get('TRADEUPS_PER_PAGE') or '5')
+    MAX_USER_TRACKED_TRADEUPS = int(os.environ.get('MAX_USER_TRACKED_TRADEUPS') or '20')
     SKINS_PER_PAGE = 5
     OAUTH2_PROVIDERS = {
         'google': {

@@ -24,11 +24,6 @@ Logger.initialize({
   app: 'tradeup-finder',
   version: '1.0.0'
 });
-// Test each log level
-Logger.debug('Debug message test', { type: 'test' });
-Logger.info('Info message test', { type: 'test' });
-Logger.warn('Warning message test', { type: 'test' });
-Logger.error('Error message test', { type: 'test' });
 
 const theme = createTheme({
     palette: {

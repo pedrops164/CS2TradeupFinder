@@ -18,7 +18,7 @@ export const handleApiError = async (response) => {
                 return 'Authentication required. Please log in.';
                 
             case 403:
-                return 'Access denied. You do not have permission to perform this action.';
+                return data.error || 'Access denied. You do not have permission to perform this action.';
                 
             case 404:
                 return 'Resource not found.';

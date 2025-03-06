@@ -32,6 +32,7 @@ export default class ApiClient {
 
     let response;
     let body;
+    let message;
     try {
       response = await fetch(this.base_url + options.url + query, {
         method: options.method,
@@ -60,6 +61,7 @@ export default class ApiClient {
     try {
       body = await response.json();
     } catch (parseError) {
+      console.log('here');
       body = {};
     }
 

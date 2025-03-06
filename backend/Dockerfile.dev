@@ -1,0 +1,22 @@
+# Base Image
+FROM python:3.10-slim
+
+ENV FLASK_APP=project.py
+ENV FLASK_DEBUG=1
+
+WORKDIR /backend
+
+# add and install requirements
+COPY ./requirements.txt ./
+RUN pip install -r requirements.txt
+
+# add source code
+COPY app app
+COPY migrations migrations
+COPY src src
+COPY config.py project.py ./
+
+EXPOSE 5000
+
+# run server with Flask directly
+CMD ["flask", "run", "--host=0.0.0.0", "--port=5000"]
