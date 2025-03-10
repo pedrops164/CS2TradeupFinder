@@ -342,7 +342,8 @@ def check_duplicate_tradeup(input_entries, stattrak, input_rarity, name, release
         ).all()
 
         # if tradeup type is private, only check for duplicates created by the user
-        if tradeup_type == TradeupType.PRIVATE:
+        if TradeupType(tradeup_type) == TradeupType.PRIVATE:
+            current_app.logger.info("Filtering duplicate tradeups tracked by user %s", user.steam_id)
             duplicate_tradeups = [tradeup for tradeup in duplicate_tradeups if user in tradeup.tracked_by]
 
         for tradeup in duplicate_tradeups:
