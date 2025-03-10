@@ -341,6 +341,10 @@ def check_duplicate_tradeup(input_entries, stattrak, input_rarity, name, release
             Tradeup.tradeup_type == TradeupType(tradeup_type)
         ).all()
 
+        # if tradeup type is private, only check for duplicates created by the user
+        if tradeup_type == TradeupType.PRIVATE:
+            duplicate_tradeups = [tradeup for tradeup in duplicate_tradeups if user in tradeup.tracked_by]
+
         for tradeup in duplicate_tradeups:
             tradeup_input_entries = tradeup.input_entries
             if len(tradeup_input_entries) != len(input_entries):

@@ -250,7 +250,7 @@ def untrack_tradeup(tradeup_id):
         # check if tradeup is tracked by noone else, and was purchased by nobody
         if len(tradeup.purchased_by) == 0 and len(tradeup.tracked_by) == 1:
             # remove tradeup from current user
-            user.tracked_tradeups = []
+            tradeup.tracked_by = []
         # remove tradeup and its entries from the database
         for entry in tradeup.input_entries:
             db.session.delete(entry)
