@@ -78,21 +78,6 @@ class TestConfig(BaseConfig):
     USE_RATE_LIMITS = False
     USE_CORS = False
     USE_SCHEDULERS=False
-    DB_DRIVERNAME = os.environ.get('TEST_DB_DRIVERNAME')
-    DB_USER = os.environ.get('TEST_DB_USER')
-    DB_PASS = os.environ.get('TEST_DB_PASS')
-    DB_HOST = os.environ.get('TEST_DB_HOST')
-    DB_PORT = os.environ.get('TEST_DB_PORT')
-    DB_NAME = os.environ.get('TEST_DB_NAME')
-    #SQLALCHEMY_DATABASE_URI=f"{DB_DRIVERNAME}://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-    SQLALCHEMY_DATABASE_URI=sqlalchemy.engine.url.URL.create(
-        drivername=DB_DRIVERNAME,
-        username=DB_USER,
-        password=DB_PASS,
-        host=DB_HOST,
-        port=DB_PORT,
-        database=DB_NAME,
-    )
 
 class TestConfigWithAuth(TestConfig):
     DISABLE_AUTH = False
