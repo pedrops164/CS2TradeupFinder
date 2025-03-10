@@ -12,6 +12,7 @@ def as_bool(value):
 
 class BaseConfig:
     SECRET_KEY = os.environ.get('SECRET_KEY')
+    DISABLE_AUTH = False
     TRADEUPS_PER_PAGE = int(os.environ.get('TRADEUPS_PER_PAGE') or '5')
     MAX_USER_TRACKED_TRADEUPS = int(os.environ.get('MAX_USER_TRACKED_TRADEUPS') or '20')
     SKINS_PER_PAGE = 5
@@ -52,6 +53,7 @@ class BaseConfig:
     )
     UPDATE_PRICES_HOURS_INTERVAL = int(os.environ.get('UPDATE_PRICES_HOURS_INTERVAL'))
     UPDATE_PRICES_MINUTES_INTERVAL = int(os.environ.get('UPDATE_PRICES_MINUTES_INTERVAL'))
+    USE_SCHEDULERS=True
 
 from app.connect_connector import getconn
 class ProdConfig(BaseConfig):
@@ -70,5 +72,27 @@ class DevConfig(BaseConfig):
 
 class TestConfig(BaseConfig):
     TESTING = True # Enable testing mode
-    SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(basedir, 'tests.db') # Use a separate database for testing
-    WTF_CSRF_ENABLED = False # Disable CSRF protection
+    DISABLE_AUTH = True
+    #SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(basedir, 'tests', 'tests.db') # Use a separate database for testing
+    #WTF_CSRF_ENABLED = False # Disable CSRF protection
+    USE_RATE_LIMITS = False
+    USE_CORS = False
+    USE_SCHEDULERS=False
+    DB_DRIVERNAME = os.environ.get('TEST_DB_DRIVERNAME')
+    DB_USER = os.environ.get('TEST_DB_USER')
+    DB_PASS = os.environ.get('TEST_DB_PASS')
+    DB_HOST = os.environ.get('TEST_DB_HOST')
+    DB_PORT = os.environ.get('TEST_DB_PORT')
+    DB_NAME = os.environ.get('TEST_DB_NAME')
+    #SQLALCHEMY_DATABASE_URI=f"{DB_DRIVERNAME}://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    SQLALCHEMY_DATABASE_URI=sqlalchemy.engine.url.URL.create(
+        drivername=DB_DRIVERNAME,
+        username=DB_USER,
+        password=DB_PASS,
+        host=DB_HOST,
+        port=DB_PORT,
+        database=DB_NAME,
+    )
+
+class TestConfigWithAuth(TestConfig):
+    DISABLE_AUTH = False

@@ -1,9 +1,10 @@
 # import marshmallow for schema validation and serialization of data in the request
 from marshmallow import Schema, fields, validate, post_load
-from app.models import TradeupType, User, UserRole, InputTradeupEntry, Tradeup, OutputTradeupEntry,SkinCondition
+from app.models import db, TradeupType, User, UserRole, InputTradeupEntry, Tradeup, OutputTradeupEntry,SkinCondition
 from app.date import aware_utcnow
 from flask_marshmallow import Marshmallow
 import logging
+from collections import OrderedDict
 
 ma = Marshmallow()
 
@@ -42,7 +43,8 @@ class InputEntrySchema(ma.SQLAlchemySchema):
 
     @post_load
     def load_skin_condition(self, entry, **kwargs):
-        entry['skin_condition'] = SkinCondition.query.get(entry['skin_condition_id'])
+        skin_condition = db.session.get(SkinCondition, entry['skin_condition_id'])
+        entry['skin_condition'] = skin_condition
         return entry
     
 class OutputEntrySchema(ma.SQLAlchemySchema):
@@ -150,7 +152,7 @@ class SkinSearchSchema(Schema):
 class UserSchema(ma.SQLAlchemySchema):
     class Meta:
         model = User
-        ordered = True
+        dict_class = OrderedDict
         
     steam_id = ma.auto_field(dump_only=True)
     avatar_url = ma.auto_field(required=False, dump_only=True)
@@ -163,7 +165,7 @@ class UserSchema(ma.SQLAlchemySchema):
 
 class TokenSchema(ma.Schema):
     class Meta:
-        ordered = True
+        dict_class = OrderedDict
 
     access_token = ma.String(required=True)
     refresh_token = ma.String()

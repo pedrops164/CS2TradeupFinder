@@ -41,6 +41,15 @@ def register_error_handlers(app):
         logger.warning(f"Forbidden request: {str(e.description)}")
         return jsonify({"error": str(e.description)}), 403
     
+    @app.errorhandler(404)
+    def not_found_handler(e):
+        """
+        Custom error handler for Not Found request (404 Not Found) responses.
+        Formats the error response to match existing error handling patterns.
+        """
+        logger.warning(f"Not Found: {str(e.description)}")
+        return jsonify({"error": str(e.description)}), 404
+    
     @app.errorhandler(NoPermissionError)
     def no_permission_handler(e):
         """

@@ -35,19 +35,20 @@ services:
     image: postgres:latest
     restart: unless-stopped
     ports:
-      - 5432:5432
+      - 5433:5433
+    command: -p 5433
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: database
     volumes:
-      - ./init_data.sql:/docker-entrypoint-initdb.d/init_data.sql
-      - ./db:/var/lib/postgresql/data
+      - ./init_data/init_maintables_data.sql:/docker-entrypoint-initdb.d/init_data.sql
+      - ./db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -q -d database -U postgres -h localhost"]
+      test: ["CMD-SHELL", "pg_isready -q -d database -U postgres -h localhost -p 5433"]
       interval: 15s
-      timeout: 10s
+      timeout: 15s
       retries: 10
 
 volumes:
-  db:
+  db_data:

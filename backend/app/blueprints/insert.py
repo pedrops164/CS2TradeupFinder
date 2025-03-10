@@ -185,7 +185,7 @@ def purchase_tradeup(tradeup_id):
         db.session.rollback()
         abort(500, "Failed to purchase tradeup")
 
-@bp_insert.route('/tradeups/<int:tradeup_id>/track', methods=['POST'])
+@bp_insert.route('/tradeups/<int:tradeup_id>/track', methods=['GET'])
 @authenticate(token_auth)
 @limiter.limit("30 per minute", key_func = lambda : token_auth.current_user().steam_id)
 def track_tradeup(tradeup_id):
@@ -203,11 +203,11 @@ def track_tradeup(tradeup_id):
     tradeup = Tradeup.query.filter(Tradeup.id == tradeup_id).first()
     if tradeup is None:
         current_app.logger.error("No tradeup found with id %s for tracking by user %s", tradeup_id, user.steam_id)
-        abort(400, "No tradeup with given id")
+        abort(404, "No tradeup with given id")
     
     if tradeup in token_auth.current_user().tracked_tradeups:
         current_app.logger.error("User %s already tracking tradeup %s", user.steam_id, tradeup_id)
-        abort(400, "User already tracked the given tradeup")
+        abort(405, "User already tracked the given tradeup")
     
     # add tradeup to current user
     user.tracked_tradeups.append(tradeup)
@@ -222,8 +222,96 @@ def track_tradeup(tradeup_id):
         db.session.rollback()
         abort(500, "Failed to track tradeup")
 
+        
+@bp_insert.route('/tradeups/<int:tradeup_id>/untrack', methods=['GET'])
+@authenticate(token_auth)
+@limiter.limit("30 per minute", key_func = lambda : token_auth.current_user().steam_id)
+def untrack_tradeup(tradeup_id):
+    """
+    Allow an authenticated user to untrack a tradeup.
+    """
+    user = token_auth.current_user()
+    current_app.logger.info("User %s attempting to untrack tradeup %s", user.steam_id, tradeup_id)
+    if tradeup_id is None:
+        current_app.logger.error("Track request missing tradeup id for user %s", user.steam_id)
+        abort(400, "Must receive tradeup id")
+    
+    # get tradeup with given id
+    tradeup = Tradeup.query.filter(Tradeup.id == tradeup_id).first()
+    if tradeup is None:
+        current_app.logger.error("No tradeup found with id %s for tracking by user %s", tradeup_id, user.steam_id)
+        abort(404, "No tradeup with given id")
+    
+    if tradeup not in user.tracked_tradeups:
+        current_app.logger.error("User %s doesnt track tradeup with id %s", user.steam_id, tradeup_id)
+        abort(405, "User doesnt track this tradeup")
+    
+    try:
+        # check if tradeup is tracked by noone else, and was purchased by nobody
+        if len(tradeup.purchased_by) == 0 and len(tradeup.tracked_by) == 1:
+            # remove tradeup from current user
+            user.tracked_tradeups = []
+        # remove tradeup and its entries from the database
+        for entry in tradeup.input_entries:
+            db.session.delete(entry)
+        for entry in tradeup.output_entries:
+            db.session.delete(entry)
+        db.session.delete(tradeup)
+        # persist changes in database
+        db.session.commit()
+        current_app.logger.info("User %s successfully untracked tradeup %s", user.steam_id, tradeup_id)
+        return jsonify({"message": "Tradeup untracked successfully", "user_id": user.steam_id}), 204
+    except Exception as e:
+        current_app.logger.error("Database error during tradeup untracking by user %s: %s", user.steam_id, str(e), exc_info=True)
+        db.session.rollback()
+        abort(500, "Failed to track tradeup")
+
 def _check_max_tracked_tradeups(user):
     max_user_tracked_tradeups = current_app.config.get('MAX_USER_TRACKED_TRADEUPS')
     if user.tracked_tradeups.count() >= max_user_tracked_tradeups:
         current_app.logger.error("User %s has reached the maximum number of tracked tradeups", user.steam_id)
         abort(403, f"You can only track up to {max_user_tracked_tradeups} tradeups.")
+
+
+@bp_insert.route('/tradeups/<int:tradeup_id>/remove', methods=['GET'])
+@authenticate(token_auth)
+@admin_required
+@limiter.limit("30 per minute", key_func = lambda : token_auth.current_user().steam_id)
+def remove_public_tradeup(tradeup_id):
+    """
+    Remove a public tradeup.
+    """
+    user = token_auth.current_user()
+    current_app.logger.info("Admin %s attempting to remove tradeup %s", user.steam_id, tradeup_id)
+    if tradeup_id is None:
+        current_app.logger.error("Remove request missing tradeup id for user %s", user.steam_id)
+        abort(400, "Must receive tradeup id")
+    
+    # get tradeup with given id
+    tradeup = Tradeup.query.filter(Tradeup.id == tradeup_id).first()
+    if tradeup is None:
+        current_app.logger.error("No tradeup found with id %s for removal by %s", tradeup_id, user.steam_id)
+        abort(404, "No tradeup with given id")
+    
+    if tradeup.tradeup_type == TradeupType.PRIVATE:
+        current_app.logger.error("User %s doesnt track tradeup with id %s", user.steam_id, tradeup_id)
+        abort(405, "Can't remove private tradeup. Use untrack instead.")
+
+    try:
+        tradeup.tradeup_type = TradeupType.REMOVED
+        if len(tradeup.tracked_by) == 0 and len(tradeup.purchased_by) == 0:
+            # remove tradeup and its entries from the database
+            for entry in tradeup.input_entries:
+                db.session.delete(entry)
+            for entry in tradeup.output_entries:
+                db.session.delete(entry)
+            db.session.delete(tradeup)
+        # persist changes in database
+        db.session.commit()
+        current_app.logger.info("Admin %s successfully removed tradeup %s", user.steam_id, tradeup_id)
+        return jsonify({"message": "Tradeup removed successfully", "user_id": user.steam_id}), 204
+    except Exception as e:
+        current_app.logger.error("Database error during tradeup removal by admin %s: %s", user.steam_id, str(e), exc_info=True)
+        db.session.rollback()
+        abort(500, "Failed to remove tradeup")
+        

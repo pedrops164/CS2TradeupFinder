@@ -1,223 +1,137 @@
-from app.models import TradeupType, Tradeup, User
+from base_test_case import TestCaseAuthUser, TestCaseAuthAdmin
 
-def test_create_tradeup_public(client, auth):
-    auth.login_user()
+class InsertTestsAuthUser(TestCaseAuthUser):
+    def test_add_tradeup(self):
+        rv = self.client.post("/api/tradeups/create_public")
+        # User with role USER should not be able to add public tradeups.
+        # Also, the data wasnt given in the required schema, and that returns error 422
+        assert rv.status_code == 403 or rv.status_code == 422
 
-    # create a mock tradeup
-    mock_payload = {
-        "name": "Test Tradeup",
-        "stattrak": True,
-        "input_rarity": "milspec_bg",
-        "input_entries": [
-            {
-                "skin_name": "M249 | Magma",
-                "skin_condition": "Battle-Scarred",
-                "skin_float": 0.46,
-                "count": 10,
-                "collection_id": 76
-            }
-        ]
-    }
-    duplicate_check_payload = mock_payload.copy()
-    duplicate_check_payload['tradeup_type'] = TradeupType.PUBLIC.value
-    # assert the mock tradeup is not in the database
-    response = client.post("/tradeups/check_duplicate", json=duplicate_check_payload)
-    assert response.status_code == 200
-    data = response.get_json()
-    # if the tradeup is not in the database, then it should not be a duplicate
-    assert data["is_duplicate"] == False
+        # Attempt to create tradeup without providing data in the required format. Gives error 422
+        rv = self.client.post("/api/tradeups/create_private")
+        assert rv.status_code == 422
 
-    # insert the mock tradeup in the database
-    response = client.post("/tradeups/create_public", json=mock_payload)
-    # assert the tradeup wasnt created successfully (the client has role user)
-    assert response.status_code == 400
+        # Attempt to create valid private tradeup
+        rv = self.client.post("/api/tradeups/create_private", json={
+            "stattrak": False,
+            "input_rarity": "milspec_bg",
+            "input_entries": [
+                {
+                    "skin_condition_id": 28,
+                    "skin_float": 0.46,
+                    "count": 10,
+                }
+            ]
+        })
+        assert rv.status_code == 201
 
-    # logout and authenticate as admin
-    auth.logout()
-    auth.login_admin()
 
-    # insert again and assert that it was created successfully (the client has role admin)
-    response = client.post("/tradeups/create_public", json=mock_payload)
-    assert response.status_code == 201  
+    def test_track_tradeup(self):
+        # Attempt to create valid private tradeup
+        rv = self.client.post("/api/tradeups/create_private", json={
+            "stattrak": False,
+            "input_rarity": "milspec_bg",
+            "input_entries": [
+                {
+                    "skin_condition_id": 28,
+                    "skin_float": 0.46,
+                    "count": 10,
+                }
+            ]
+        })
+        assert rv.status_code == 201
 
-    # assert the tradeup is now in the database
-    response = client.post("/tradeups/check_duplicate", json=duplicate_check_payload)
-    assert response.status_code == 200
-    data = response.get_json()
-    # if the tradeup is now in the database, then it should be a duplicate
-    assert data["is_duplicate"] == True
+        # test max tracked tradeups hit limit
+        # set app config max_tracked_tradeups to 1
+        self.app.config['MAX_USER_TRACKED_TRADEUPS'] = 1
+        # Attempt to create private tradeup (track tradeup), shouldnt work because user already tracks one tradeup
+        rv = self.client.post("/api/tradeups/create_private", json={
+            "stattrak": False,
+            "input_rarity": "milspec_bg",
+            "input_entries": [
+                {
+                    "skin_condition_id": 28,
+                    "skin_float": 0.46,
+                    "count": 10,
+                }
+            ]
+        })
+        assert rv.status_code == 403
 
-def test_create_tradeup_purchasable(client, auth):
-    auth.login_user()
+    def test_untrack_tradeup(self):
+        # Attempt to untrack tradeup that user doesnt track, should return 404
+        rv = self.client.get("/api/tradeups/1/untrack")
+        assert rv.status_code == 404
 
-    # create a mock tradeup
-    mock_payload = {
-        "name": "Test Tradeup",
-        "stattrak": True,
-        "input_rarity": "milspec_bg",
-        "input_entries": [
-            {
-                "skin_name": "M249 | Magma",
-                "skin_condition": "Battle-Scarred",
-                "skin_float": 0.46,
-                "count": 10,
-                "collection_id": 76
-            }
-        ],
-        'price': 2
-    }
-    duplicate_check_payload = mock_payload.copy()
-    duplicate_check_payload['tradeup_type'] = TradeupType.PURCHASABLE.value
-    # assert the mock tradeup is not in the database
-    response = client.post("/tradeups/check_duplicate", json=duplicate_check_payload)
-    assert response.status_code == 200
-    data = response.get_json()
-    # if the tradeup is not in the database, then it should not be a duplicate
-    assert data["is_duplicate"] == False
+        # Attempt to create valid private tradeup
+        rv = self.client.post("/api/tradeups/create_private", json={
+            "stattrak": False,
+            "input_rarity": "milspec_bg",
+            "input_entries": [
+                {
+                    "skin_condition_id": 28,
+                    "skin_float": 0.46,
+                    "count": 10,
+                }
+            ]
+        })
+        assert rv.status_code == 201
 
-    # insert the mock tradeup in the database
-    response = client.post("/tradeups/create_purchasable", json=mock_payload)
-    # assert the tradeup wasnt created successfully (the client has role user)
-    assert response.status_code == 400
+        tradeup_id = rv.json['tradeup_id']
 
-    # logout and authenticate as admin
-    auth.logout()
-    auth.login_admin()
+        # Attempt to untrack tradeup that user tracks, should return 204
+        rv = self.client.get(f"/api/tradeups/{tradeup_id}/untrack")
+        assert rv.status_code == 204
 
-    # insert again and assert that it was created successfully (the client has role admin)
-    response = client.post("/tradeups/create_purchasable", json=mock_payload)
-    assert response.status_code == 201  
+        # Attempt to untrack tradeup that doesnt exist
+        rv = self.client.get(f"/api/tradeups/{tradeup_id}/untrack")
+        assert rv.status_code == 404
 
-    # assert the tradeup is now in the database
-    response = client.post("/tradeups/check_duplicate", json=duplicate_check_payload)
-    assert response.status_code == 200
-    data = response.get_json()
-    # if the tradeup is now in the database, then it should be a duplicate
-    assert data["is_duplicate"] == True
+class InsertTestsAuthAdmin(TestCaseAuthAdmin):
+    def test_add_tradeup(self):
+        # Attempt to create tradeup without providing data in the required format. Gives error 422
+        rv = self.client.post("/api/tradeups/create_public")
+        assert rv.status_code == 422
 
-def test_create_tradeup_private(client, auth):
-    auth.login_user()
+        # User with role ADMIN should be able to add public tradeups.
+        rv = self.client.post("/api/tradeups/create_public", json={
+            "stattrak": False,
+            "input_rarity": "milspec_bg",
+            "input_entries": [
+                {
+                    "skin_condition_id": 28,
+                    "skin_float": 0.46,
+                    "count": 10,
+                }
+            ]
+        })
+        assert rv.status_code == 201
 
-    # create a mock tradeup
-    mock_payload = {
-        "name": "Test Tradeup",
-        "stattrak": True,
-        "input_rarity": "milspec_bg",
-        "input_entries": [
-            {
-                "skin_name": "M249 | Magma",
-                "skin_condition": "Battle-Scarred",
-                "skin_float": 0.46,
-                "count": 10,
-                "collection_id": 76
-            }
-        ]
-    }
-    duplicate_check_payload = mock_payload.copy()
-    duplicate_check_payload['tradeup_type'] = TradeupType.PRIVATE.value
-    # assert the mock tradeup is not in the database
-    response = client.post("/tradeups/check_duplicate", json=duplicate_check_payload)
-    assert response.status_code == 200
-    data = response.get_json()
-    # if the tradeup is not in the database, then it should not be a duplicate
-    assert data["is_duplicate"] == False
+    def test_remove_tradeup(self):
+        # Attempt to remove tradeup that doesnt exist
+        rv = self.client.get("/api/tradeups/1/remove")
+        assert rv.status_code == 404
 
-    # insert the mock tradeup in the database
-    response = client.post("/tradeups/create_private", json=mock_payload)
-    # assert the tradeup was created successfully (the client has role user, and private tradeups can be created by users)
-    assert response.status_code == 201
+        # Attempt to create valid private tradeup
+        rv = self.client.post("/api/tradeups/create_public", json={
+            "stattrak": False,
+            "input_rarity": "milspec_bg",
+            "input_entries": [
+                {
+                    "skin_condition_id": 28,
+                    "skin_float": 0.46,
+                    "count": 10,
+                }
+            ]
+        })
+        assert rv.status_code == 201
 
-    # assert the tradeup is now in the database
-    response = client.post("/tradeups/check_duplicate", json=duplicate_check_payload)
-    assert response.status_code == 200
-    data = response.get_json()
-    # if the tradeup is now in the database, then it should be a duplicate
-    assert data["is_duplicate"] == True
+        tradeup_id = rv.json['tradeup_id']
 
-    # logout and try to add as non authenticated user
-    auth.logout()
-    response = client.post("/tradeups/create_private", json=mock_payload)
-    assert response.status_code == 302
+        # Attempt to untrack tradeup that user tracks, should return 204
+        rv = self.client.get(f"/api/tradeups/{tradeup_id}/remove")
+        assert rv.status_code == 204
 
-def test_purchase_tradeup(client, auth):
-    auth.login_admin()
-
-    # create a mock tradeup
-    mock_payload = {
-        "name": "Test Tradeup",
-        "stattrak": True,
-        "input_rarity": "milspec_bg",
-        "input_entries": [
-            {
-                "skin_name": "M249 | Magma",
-                "skin_condition": "Battle-Scarred",
-                "skin_float": 0.46,
-                "count": 10,
-                "collection_id": 76
-            }
-        ],
-        "price": 2
-    }
-
-    # create purchasable tradeup
-    response = client.post("/tradeups/create_purchasable", json=mock_payload)
-
-    # assert the tradeup was created successfully
-    assert response.status_code == 201
-    tradeup_id = response.get_json()["tradeup_id"]
-    # Get the tradeup
-    tradeup = Tradeup.query.filter_by(id=tradeup_id).first()
-    assert tradeup is not None
-    # Get the test user
-    user = User.query.filter_by(email=auth.get_email()).first()
-    assert user is not None
-
-    # assert the tradeup was not purchased yet
-    assert tradeup not in user.tradeups_purchased
-
-    # purchase the tradeup
-    client.post(f'/tradeups/{tradeup_id}/purchase')
-
-    # assert the tradeup was purchased successfully
-    assert tradeup in user.tradeups_purchased
-
-def test_track_tradeup(client, auth):
-    auth.login_admin()
-
-    # create a mock tradeup
-    mock_payload = {
-        "name": "Test Tradeup",
-        "stattrak": True,
-        "input_rarity": "milspec_bg",
-        "input_entries": [
-            {
-                "skin_name": "M249 | Magma",
-                "skin_condition": "Battle-Scarred",
-                "skin_float": 0.46,
-                "count": 10,
-                "collection_id": 76
-            }
-        ]
-    }
-
-    # create public tradeup
-    response = client.post("/tradeups/create_public", json=mock_payload)
-
-    # assert the tradeup was created successfully
-    assert response.status_code == 201
-    tradeup_id = response.get_json()["tradeup_id"]
-    # Get the tradeup
-    tradeup = Tradeup.query.filter_by(id=tradeup_id).first()
-    assert tradeup is not None
-    # Get the test user
-    user = User.query.filter_by(email=auth.get_email()).first()
-    assert user is not None
-
-    # assert the tradeup was not tracked yet
-    assert tradeup not in user.tracked_tradeups
-
-    # purchase the tradeup
-    client.post(f'/tradeups/{tradeup_id}/track')
-
-    # assert the tradeup was tracked successfully
-    assert tradeup in user.tracked_tradeups
+        # Attempt to untrack tradeup that doesnt exist
+        rv = self.client.get(f"/api/tradeups/{tradeup_id}/remove")
+        assert rv.status_code == 404

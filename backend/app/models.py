@@ -73,6 +73,7 @@ class TradeupType(enum.Enum):
     PUBLIC = "public"
     PURCHASABLE = "purchasable"
     PRIVATE = "private"
+    REMOVED = "removed"
 
 tradeup_purchase = db.Table('tradeup_purchase',
     db.Column('user_id', db.String(32), db.ForeignKey('users.steam_id'), primary_key=True),

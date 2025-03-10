@@ -30,7 +30,6 @@ def create_app(config_class=DevConfig):
         cors = CORS(app, resources={r"/api/*": {"origins": app.config['FRONTEND_URL'], "supports_credentials": True}})
         app.logger.info(f"CORS enabled for {app.config['FRONTEND_URL']}")
     apifairy.init_app(app)
-    scheduler.init_app(app)
 
     from .blueprints import register_blueprints
     register_blueprints(app)
@@ -40,8 +39,10 @@ def create_app(config_class=DevConfig):
     register_error_handlers(app)
     from .event_handlers import register_event_handlers
     register_event_handlers(app)
-    from .schedulers import register_schedulers
-    register_schedulers(scheduler, app)
-    scheduler.start()
+    if app.config['USE_SCHEDULERS']:
+        from .schedulers import register_schedulers
+        scheduler.init_app(app)
+        register_schedulers(scheduler, app)
+        scheduler.start()
 
     return app

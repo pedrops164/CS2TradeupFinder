@@ -25,3 +25,4 @@ waitress
 cloud-sql-python-connector
 pg8000
 flask_apscheduler
+alembic_postgresql_enum

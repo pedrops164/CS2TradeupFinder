@@ -8,9 +8,6 @@ services:
     env_file:
       - backend/.env
       - backend/.env.production
-    #depends_on:
-    #  db:
-    #    condition: service_healthy
 
   frontend:
     build:
@@ -23,25 +20,3 @@ services:
       - frontend/.env.production
     depends_on:
       - backend
-
-#  db:
-#    #container_name: postgres
-#    image: postgres:latest
-#    restart: unless-stopped
-#    ports:
-#      - 5432:5432
-#    environment:
-#      POSTGRES_USER: postgres
-#      POSTGRES_PASSWORD: password
-#      POSTGRES_DB: database
-#    volumes:
-#      - ./init_data.sql:/docker-entrypoint-initdb.d/init_data.sql
-#      - ./db:/var/lib/postgresql/data
-#    healthcheck:
-#      test: ["CMD-SHELL", "pg_isready -q -d database -U postgres -h localhost"]
-#      interval: 15s
-#      timeout: 10s
-#      retries: 10
-#
-#volumes:
-#  db:

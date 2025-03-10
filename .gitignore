@@ -3,7 +3,7 @@ __pycache__
 output/
 .vscode
 venv
-db/
+db_data/
 *.pem
 .env*
 frontend/nginx

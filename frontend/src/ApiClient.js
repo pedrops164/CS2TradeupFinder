@@ -61,7 +61,6 @@ export default class ApiClient {
     try {
       body = await response.json();
     } catch (parseError) {
-      console.log('here');
       body = {};
     }
 
