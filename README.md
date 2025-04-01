@@ -43,7 +43,10 @@ The application backend is built with a robust architecture:
 - Public Trade-ups Page: Browse all currently profitable trade-ups with detailed statistics
 - Tracked Trade-ups: Personalized dashboard of saved/favorite trade-up contracts
 - Calculator Page: Interactive tool to input items and calculate potential outcomes
-- Responsive Design: Fully optimized for both desktop and mobile devices
+
+![Main page](./static/main_page.png)
+![Public Tradeups page](./static/public_tradeups.png)
+![Calculator page](./static/calculator.png)
 
 ## Running
 
