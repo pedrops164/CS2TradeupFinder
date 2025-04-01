@@ -13,7 +13,7 @@ def register_commands(app):
 
     @app.cli.command("run-solver")
     def run_solver():
-        search_space = SearchSpace(range(0,77), [0.3], ["classified_bg"], [False], 'single')
+        search_space = SearchSpace(range(0,77), [0.3], ["consumer_bg", "industrial_bg", "milspec_bg", "restricted_bg", "classified_bg"], [False], 'single')
         search_solve_tradeup(search_space)
         print("Finished solving!")
 

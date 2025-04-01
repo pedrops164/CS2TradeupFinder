@@ -169,11 +169,17 @@ def solve_subset(tradeup_pool, collection_subset, ratio, file=None, min_obj_valu
         float: Objective value of the function. Returns None if it couldn't be solved.
     """
     print(f"current collection subset: {collection_subset}")
+    fn_ratio = 0.07 * ratio
+    mw_ratio = (0.15-0.07)*ratio + 0.07
+    ft_ratio = (0.38-0.15)*ratio + 0.15
+    ww_ratio = (0.45-0.38)*ratio + 0.38
+    bs_ratio = (1-0.45)*ratio + 0.45
     try:
         # calculate best tradeup
         objective_value, profit_pctg, input_skins_cost, elapsed_time, results_dict = solver_pyscipopt.solve_tradeup(tradeup_pool, collection_subset, ratio, min_obj_value)
         if file:
-            tradeup_output = f"subset: {collection_subset}, obj value: {objective_value:.3f}, profit_pctg: {profit_pctg:.2f}, input_skins_cost: {input_skins_cost:.2f}, time: {elapsed_time:.2f}\n"
+            tradeup_output = f"subset: {collection_subset}, obj value: {objective_value:.3f}, profit_pctg: {profit_pctg:.2f}, input_skins_cost: {input_skins_cost:.2f}, time: {elapsed_time:.2f},\
+             fn: {fn_ratio:.3f}, mw: {mw_ratio:.3f}, ft: {ft_ratio:.3f}, ww: {ww_ratio:.3f}, bs: {bs_ratio:.3f}\n"
             file.write(tradeup_output)
             json.dump(results_dict, file, indent=4)
             file.write("\n\n")

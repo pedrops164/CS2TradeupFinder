@@ -54,6 +54,7 @@ def fetch_json(start):
     retries = 0
     max_retries = 8
     wait_time = 5 # wait 5 seconds between requests - 10 requests per minute
+    exponent = 1.5
     url = \
     f"https://steamcommunity.com/market/search/render/?search_descriptions=0&sort_column=name&sort_dir=desc&appid={cs2_app_id}&norender=1&count={page_size}&start={start}"
 
@@ -78,7 +79,7 @@ def fetch_json(start):
 
         # execution only gets here if request fails
         # we square the wait time
-        wait_time = wait_time**2
+        wait_time = int(wait_time**exponent)
         # increase retries
         retries += 1
             
@@ -119,8 +120,8 @@ def update_all_weapon_paints_prices():
     """
     Updates the price of all skins through the steam market which have more than 5 listings and are relevant from tradeups (we exclude knifes, stickers, etc)
     """
-    #start=2750 # index where non knives skins start, sorted by name
-    start=2750
+    min_number_of_listings = 15
+    start=2750 # index where non knives skins start, sorted by name
     while start < total_skin_count:
         skin_dict_array = fetch_json(start)
         if skin_dict_array:
@@ -130,12 +131,12 @@ def update_all_weapon_paints_prices():
                 if filtered_skin_dict:
                     # this entry matched the regex pattern
                     number_of_listings = filtered_skin_dict['sell_listings']
-                    # we only update the price of the skin in the database, if it has more than 5 listings to ensure reliability of the prices
-                    if number_of_listings >= 5:
+                    # we only update the price of the skin in the database, if it has more than 'min_number_of_listings' listings to ensure reliability of the prices
+                    if number_of_listings >= min_number_of_listings:
                         #append_skin('teste.txt', filtered_skin_dict)
                         update_weapon_paint_price(filtered_skin_dict['is_stattrak'], filtered_skin_dict['weapon_paint'], filtered_skin_dict['condition'], filtered_skin_dict['price'])
                     else:
-                        logging.info(f"{filtered_skin_dict['weapon_paint']}|{filtered_skin_dict['condition']}|{filtered_skin_dict['is_stattrak']} has less than 5 listings. Price not updated")
+                        logging.info(f"{filtered_skin_dict['weapon_paint']}|{filtered_skin_dict['condition']}|{filtered_skin_dict['is_stattrak']} has less than {min_number_of_listings} listings. Price not updated")
                 else:
                     logging.info(f"Start: {start}, skin filtered out")
             start += page_size * 0.95 # we multiply by 0.95 to account for listings that appear or disappear, and that could compromise some skins
